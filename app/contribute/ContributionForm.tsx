@@ -168,7 +168,7 @@ export function ContributionForm() {
                 {ATTENDANCE_OPTIONS.map((count) => <option key={count} value={count}>{count}</option>)}
               </select>
             </label>
-            <label>No. of Kids <span className="label-note">(below 10 yrs)</span>
+            <label><span className="field-label">No. of Kids <span className="label-note">(below 10 yrs)</span></span>
               <select required name="childCount" value={form.childCount} onChange={(event) => update(event.target.name, event.target.value)}>
                 {ATTENDANCE_OPTIONS.map((count) => <option key={count} value={count}>{count}</option>)}
               </select>
