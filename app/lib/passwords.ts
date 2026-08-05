@@ -1,35 +1,7 @@
+import { createHash, pbkdf2Sync, randomBytes, timingSafeEqual } from "node:crypto";
+import { Buffer } from "node:buffer";
+
 const PASSWORD_ITERATIONS = 120_000;
-
-function bytesToBase64(bytes: Uint8Array) {
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary);
-}
-
-function base64ToBytes(value: string) {
-  const binary = atob(value);
-  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
-}
-
-function bytesToHex(bytes: Uint8Array) {
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-async function derivePassword(password: string, salt: Uint8Array) {
-  const source = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(password),
-    "PBKDF2",
-    false,
-    ["deriveBits"],
-  );
-  const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", hash: "SHA-256", salt, iterations: PASSWORD_ITERATIONS },
-    source,
-    256,
-  );
-  return new Uint8Array(bits);
-}
 
 export function normalizeUsername(value: unknown) {
   return String(value ?? "").trim().toLowerCase();
@@ -40,30 +12,28 @@ export function validUsername(username: string) {
 }
 
 export async function hashPassword(password: string) {
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const hash = await derivePassword(password, salt);
-  return { salt: bytesToBase64(salt), hash: bytesToBase64(hash) };
+  const salt = randomBytes(16);
+  const hash = pbkdf2Sync(password, salt, PASSWORD_ITERATIONS, 32, "sha256");
+  return { salt: salt.toString("base64"), hash: hash.toString("base64") };
 }
 
 export async function verifyPassword(password: string, salt: string, expectedHash: string) {
   try {
-    const actual = await derivePassword(password, base64ToBytes(salt));
-    const expected = base64ToBytes(expectedHash);
-    if (actual.length !== expected.length) return false;
-    let difference = 0;
-    for (let index = 0; index < actual.length; index += 1) difference |= actual[index] ^ expected[index];
-    return difference === 0;
-  } catch {
+    const saltBytes = Buffer.from(salt, "base64");
+    const expected = Buffer.from(expectedHash, "base64");
+    if (saltBytes.length !== 16 || expected.length !== 32) return false;
+    const actual = pbkdf2Sync(password, saltBytes, PASSWORD_ITERATIONS, expected.length, "sha256");
+    return timingSafeEqual(actual, expected);
+  } catch (error) {
+    console.error("Password verification failed", error);
     return false;
   }
 }
 
 export function newSessionToken() {
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
-  return bytesToBase64(bytes).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+  return randomBytes(32).toString("base64url");
 }
 
 export async function hashSessionToken(token: string) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
-  return bytesToHex(new Uint8Array(digest));
+  return createHash("sha256").update(token, "utf8").digest("hex");
 }
