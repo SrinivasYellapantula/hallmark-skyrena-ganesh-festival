@@ -55,7 +55,7 @@ test("application login uses hashed passwords and server-side sessions", async (
     source("drizzle/0002_cheerful_marauders.sql"),
     source("drizzle/0003_seed_initial_users.sql"),
   ]);
-  assert.match(passwords, /pbkdf2Sync/);
+  assert.match(passwords, /pbkdf2\(/);
   assert.match(passwords, /timingSafeEqual/);
   assert.match(passwords, /120_000/);
   assert.match(login, /login_attempts/);

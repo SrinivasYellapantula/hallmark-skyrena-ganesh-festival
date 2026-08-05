@@ -1,7 +1,16 @@
-import { createHash, pbkdf2Sync, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, pbkdf2, randomBytes, timingSafeEqual } from "node:crypto";
 import { Buffer } from "node:buffer";
 
 const PASSWORD_ITERATIONS = 120_000;
+
+function derivePassword(password: string, salt: Buffer, length = 32) {
+  return new Promise<Buffer>((resolve, reject) => {
+    pbkdf2(password, salt, PASSWORD_ITERATIONS, length, "sha256", (error, derived) => {
+      if (error) reject(error);
+      else resolve(derived);
+    });
+  });
+}
 
 export function normalizeUsername(value: unknown) {
   return String(value ?? "").trim().toLowerCase();
@@ -13,21 +22,16 @@ export function validUsername(username: string) {
 
 export async function hashPassword(password: string) {
   const salt = randomBytes(16);
-  const hash = pbkdf2Sync(password, salt, PASSWORD_ITERATIONS, 32, "sha256");
+  const hash = await derivePassword(password, salt);
   return { salt: salt.toString("base64"), hash: hash.toString("base64") };
 }
 
 export async function verifyPassword(password: string, salt: string, expectedHash: string) {
-  try {
-    const saltBytes = Buffer.from(salt, "base64");
-    const expected = Buffer.from(expectedHash, "base64");
-    if (saltBytes.length !== 16 || expected.length !== 32) return false;
-    const actual = pbkdf2Sync(password, saltBytes, PASSWORD_ITERATIONS, expected.length, "sha256");
-    return timingSafeEqual(actual, expected);
-  } catch (error) {
-    console.error("Password verification failed", error);
-    return false;
-  }
+  const saltBytes = Buffer.from(salt, "base64");
+  const expected = Buffer.from(expectedHash, "base64");
+  if (saltBytes.length !== 16 || expected.length !== 32) return false;
+  const actual = await derivePassword(password, saltBytes, expected.length);
+  return timingSafeEqual(actual, expected);
 }
 
 export function newSessionToken() {

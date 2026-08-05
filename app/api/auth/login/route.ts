@@ -5,6 +5,7 @@ import { hashSessionToken, newSessionToken, normalizeUsername, validUsername, ve
 
 const DUMMY_SALT = "Ad/XCSp5mCEiqVpPV2vPYw==";
 const DUMMY_HASH = "4/sr/Z8IiGh9/JD63YaHh5HazuRqjTmb/VaPQJxkGfU=";
+const AUTH_HEADERS = { "x-auth-engine": "node-pbkdf2-async-v3" };
 
 export async function POST(request: Request) {
   await ensureDatabase();
@@ -12,7 +13,7 @@ export async function POST(request: Request) {
   const username = normalizeUsername(body.username);
   const password = String(body.password ?? "");
   if (!validUsername(username) || !password || password.length > 200)
-    return Response.json({ error: "Enter a valid username and password." }, { status: 400 });
+    return Response.json({ error: "Enter a valid username and password." }, { status: 400, headers: AUTH_HEADERS });
 
   const d1 = getD1();
   const attempt = await d1.prepare(
@@ -20,13 +21,19 @@ export async function POST(request: Request) {
      FROM login_attempts WHERE username = ?`,
   ).bind(username).first<{ attempts: number; withinWindow: number }>();
   if (attempt?.withinWindow && attempt.attempts >= 5)
-    return Response.json({ error: "Too many failed attempts. Please wait 15 minutes and try again." }, { status: 429 });
+    return Response.json({ error: "Too many failed attempts. Please wait 15 minutes and try again." }, { status: 429, headers: AUTH_HEADERS });
 
   const user = await d1.prepare(
     `SELECT id, password_hash passwordHash, password_salt passwordSalt
      FROM app_users WHERE username = ? AND active = 1 LIMIT 1`,
   ).bind(username).first<{ id: string; passwordHash: string | null; passwordSalt: string | null }>();
-  const valid = await verifyPassword(password, user?.passwordSalt ?? DUMMY_SALT, user?.passwordHash ?? DUMMY_HASH);
+  let valid = false;
+  try {
+    valid = await verifyPassword(password, user?.passwordSalt ?? DUMMY_SALT, user?.passwordHash ?? DUMMY_HASH);
+  } catch (error) {
+    console.error("Native password verification failed", error);
+    return Response.json({ error: "Login verification is temporarily unavailable." }, { status: 503, headers: AUTH_HEADERS });
+  }
   if (!user || !valid) {
     await d1.prepare(
       `INSERT INTO login_attempts(username,attempts,window_started_at,updated_at)
@@ -36,7 +43,7 @@ export async function POST(request: Request) {
          window_started_at=CASE WHEN window_started_at <= datetime('now','-15 minutes') THEN CURRENT_TIMESTAMP ELSE window_started_at END,
          updated_at=CURRENT_TIMESTAMP`,
     ).bind(username).run();
-    return Response.json({ error: "Incorrect username or password." }, { status: 401 });
+    return Response.json({ error: "Incorrect username or password." }, { status: 401, headers: AUTH_HEADERS });
   }
 
   const token = newSessionToken();
@@ -47,5 +54,5 @@ export async function POST(request: Request) {
     d1.prepare("DELETE FROM app_sessions WHERE expires_at <= CURRENT_TIMESTAMP"),
     d1.prepare("INSERT INTO app_sessions(token_hash,user_id,expires_at) VALUES (?,?,?)").bind(tokenHash, user.id, expiresAt),
   ]);
-  return Response.json({ ok: true }, { headers: { "set-cookie": sessionCookie(token, request) } });
+  return Response.json({ ok: true }, { headers: { ...AUTH_HEADERS, "set-cookie": sessionCookie(token, request) } });
 }
