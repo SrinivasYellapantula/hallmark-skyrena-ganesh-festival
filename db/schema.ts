@@ -85,6 +85,10 @@ export const appUsers = sqliteTable(
   {
     id: text("id").primaryKey(),
     email: text("email").notNull(),
+    username: text("username"),
+    passwordHash: text("password_hash"),
+    passwordSalt: text("password_salt"),
+    passwordUpdatedAt: text("password_updated_at"),
     displayName: text("display_name").notNull(),
     role: text("role", { enum: ["admin", "block"] }).notNull(),
     blockNo: text("block_no"),
@@ -95,9 +99,32 @@ export const appUsers = sqliteTable(
   },
   (table) => [
     uniqueIndex("idx_app_users_email").on(table.email),
+    uniqueIndex("idx_app_users_username").on(table.username),
     index("idx_app_users_role_block").on(table.role, table.blockNo),
   ],
 );
+
+export const appSessions = sqliteTable(
+  "app_sessions",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    userId: text("user_id").notNull().references(() => appUsers.id),
+    expiresAt: text("expires_at").notNull(),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    lastSeenAt: text("last_seen_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("idx_app_sessions_user").on(table.userId),
+    index("idx_app_sessions_expiry").on(table.expiresAt),
+  ],
+);
+
+export const loginAttempts = sqliteTable("login_attempts", {
+  username: text("username").primaryKey(),
+  attempts: integer("attempts").notNull().default(0),
+  windowStartedAt: text("window_started_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
 
 export const flats = sqliteTable(
   "flats",

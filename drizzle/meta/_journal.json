@@ -15,6 +15,13 @@
       "when": 1785913343593,
       "tag": "0001_clumsy_logan",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1785921751024,
+      "tag": "0002_cheerful_marauders",
+      "breakpoints": true
     }
   ]
 }

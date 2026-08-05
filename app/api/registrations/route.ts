@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     const referenceNo = `GF26-${crypto.randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase()}`;
     const proofKey = `${EVENT_ID}/${blockNo}/${registrationId}/${crypto.randomUUID()}`;
     await proofStore.put(proofKey, await proof.arrayBuffer(), {
-      metadata: { originalName: proof.name, contentType: proof.type, uploadedBy: auth.user.email },
+      metadata: { originalName: proof.name, contentType: proof.type, uploadedBy: auth.user.username },
     });
     try {
       const statements = [
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
            adult_count, child_count, public_name_consent, notes, created_by)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
           .bind(registrationId, referenceNo, EVENT_ID, residentName, blockNo, flatNo, gotram, occupancy, phone || null,
-            adultCount, childCount, body.get("publicNameConsent") === "true" ? 1 : 0, notes, auth.user.email),
+            adultCount, childCount, body.get("publicNameConsent") === "true" ? 1 : 0, notes, auth.user.username),
         d1.prepare(`INSERT INTO donations
           (id, registration_id, category, amount, payment_method, payment_reference, status,
            payment_proof_key, payment_proof_name, payment_proof_type)
@@ -66,10 +66,10 @@ export async function POST(request: Request) {
           VALUES (?, ?, ?, ?, ?, 'donated', ?)
           ON CONFLICT(event_id, block_no, flat_no) DO UPDATE SET resident_name=excluded.resident_name,
           visit_status='donated', updated_by=excluded.updated_by, updated_at=CURRENT_TIMESTAMP`)
-          .bind(crypto.randomUUID(), EVENT_ID, blockNo, flatNo, residentName, auth.user.email),
+          .bind(crypto.randomUUID(), EVENT_ID, blockNo, flatNo, residentName, auth.user.username),
         d1.prepare(`INSERT INTO audit_log (id, entity_type, entity_id, action, actor, details)
           VALUES (?, 'registration', ?, 'submitted', ?, ?)`)
-          .bind(crypto.randomUUID(), registrationId, auth.user.email, JSON.stringify({ blockNo, flatNo, proofKey })),
+          .bind(crypto.randomUUID(), registrationId, auth.user.username, JSON.stringify({ blockNo, flatNo, proofKey })),
       ];
       if (annadaanamDonation > 0) statements.push(d1.prepare(`INSERT INTO donations
         (id, registration_id, category, amount, payment_method, payment_reference, status)

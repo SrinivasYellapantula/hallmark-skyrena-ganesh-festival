@@ -28,6 +28,6 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
   const d1=getD1(); await d1.batch([
     d1.prepare(`UPDATE registrations SET adult_count=?,child_count=?,notes=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(adults,children,notes,id),
     d1.prepare(`UPDATE donations SET amount=?,payment_reference=? WHERE registration_id=? AND category='festival'`).bind(amount,paymentReference,id),
-    d1.prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor,details) VALUES (?,'registration',?,'updated',?,?)`).bind(crypto.randomUUID(),id,auth.user.email,JSON.stringify({amount}))
+    d1.prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor,details) VALUES (?,'registration',?,'updated',?,?)`).bind(crypto.randomUUID(),id,auth.user.username,JSON.stringify({amount}))
   ]); return Response.json({ok:true});
 }

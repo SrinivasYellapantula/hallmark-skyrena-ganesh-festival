@@ -1,2 +1,74 @@
-"use client";import{FormEvent,useCallback,useEffect,useState}from"react";import{BLOCKS}from"../../lib/constants";type User={id:string;email:string;displayName:string;role:string;blockNo:string|null;active:number};
-export function UserManagement(){const[users,setUsers]=useState<User[]>([]);const[role,setRole]=useState('block');const[error,setError]=useState('');const load=useCallback(()=>fetch('/api/admin/users').then(async r=>{const p=await r.json();if(!r.ok)throw new Error(p.error);setUsers(p.users)}).catch(e=>setError(e.message)),[]);useEffect(()=>{load()},[load]);async function submit(e:FormEvent<HTMLFormElement>){e.preventDefault();const p=Object.fromEntries(new FormData(e.currentTarget));const r=await fetch('/api/admin/users',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(p)});const b=await r.json();if(!r.ok){setError(b.error);return}e.currentTarget.reset();setRole('block');load()}async function toggle(u:User){await fetch('/api/admin/users',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({id:u.id,active:!u.active})});load()}return <section className="wrap users-shell">{error&&<p className="form-error">{error}</p>}<div className="admin-card"><form className="user-form" onSubmit={submit}><label>Name<input name="displayName" required/></label><label>Email<input name="email" type="email" required/></label><label>Role<select name="role" value={role} onChange={e=>setRole(e.target.value)}><option value="block">Block user</option><option value="admin">Admin</option></select></label>{role==='block'&&<label>Assigned block<select name="blockNo" required>{BLOCKS.map(b=><option key={b}>{b}</option>)}</select></label>}<button className="button primary">Create / reactivate user</button></form><div className="table-wrap"><table><thead><tr><th>User</th><th>Role</th><th>Block</th><th>Status</th><th>Action</th></tr></thead><tbody>{users.map(u=><tr key={u.id}><td><strong>{u.displayName}</strong><small>{u.email}</small></td><td>{u.role}</td><td>{u.blockNo??'All'}</td><td>{u.active?'Active':'Disabled'}</td><td><button className="button quiet" onClick={()=>toggle(u)}>{u.active?'Disable':'Reactivate'}</button></td></tr>)}</tbody></table></div></div></section>}
+"use client";
+
+import { FormEvent, useCallback, useEffect, useState } from "react";
+import { BLOCKS } from "../../lib/constants";
+
+type User = { id: string; username: string; displayName: string; role: string; blockNo: string | null; active: number };
+
+export function UserManagement() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [role, setRole] = useState("block");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  const load = useCallback(async () => {
+    const response = await fetch("/api/admin/users");
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error);
+    setUsers(payload.users);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/admin/users").then(async (response) => ({ response, payload: await response.json() })).then(({ response, payload }) => {
+      if (!active) return;
+      if (!response.ok) setError(payload.error);
+      else setUsers(payload.users);
+    }).catch(() => active && setError("Unable to load users."));
+    return () => { active = false; };
+  }, []);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(""); setMessage("");
+    const form = event.currentTarget;
+    const response = await fetch("/api/admin/users", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify(Object.fromEntries(new FormData(form))),
+    });
+    const payload = await response.json();
+    if (!response.ok) { setError(payload.error); return; }
+    if (payload.signedOut) { window.location.reload(); return; }
+    form.reset(); setRole("block"); setMessage("User saved. Existing sessions for that username were signed out.");
+    await load();
+  }
+
+  async function toggle(user: User) {
+    setError("");
+    const response = await fetch("/api/admin/users", {
+      method: "PATCH", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: user.id, active: !user.active }),
+    });
+    const payload = await response.json();
+    if (!response.ok) { setError(payload.error); return; }
+    await load();
+  }
+
+  return <section className="wrap users-shell">
+    {error && <p className="form-error">{error}</p>}{message && <p className="form-success">{message}</p>}
+    <div className="admin-card">
+      <form className="user-form" onSubmit={submit}>
+        <label>Name<input name="displayName" required /></label>
+        <label>Username<input name="username" required minLength={3} autoCapitalize="none" /></label>
+        <label>Password<input name="password" type="password" required minLength={8} autoComplete="new-password" /></label>
+        <label>Role<select name="role" value={role} onChange={(event) => setRole(event.target.value)}><option value="block">Block user</option><option value="admin">Admin</option></select></label>
+        {role === "block" && <label>Assigned block<select name="blockNo" required>{BLOCKS.map((block) => <option key={block}>{block}</option>)}</select></label>}
+        <button className="button primary">Create or reset user</button>
+      </form>
+      <p className="user-help">Submitting an existing username resets its password, role and block assignment.</p>
+      <div className="table-wrap"><table><thead><tr><th>User</th><th>Role</th><th>Block</th><th>Status</th><th>Action</th></tr></thead><tbody>
+        {users.map((user) => <tr key={user.id}><td><strong>{user.displayName}</strong><small>{user.username}</small></td><td>{user.role}</td><td>{user.blockNo ?? "All"}</td><td>{user.active ? "Active" : "Disabled"}</td><td><button className="button quiet" onClick={() => void toggle(user)}>{user.active ? "Disable" : "Reactivate"}</button></td></tr>)}
+      </tbody></table></div>
+    </div>
+  </section>;
+}

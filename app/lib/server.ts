@@ -5,8 +5,8 @@ export async function isAdminRequest(request: Request) {
   return (await getAppUser(request))?.role === "admin";
 }
 
-export function adminEmail(request: Request) {
-  return request.headers.get("cf-access-authenticated-user-email") ?? "local-admin";
+export async function adminActor(request: Request) {
+  return (await getAppUser(request))?.username ?? "unknown-admin";
 }
 
 export async function verifyTurnstile(request: Request, token?: string) {

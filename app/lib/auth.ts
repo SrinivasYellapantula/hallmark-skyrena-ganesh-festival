@@ -1,42 +1,51 @@
 import { ensureDatabase } from "../../db/initialize";
 import { getD1 } from "../../db";
 import { BLOCKS } from "./constants";
-import { env } from "cloudflare:workers";
+import { hashSessionToken } from "./passwords";
 
-export type AppUser = { id: string; email: string; displayName: string; role: "admin" | "block"; blockNo: string | null };
+export const SESSION_COOKIE = "ganesh_session";
+export const SESSION_SECONDS = 12 * 60 * 60;
 
-function headerEmail(request: Request) {
-  const email = request.headers.get("cf-access-authenticated-user-email")?.trim().toLowerCase();
-  if (email) return email;
-  const host = new URL(request.url).hostname;
-  return host === "localhost" || host === "127.0.0.1" ? "local-admin@hallmarkskyrena.local" : null;
+export type AppUser = {
+  id: string;
+  username: string;
+  displayName: string;
+  role: "admin" | "block";
+  blockNo: string | null;
+};
+
+export function cookieValue(request: Request, name: string) {
+  const cookies = request.headers.get("cookie") ?? "";
+  for (const item of cookies.split(";")) {
+    const [key, ...parts] = item.trim().split("=");
+    if (key === name) return decodeURIComponent(parts.join("="));
+  }
+  return null;
 }
 
-function configuredAdmins() {
-  const value = (env as unknown as Record<string, unknown>).ADMIN_EMAILS;
-  return (typeof value === "string" ? value : "").split(",").map((item) => item.trim().toLowerCase()).filter(Boolean);
+export function sessionCookie(token: string, request: Request, maxAge = SESSION_SECONDS) {
+  const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
+  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure}`;
 }
 
 export async function getAppUser(request: Request): Promise<AppUser | null> {
-  const email = headerEmail(request);
-  if (!email) return null;
-  const host = new URL(request.url).hostname;
-  if (host === "localhost" || host === "127.0.0.1" || configuredAdmins().includes(email)) {
-    return { id: "bootstrap-admin", email, displayName: email.split("@")[0], role: "admin", blockNo: null };
-  }
+  const token = cookieValue(request, SESSION_COOKIE);
+  if (!token) return null;
   await ensureDatabase();
+  const tokenHash = await hashSessionToken(token);
   const row = await getD1().prepare(
-    `SELECT id, email, display_name displayName, role, block_no blockNo
-     FROM app_users WHERE email = ? AND active = 1 LIMIT 1`,
-  ).bind(email).first<AppUser>();
-  if (!row || !["admin", "block"].includes(row.role)) return null;
+    `SELECT u.id, u.username, u.display_name displayName, u.role, u.block_no blockNo
+     FROM app_sessions s JOIN app_users u ON u.id = s.user_id
+     WHERE s.token_hash = ? AND s.expires_at > CURRENT_TIMESTAMP AND u.active = 1 LIMIT 1`,
+  ).bind(tokenHash).first<AppUser>();
+  if (!row || !row.username || !["admin", "block"].includes(row.role)) return null;
   if (row.role === "block" && !BLOCKS.includes(row.blockNo as (typeof BLOCKS)[number])) return null;
   return row;
 }
 
 export async function authorize(request: Request, roles: Array<AppUser["role"]> = ["admin", "block"]) {
   const user = await getAppUser(request);
-  if (!user) return { response: Response.json({ error: "Your account has not been granted access." }, { status: 401 }) } as const;
+  if (!user) return { response: Response.json({ error: "Please sign in to continue." }, { status: 401 }) } as const;
   if (!roles.includes(user.role)) return { response: Response.json({ error: "Administrator access required." }, { status: 403 }) } as const;
   return { user } as const;
 }

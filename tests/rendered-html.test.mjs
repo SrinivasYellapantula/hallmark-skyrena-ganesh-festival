@@ -45,3 +45,20 @@ test("committee APIs enforce administrator access", async () => {
   ]);
   for (const file of files) assert.match(file, /isAdminRequest\(request\)/);
 });
+
+test("application login uses hashed passwords and server-side sessions", async () => {
+  const [login, passwords, auth, gate, migration] = await Promise.all([
+    source("app/api/auth/login/route.ts"),
+    source("app/lib/passwords.ts"),
+    source("app/lib/auth.ts"),
+    source("app/components/AuthGate.tsx"),
+    source("drizzle/0002_cheerful_marauders.sql"),
+  ]);
+  assert.match(passwords, /PBKDF2/);
+  assert.match(passwords, /120_000/);
+  assert.match(login, /login_attempts/);
+  assert.match(auth, /HttpOnly; SameSite=Strict/);
+  assert.match(auth, /app_sessions/);
+  assert.match(gate, /Sign in/);
+  assert.match(migration, /CREATE TABLE `app_sessions`/);
+});

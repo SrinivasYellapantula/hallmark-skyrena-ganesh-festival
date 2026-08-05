@@ -14,7 +14,7 @@ async function initialize() {
       id TEXT PRIMARY KEY NOT NULL,
       name TEXT NOT NULL,
       year INTEGER NOT NULL,
-      donation_minimum INTEGER NOT NULL DEFAULT 1000,
+      donation_minimum INTEGER NOT NULL DEFAULT 2000,
       status TEXT NOT NULL DEFAULT 'open',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`,
@@ -55,12 +55,29 @@ async function initialize() {
     `CREATE TABLE IF NOT EXISTS app_users (
       id TEXT PRIMARY KEY NOT NULL,
       email TEXT NOT NULL UNIQUE,
+      username TEXT UNIQUE,
+      password_hash TEXT,
+      password_salt TEXT,
+      password_updated_at TEXT,
       display_name TEXT NOT NULL,
       role TEXT NOT NULL,
       block_no TEXT,
       active INTEGER NOT NULL DEFAULT 1,
       created_by TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS app_sessions (
+      token_hash TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL REFERENCES app_users(id),
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS login_attempts (
+      username TEXT PRIMARY KEY NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      window_started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`,
     `CREATE TABLE IF NOT EXISTS flats (
@@ -105,7 +122,10 @@ async function initialize() {
     "CREATE INDEX IF NOT EXISTS idx_expenses_event_status_date ON expenses(event_id, status, expense_date)",
     "CREATE INDEX IF NOT EXISTS idx_audit_entity_created ON audit_log(entity_type, entity_id, created_at)",
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_app_users_email ON app_users(email)",
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_app_users_username ON app_users(username)",
     "CREATE INDEX IF NOT EXISTS idx_app_users_role_block ON app_users(role, block_no)",
+    "CREATE INDEX IF NOT EXISTS idx_app_sessions_user ON app_sessions(user_id)",
+    "CREATE INDEX IF NOT EXISTS idx_app_sessions_expiry ON app_sessions(expires_at)",
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_flats_event_block_flat ON flats(event_id, block_no, flat_no)",
     "CREATE INDEX IF NOT EXISTS idx_flats_block_status ON flats(block_no, visit_status)",
   ];
@@ -122,4 +142,19 @@ async function initialize() {
     )
     .bind("ganesh-2026", "Hallmark Skyrena, Ganesh Chaturthi 2026", 2026, 2000)
     .run();
+
+  const initialUsers = [
+    ["initial-admin", "admin@local", "admin", "4/sr/Z8IiGh9/JD63YaHh5HazuRqjTmb/VaPQJxkGfU=", "Ad/XCSp5mCEiqVpPV2vPYw==", "Administrator", "admin", null],
+    ["initial-block-a", "a_user@local", "a_user", "eQ5+PM4tx/T486HHMWc1SUGHTeOWHEoKrCOHuyBDNVo=", "3QnKsKQdYD9IIJFO0G38lQ==", "Block A Volunteer", "block", "A"],
+    ["initial-block-b", "b_user@local", "b_user", "7FRyri1nEnx2Ar6SZazkaSNur8r/BH3PPnhOMURhKxc=", "VzHGmrCWQyXiiyeSM2b54Q==", "Block B Volunteer", "block", "B"],
+    ["initial-block-c", "c_user@local", "c_user", "eT7UWDZ4DEmfHds9OljQfododL0o41HMfm/6kqdv89Y=", "uhIfhIuTSNKiOPFMy6SU4Q==", "Block C Volunteer", "block", "C"],
+    ["initial-block-d", "d_user@local", "d_user", "77O+e+L0raIQRGHfmyqTFhWLwfaXWVXw1fK43cL5VMM=", "j2wxXLd05zWU7eaGwtf9Ew==", "Block D Volunteer", "block", "D"],
+    ["initial-block-e", "e_user@local", "e_user", "VjNrkIcTQGFVRCCgQYufoUcNzXTs+gE0BabVoQkmxl0=", "IOF7jioPkSYfgICti6nGqg==", "Block E Volunteer", "block", "E"],
+  ] as const;
+  await d1.batch(initialUsers.map((user) => d1.prepare(
+    `INSERT INTO app_users
+      (id,email,username,password_hash,password_salt,password_updated_at,display_name,role,block_no,active,created_by)
+     VALUES (?,?,?,?,?,CURRENT_TIMESTAMP,?,?,?,1,'system')
+     ON CONFLICT(username) DO NOTHING`,
+  ).bind(...user)));
 }

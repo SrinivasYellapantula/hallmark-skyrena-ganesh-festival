@@ -1,7 +1,7 @@
 import { getD1 } from "../../../../db";
 import { ensureDatabase } from "../../../../db/initialize";
 import { EVENT_ID } from "../../../lib/constants";
-import { adminEmail, cleanText, isAdminRequest, wholeNumber } from "../../../lib/server";
+import { adminActor, cleanText, isAdminRequest, wholeNumber } from "../../../lib/server";
 
 export async function POST(request: Request) {
   if (!(await isAdminRequest(request))) return Response.json({ error: "Administrator access required." }, { status: 401 });
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   await ensureDatabase();
   const d1 = getD1();
   const id = crypto.randomUUID();
-  const actor = adminEmail(request);
+  const actor = await adminActor(request);
   await d1.batch([
     d1
       .prepare(

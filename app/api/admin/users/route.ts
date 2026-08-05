@@ -1,44 +1,81 @@
 import { getD1 } from "../../../../db";
 import { ensureDatabase } from "../../../../db/initialize";
-import { authorize } from "../../../lib/auth";
+import { authorize, sessionCookie } from "../../../lib/auth";
 import { BLOCKS } from "../../../lib/constants";
+import { hashPassword, normalizeUsername, validUsername } from "../../../lib/passwords";
 import { cleanText } from "../../../lib/server";
 
 export async function GET(request: Request) {
-  const auth = await authorize(request, ["admin"]); if ("response" in auth) return auth.response;
+  const auth = await authorize(request, ["admin"]);
+  if ("response" in auth) return auth.response;
   await ensureDatabase();
-  const rows = await getD1().prepare(`SELECT id, email, display_name displayName, role, block_no blockNo,
-    active, created_at createdAt FROM app_users ORDER BY active DESC, role, block_no, display_name`).all();
+  const rows = await getD1().prepare(
+    `SELECT id, username, display_name displayName, role, block_no blockNo,
+      active, created_at createdAt FROM app_users
+     WHERE username IS NOT NULL ORDER BY active DESC, role, block_no, display_name`,
+  ).all();
   return Response.json({ users: rows.results });
 }
 
 export async function POST(request: Request) {
-  const auth = await authorize(request, ["admin"]); if ("response" in auth) return auth.response;
+  const auth = await authorize(request, ["admin"]);
+  if ("response" in auth) return auth.response;
   const body = await request.json() as Record<string, unknown>;
-  const email = cleanText(body.email, 160).toLowerCase();
+  const username = normalizeUsername(body.username);
+  const password = String(body.password ?? "");
   const displayName = cleanText(body.displayName, 100);
   const role = cleanText(body.role, 10);
   const blockNo = cleanText(body.blockNo, 2).toUpperCase();
-  if (!/^\S+@\S+\.\S+$/.test(email) || !displayName || !["admin", "block"].includes(role))
-    return Response.json({ error: "Enter a valid name, email and role." }, { status: 400 });
+  if (!validUsername(username) || !displayName || !["admin", "block"].includes(role))
+    return Response.json({ error: "Enter a valid name, username and role." }, { status: 400 });
+  if (password.length < 8 || password.length > 200)
+    return Response.json({ error: "Passwords must contain at least 8 characters." }, { status: 400 });
   if (role === "block" && !BLOCKS.includes(blockNo as (typeof BLOCKS)[number]))
     return Response.json({ error: "Block users must be assigned to A, B, C, D or E." }, { status: 400 });
-  await ensureDatabase(); const d1 = getD1(); const id = crypto.randomUUID();
-  await d1.batch([
-    d1.prepare(`INSERT INTO app_users (id,email,display_name,role,block_no,active,created_by)
-      VALUES (?,?,?,?,?,1,?) ON CONFLICT(email) DO UPDATE SET display_name=excluded.display_name,
-      role=excluded.role, block_no=excluded.block_no, active=1, updated_at=CURRENT_TIMESTAMP`)
-      .bind(id,email,displayName,role,role === "block" ? blockNo : null,auth.user.email),
-    d1.prepare(`INSERT INTO audit_log (id,entity_type,entity_id,action,actor,details)
-      VALUES (?,'app_user',?,'upserted',?,?)`).bind(crypto.randomUUID(),id,auth.user.email,JSON.stringify({email,role,blockNo}))
-  ]);
-  return Response.json({ id }, { status: 201 });
+
+  await ensureDatabase();
+  const d1 = getD1();
+  const existing = await d1.prepare("SELECT id FROM app_users WHERE username = ?").bind(username).first<{ id: string }>();
+  const id = existing?.id ?? crypto.randomUUID();
+  const credentials = await hashPassword(password);
+  const statements = existing ? [
+    d1.prepare(
+      `UPDATE app_users SET display_name=?,role=?,block_no=?,password_hash=?,password_salt=?,
+       password_updated_at=CURRENT_TIMESTAMP,active=1,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+    ).bind(displayName, role, role === "block" ? blockNo : null, credentials.hash, credentials.salt, id),
+    d1.prepare("DELETE FROM app_sessions WHERE user_id = ?").bind(id),
+  ] : [
+    d1.prepare(
+      `INSERT INTO app_users
+       (id,email,username,password_hash,password_salt,password_updated_at,display_name,role,block_no,active,created_by)
+       VALUES (?,?,?,?,?,CURRENT_TIMESTAMP,?,?,?,1,?)`,
+    ).bind(id, `${username}@local`, username, credentials.hash, credentials.salt, displayName, role, role === "block" ? blockNo : null, auth.user.username),
+  ];
+  statements.push(d1.prepare(
+    `INSERT INTO audit_log(id,entity_type,entity_id,action,actor,details)
+     VALUES (?,'app_user',?,'credentials_updated',?,?)`,
+  ).bind(crypto.randomUUID(), id, auth.user.username, JSON.stringify({ username, role, blockNo: role === "block" ? blockNo : null })));
+  await d1.batch(statements);
+  const signedOut = id === auth.user.id;
+  return Response.json(
+    { id, signedOut },
+    { status: existing ? 200 : 201, ...(signedOut ? { headers: { "set-cookie": sessionCookie("", request, 0) } } : {}) },
+  );
 }
 
 export async function PATCH(request: Request) {
-  const auth = await authorize(request, ["admin"]); if ("response" in auth) return auth.response;
-  const body = await request.json() as Record<string, unknown>; const id = cleanText(body.id,80);
-  const active = body.active === true ? 1 : 0; if (!id) return Response.json({error:"User id required."},{status:400});
-  await ensureDatabase(); await getD1().prepare(`UPDATE app_users SET active=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(active,id).run();
-  return Response.json({ok:true});
+  const auth = await authorize(request, ["admin"]);
+  if ("response" in auth) return auth.response;
+  const body = await request.json() as Record<string, unknown>;
+  const id = cleanText(body.id, 80);
+  const active = body.active === true ? 1 : 0;
+  if (!id) return Response.json({ error: "User id required." }, { status: 400 });
+  if (id === auth.user.id && !active) return Response.json({ error: "You cannot disable your own account." }, { status: 400 });
+  await ensureDatabase();
+  const d1 = getD1();
+  await d1.batch([
+    d1.prepare("UPDATE app_users SET active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(active, id),
+    ...(active ? [] : [d1.prepare("DELETE FROM app_sessions WHERE user_id=?").bind(id)]),
+  ]);
+  return Response.json({ ok: true });
 }

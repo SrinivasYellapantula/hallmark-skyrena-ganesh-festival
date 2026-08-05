@@ -1,6 +1,6 @@
 import { getD1 } from "../../../../db";
 import { ensureDatabase } from "../../../../db/initialize";
-import { adminEmail, cleanText, isAdminRequest } from "../../../lib/server";
+import { adminActor, cleanText, isAdminRequest } from "../../../lib/server";
 
 export async function PATCH(request: Request) {
   if (!(await isAdminRequest(request))) return Response.json({ error: "Administrator access required." }, { status: 401 });
@@ -13,7 +13,7 @@ export async function PATCH(request: Request) {
 
   await ensureDatabase();
   const d1 = getD1();
-  const actor = adminEmail(request);
+  const actor = await adminActor(request);
   const donationStatus = action === "verify" ? "verified" : "reversed";
   const registrationStatus = action === "verify" ? "verified" : "cancelled";
   await d1.batch([

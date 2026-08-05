@@ -1,10 +1,10 @@
 # Hallmark Skyrena Ganesh Chaturthi Community Ledger
 
-A mobile-first community festival application designed for Cloudflare's no-card free allowances. Cloudflare Access handles passwordless login, D1 stores records and role assignments, and a private Workers KV namespace stores compressed payment proofs.
+A mobile-first community festival application designed for Cloudflare's no-card free allowances. D1 stores salted password hashes, expiring login sessions, records and role assignments, while a private Workers KV namespace stores compressed payment proofs.
 
 ## Included workflows
 
-- Passwordless login through Cloudflare Access
+- Username/password login with PBKDF2 password hashing, failed-attempt throttling and HTTP-only session cookies
 - Administrator and block-level roles, enforced again in every private API
 - Administrator-managed user access, with block A–E assignment
 - Block users restricted to their assigned block in both the interface and server APIs
@@ -16,7 +16,7 @@ A mobile-first community festival application designed for Cloudflare's no-card 
 - Block-scoped pending-flat and revisit queue
 - Committee queue for payment verification or rejection
 - Approved expense register with external receipt links
-- Public block totals, attendee counts, consenting donor wall and available balance
+- Authorized block totals, attendee counts, consenting donor wall and available balance
 - D1 audit records for submissions, verification and expenses
 - Optional Cloudflare Turnstile spam protection
 
@@ -44,12 +44,11 @@ Generated D1 migrations live in `drizzle/`.
 1. Sign in to Wrangler with `npx wrangler login`.
 2. Create the private proof namespace once with `npm run kv:create`, then copy the returned namespace ID into the `PAYMENT_PROOFS` entry in `wrangler.jsonc`. This repository is already configured with its production namespace ID.
 3. Apply the D1 schema with `npm run db:migrate:remote`.
-4. Configure `ADMIN_EMAILS` in the Worker settings as a comma-separated bootstrap-admin allowlist.
-5. Deploy with `npm run deploy`, or connect this repository to Cloudflare Workers Builds using the same command.
-6. In Cloudflare Zero Trust, create an Access self-hosted application for the complete Worker hostname (all paths). Enable email one-time PIN and use an **Allow / Everyone** policy so any email can complete authentication. This does not grant application access: the D1 user register still rejects every email that an administrator has not provisioned. Keeping authentication broad and authorization in D1 means users only need to be created once, from the app's **Users** screen.
-7. Sign in as a bootstrap admin, open **Users**, and create each block user with an A–E assignment. An E-block user is locked to Block E by the server, even if a browser request is modified.
-8. Add the official flat master list for blocks A–E as it becomes available. Until then, authorized users can add flats to each visit queue manually.
-9. Test a real mobile camera upload, proof retrieval, block restriction, donation verification and UPI reconciliation before operational use.
+4. Deploy with `npm run deploy`, or connect this repository to Cloudflare Workers Builds using the same command.
+5. Sign in with the initial administrator account, open **Users**, and immediately replace the temporary administrator password. Creating or resetting a user revokes that user's existing sessions.
+6. Confirm each block account has its A–E assignment. An E-block user is locked to Block E by the server, even if a browser request is modified.
+7. Add the official flat master list for blocks A–E as it becomes available. Until then, authorized users can add flats to each visit queue manually.
+8. Test a real mobile camera upload, proof retrieval, block restriction, donation verification and UPI reconciliation before operational use.
 
 The production Worker and D1 binding are defined in `wrangler.jsonc`. Dashboard-managed runtime variables are preserved across Wrangler deployments.
 
