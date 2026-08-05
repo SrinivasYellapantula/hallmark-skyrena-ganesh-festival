@@ -29,6 +29,13 @@
       "when": 1785922513682,
       "tag": "0003_seed_initial_users",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1785927707460,
+      "tag": "0004_cloudflare_pbkdf2_limit",
+      "breakpoints": true
     }
   ]
 }

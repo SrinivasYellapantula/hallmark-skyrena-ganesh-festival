@@ -1,7 +1,8 @@
 import { createHash, pbkdf2, randomBytes, timingSafeEqual } from "node:crypto";
 import { Buffer } from "node:buffer";
 
-const PASSWORD_ITERATIONS = 120_000;
+// Cloudflare Workers currently accepts at most 100,000 PBKDF2 iterations.
+const PASSWORD_ITERATIONS = 100_000;
 
 function derivePassword(password: string, salt: Buffer, length = 32) {
   return new Promise<Buffer>((resolve, reject) => {

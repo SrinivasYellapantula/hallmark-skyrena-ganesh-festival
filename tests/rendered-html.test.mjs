@@ -47,17 +47,18 @@ test("committee APIs enforce administrator access", async () => {
 });
 
 test("application login uses hashed passwords and server-side sessions", async () => {
-  const [login, passwords, auth, gate, migration, seed] = await Promise.all([
+  const [login, passwords, auth, gate, migration, seed, compatibilityMigration] = await Promise.all([
     source("app/api/auth/login/route.ts"),
     source("app/lib/passwords.ts"),
     source("app/lib/auth.ts"),
     source("app/components/AuthGate.tsx"),
     source("drizzle/0002_cheerful_marauders.sql"),
     source("drizzle/0003_seed_initial_users.sql"),
+    source("drizzle/0004_cloudflare_pbkdf2_limit.sql"),
   ]);
   assert.match(passwords, /pbkdf2\(/);
   assert.match(passwords, /timingSafeEqual/);
-  assert.match(passwords, /120_000/);
+  assert.match(passwords, /100_000/);
   assert.match(login, /login_attempts/);
   assert.match(auth, /HttpOnly; SameSite=Strict/);
   assert.match(auth, /app_sessions/);
@@ -65,4 +66,6 @@ test("application login uses hashed passwords and server-side sessions", async (
   assert.match(migration, /CREATE TABLE `app_sessions`/);
   assert.match(seed, /initial-admin/);
   assert.doesNotMatch(seed, /nimda|skyrena@/);
+  assert.match(compatibilityMigration, /sMd4jOhPD5gCJMMC4x13ItQ6\/NJwmwOOQuzSvLpKaeo=/);
+  assert.doesNotMatch(compatibilityMigration, /nimda|skyrena@/);
 });

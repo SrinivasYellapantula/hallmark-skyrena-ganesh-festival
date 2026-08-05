@@ -144,12 +144,12 @@ async function initialize() {
     .run();
 
   const initialUsers = [
-    ["initial-admin", "admin@local", "admin", "4/sr/Z8IiGh9/JD63YaHh5HazuRqjTmb/VaPQJxkGfU=", "Ad/XCSp5mCEiqVpPV2vPYw==", "Administrator", "admin", null],
-    ["initial-block-a", "a_user@local", "a_user", "eQ5+PM4tx/T486HHMWc1SUGHTeOWHEoKrCOHuyBDNVo=", "3QnKsKQdYD9IIJFO0G38lQ==", "Block A Volunteer", "block", "A"],
-    ["initial-block-b", "b_user@local", "b_user", "7FRyri1nEnx2Ar6SZazkaSNur8r/BH3PPnhOMURhKxc=", "VzHGmrCWQyXiiyeSM2b54Q==", "Block B Volunteer", "block", "B"],
-    ["initial-block-c", "c_user@local", "c_user", "eT7UWDZ4DEmfHds9OljQfododL0o41HMfm/6kqdv89Y=", "uhIfhIuTSNKiOPFMy6SU4Q==", "Block C Volunteer", "block", "C"],
-    ["initial-block-d", "d_user@local", "d_user", "77O+e+L0raIQRGHfmyqTFhWLwfaXWVXw1fK43cL5VMM=", "j2wxXLd05zWU7eaGwtf9Ew==", "Block D Volunteer", "block", "D"],
-    ["initial-block-e", "e_user@local", "e_user", "VjNrkIcTQGFVRCCgQYufoUcNzXTs+gE0BabVoQkmxl0=", "IOF7jioPkSYfgICti6nGqg==", "Block E Volunteer", "block", "E"],
+    ["initial-admin", "admin@local", "admin", "sMd4jOhPD5gCJMMC4x13ItQ6/NJwmwOOQuzSvLpKaeo=", "Ad/XCSp5mCEiqVpPV2vPYw==", "Administrator", "admin", null],
+    ["initial-block-a", "a_user@local", "a_user", "ni5aQN4AWhbjun58PmPwJWPuAoLta06vQZqAhlzQRXw=", "3QnKsKQdYD9IIJFO0G38lQ==", "Block A Volunteer", "block", "A"],
+    ["initial-block-b", "b_user@local", "b_user", "hjwqQiz2MGmbA2yhdVUlCue+eMIlm58Ip4aGzqTBBow=", "VzHGmrCWQyXiiyeSM2b54Q==", "Block B Volunteer", "block", "B"],
+    ["initial-block-c", "c_user@local", "c_user", "NWvy2rQDfSr5+BBG4f8AYRFHAjPrJCysEmz5nzRHWUc=", "uhIfhIuTSNKiOPFMy6SU4Q==", "Block C Volunteer", "block", "C"],
+    ["initial-block-d", "d_user@local", "d_user", "bAev+gKTxkR2Q/SPOwn+O/wuWfcWwXk/ZFUB6Cg2KLE=", "j2wxXLd05zWU7eaGwtf9Ew==", "Block D Volunteer", "block", "D"],
+    ["initial-block-e", "e_user@local", "e_user", "vccRn4s+FRXhTe/62VBy1Ks2hZYeo4UrjLh37IgJOtI=", "IOF7jioPkSYfgICti6nGqg==", "Block E Volunteer", "block", "E"],
   ] as const;
   await d1.batch(initialUsers.map((user) => d1.prepare(
     `INSERT INTO app_users

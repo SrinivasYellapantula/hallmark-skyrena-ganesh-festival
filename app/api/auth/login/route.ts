@@ -4,8 +4,8 @@ import { SESSION_SECONDS, sessionCookie } from "../../../lib/auth";
 import { hashSessionToken, newSessionToken, normalizeUsername, validUsername, verifyPassword } from "../../../lib/passwords";
 
 const DUMMY_SALT = "Ad/XCSp5mCEiqVpPV2vPYw==";
-const DUMMY_HASH = "4/sr/Z8IiGh9/JD63YaHh5HazuRqjTmb/VaPQJxkGfU=";
-const AUTH_HEADERS = { "x-auth-engine": "node-pbkdf2-async-v3" };
+const DUMMY_HASH = "sMd4jOhPD5gCJMMC4x13ItQ6/NJwmwOOQuzSvLpKaeo=";
+const AUTH_HEADERS = { "x-auth-engine": "node-pbkdf2-100k-v4" };
 
 export async function POST(request: Request) {
   await ensureDatabase();
