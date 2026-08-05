@@ -3,7 +3,7 @@ import { ensureDatabase } from "../../../../db/initialize";
 import { adminEmail, cleanText, isAdminRequest } from "../../../lib/server";
 
 export async function PATCH(request: Request) {
-  if (!isAdminRequest(request)) return Response.json({ error: "Administrator access required." }, { status: 401 });
+  if (!(await isAdminRequest(request))) return Response.json({ error: "Administrator access required." }, { status: 401 });
   const body = (await request.json()) as { registrationId?: unknown; action?: unknown };
   const registrationId = cleanText(body.registrationId, 80);
   const action = cleanText(body.action, 20);

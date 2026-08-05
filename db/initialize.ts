@@ -32,6 +32,7 @@ async function initialize() {
       child_count INTEGER NOT NULL DEFAULT 0,
       public_name_consent INTEGER NOT NULL DEFAULT 0,
       notes TEXT NOT NULL DEFAULT '',
+      created_by TEXT NOT NULL DEFAULT 'committee',
       status TEXT NOT NULL DEFAULT 'submitted',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -47,6 +48,33 @@ async function initialize() {
       received_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       verified_at TEXT,
       verified_by TEXT
+      ,payment_proof_key TEXT
+      ,payment_proof_name TEXT
+      ,payment_proof_type TEXT
+    )`,
+    `CREATE TABLE IF NOT EXISTS app_users (
+      id TEXT PRIMARY KEY NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      display_name TEXT NOT NULL,
+      role TEXT NOT NULL,
+      block_no TEXT,
+      active INTEGER NOT NULL DEFAULT 1,
+      created_by TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS flats (
+      id TEXT PRIMARY KEY NOT NULL,
+      event_id TEXT NOT NULL REFERENCES events(id),
+      block_no TEXT NOT NULL,
+      flat_no TEXT NOT NULL,
+      resident_name TEXT NOT NULL DEFAULT '',
+      visit_status TEXT NOT NULL DEFAULT 'pending',
+      visit_notes TEXT NOT NULL DEFAULT '',
+      last_visited_at TEXT,
+      updated_by TEXT NOT NULL DEFAULT 'committee',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`,
     `CREATE TABLE IF NOT EXISTS expenses (
       id TEXT PRIMARY KEY NOT NULL,
@@ -76,6 +104,10 @@ async function initialize() {
     "CREATE INDEX IF NOT EXISTS idx_donations_status_category ON donations(status, category)",
     "CREATE INDEX IF NOT EXISTS idx_expenses_event_status_date ON expenses(event_id, status, expense_date)",
     "CREATE INDEX IF NOT EXISTS idx_audit_entity_created ON audit_log(entity_type, entity_id, created_at)",
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_app_users_email ON app_users(email)",
+    "CREATE INDEX IF NOT EXISTS idx_app_users_role_block ON app_users(role, block_no)",
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_flats_event_block_flat ON flats(event_id, block_no, flat_no)",
+    "CREATE INDEX IF NOT EXISTS idx_flats_block_status ON flats(block_no, visit_status)",
   ];
 
   await d1.batch(statements.map((statement) => d1.prepare(statement)));
@@ -88,6 +120,6 @@ async function initialize() {
          year = excluded.year,
          donation_minimum = excluded.donation_minimum`,
     )
-    .bind("ganesh-2026", "Hallmark Skyrena, Ganesh Chaturthi 2026", 2026, 1000)
+    .bind("ganesh-2026", "Hallmark Skyrena, Ganesh Chaturthi 2026", 2026, 2000)
     .run();
 }

@@ -4,7 +4,7 @@ import { EVENT_ID } from "../../../lib/constants";
 import { adminEmail, cleanText, isAdminRequest, wholeNumber } from "../../../lib/server";
 
 export async function POST(request: Request) {
-  if (!isAdminRequest(request)) return Response.json({ error: "Administrator access required." }, { status: 401 });
+  if (!(await isAdminRequest(request))) return Response.json({ error: "Administrator access required." }, { status: 401 });
   const body = (await request.json()) as Record<string, unknown>;
   const category = cleanText(body.category, 50);
   const vendor = cleanText(body.vendor, 100);

@@ -1,8 +1,11 @@
 import { getD1 } from "../../../../db";
 import { ensureDatabase } from "../../../../db/initialize";
 import { EVENT_ID } from "../../../lib/constants";
+import { authorize } from "../../../lib/auth";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const auth = await authorize(request);
+  if ("response" in auth) return auth.response;
   try {
     await ensureDatabase();
     const d1 = getD1();

@@ -1,132 +1,17 @@
 "use client";
-
-import { FormEvent, useMemo, useState } from "react";
-import Script from "next/script";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { BLOCKS, MINIMUM_DONATION, currency } from "../lib/constants";
-
-type Success = { referenceNo: string; duplicateNotice?: string | null };
-
-const initial = {
-  residentName: "", blockNo: "", flatNo: "", gotram: "", occupancy: "owner",
-  phone: "", mainDonation: "1000", annadaanamDonation: "0", adultCount: "0",
-  childCount: "0", paymentMethod: "upi", paymentReference: "", notes: "",
-  publicNameConsent: false,
-};
-
-export function ContributionForm() {
-  const [form, setForm] = useState(initial);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState<Success | null>(null);
-  const [turnstileToken, setTurnstileToken] = useState("");
-  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-  const total = useMemo(
-    () => Math.max(0, Number(form.mainDonation) || 0) + Math.max(0, Number(form.annadaanamDonation) || 0),
-    [form.mainDonation, form.annadaanamDonation],
-  );
-
-  function update(name: string, value: string | boolean) {
-    setForm((current) => ({ ...current, [name]: value }));
-  }
-
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      const response = await fetch("/api/registrations", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...form, turnstileToken }),
-      });
-      const payload = (await response.json()) as Success & { error?: string };
-      if (!response.ok) throw new Error(payload.error ?? "Submission failed.");
-      setSuccess(payload);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (success) {
-    return (
-      <section className="wrap compact success-panel" role="status">
-        <div className="success-icon">✓</div>
-        <div className="eyebrow"><span /> Submission received</div>
-        <h2>Thank you for contributing.</h2>
-        <p>Your committee will verify the payment before it appears in public totals.</p>
-        <div className="reference-card"><small>Your reference number</small><strong>{success.referenceNo}</strong></div>
-        {success.duplicateNotice && <p className="notice">{success.duplicateNotice}</p>}
-        <button className="button quiet" onClick={() => { setSuccess(null); setForm(initial); }}>Add another household</button>
-      </section>
-    );
-  }
-
-  return (
-    <form className="wrap form-shell" onSubmit={submit}>
-      <div className="form-main">
-        <fieldset>
-          <legend><span>1</span> Household details</legend>
-          <div className="field-grid">
-            <label className="wide">Name of resident<input required name="residentName" autoComplete="name" value={form.residentName} onChange={(e) => update(e.target.name, e.target.value)} placeholder="Full name" /></label>
-            <label>Block<select required name="blockNo" value={form.blockNo} onChange={(e) => update(e.target.name, e.target.value)}><option value="">Choose</option>{BLOCKS.map((block) => <option key={block}>{block}</option>)}</select></label>
-            <label>Flat number<input required name="flatNo" value={form.flatNo} onChange={(e) => update(e.target.name, e.target.value)} placeholder="e.g. 1204" /></label>
-            <label>Gotram<input required name="gotram" value={form.gotram} onChange={(e) => update(e.target.name, e.target.value)} placeholder="Enter gotram" /></label>
-            <label>Occupancy<select name="occupancy" value={form.occupancy} onChange={(e) => update(e.target.name, e.target.value)}><option value="owner">Owner</option><option value="tenant">Tenant</option></select></label>
-            <label className="wide">Phone number <span className="optional">optional</span><input name="phone" inputMode="tel" autoComplete="tel" value={form.phone} onChange={(e) => update(e.target.name, e.target.value)} placeholder="For payment clarification only" /></label>
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend><span>2</span> Contribution</legend>
-          <div className="field-grid">
-            <label>Main festival donation<input required name="mainDonation" type="number" inputMode="numeric" min={MINIMUM_DONATION} step="100" value={form.mainDonation} onChange={(e) => update(e.target.name, e.target.value)} /><small>Minimum ₹1,000</small></label>
-            <label>Extra for Annadaanam<input name="annadaanamDonation" type="number" inputMode="numeric" min="0" step="100" value={form.annadaanamDonation} onChange={(e) => update(e.target.name, e.target.value)} /></label>
-            <label>Payment method<select name="paymentMethod" value={form.paymentMethod} onChange={(e) => update(e.target.name, e.target.value)}><option value="upi">UPI</option><option value="bank_transfer">Bank transfer</option><option value="cash">Cash</option></select></label>
-            <label>Payment reference {form.paymentMethod === "cash" && <span className="optional">optional</span>}<input name="paymentReference" required={form.paymentMethod !== "cash"} value={form.paymentReference} onChange={(e) => update(e.target.name, e.target.value)} placeholder="UTR / UPI reference" /></label>
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend><span>3</span> Annadaanam attendance</legend>
-          <p className="fieldset-help">Please enter zero if nobody from your household will attend.</p>
-          <div className="field-grid">
-            <label>Adults / elders<input required name="adultCount" type="number" inputMode="numeric" min="0" max="30" value={form.adultCount} onChange={(e) => update(e.target.name, e.target.value)} /></label>
-            <label>Children<input required name="childCount" type="number" inputMode="numeric" min="0" max="30" value={form.childCount} onChange={(e) => update(e.target.name, e.target.value)} /></label>
-            <label className="wide">Notes <span className="optional">optional</span><textarea name="notes" rows={3} value={form.notes} onChange={(e) => update(e.target.name, e.target.value)} placeholder="Dietary or committee note" /></label>
-          </div>
-        </fieldset>
-
-        <label className="consent"><input type="checkbox" checked={form.publicNameConsent} onChange={(e) => update("publicNameConsent", e.target.checked)} /><span><strong>Show my name on the public donor wall</strong><small>Your flat, gotram, phone and attendance are always private.</small></span></label>
-        {turnstileSiteKey && (
-          <div className="turnstile-wrap">
-            <Script
-              src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
-              onLoad={() => {
-                const turnstile = (window as unknown as { turnstile?: { render: (selector: string, options: Record<string, unknown>) => void } }).turnstile;
-                turnstile?.render("#turnstile-widget", {
-                  sitekey: turnstileSiteKey,
-                  callback: (token: string) => setTurnstileToken(token),
-                  "expired-callback": () => setTurnstileToken(""),
-                });
-              }}
-            />
-            <div id="turnstile-widget" />
-          </div>
-        )}
-        {error && <p className="form-error" role="alert">{error}</p>}
-      </div>
-
-      <aside className="form-summary">
-        <span className="summary-label">Contribution summary</span>
-        <div><span>Festival</span><strong>{currency(Number(form.mainDonation) || 0)}</strong></div>
-        <div><span>Annadaanam</span><strong>{currency(Number(form.annadaanamDonation) || 0)}</strong></div>
-        <div className="summary-total"><span>Total</span><strong>{currency(total)}</strong></div>
-        <button className="button primary full" disabled={busy || Boolean(turnstileSiteKey && !turnstileToken)}>{busy ? "Submitting…" : "Submit contribution"}</button>
-        <p>Payments remain pending until verified by the committee.</p>
-      </aside>
-    </form>
-  );
-}
+type User={role:"admin"|"block";blockNo:string|null}; type Success={referenceNo:string};
+const blank={residentName:"",blockNo:"",flatNo:"",gotram:"",occupancy:"owner",phone:"",mainDonation:"2000",annadaanamDonation:"0",adultCount:"0",childCount:"0",paymentReference:"",notes:"",publicNameConsent:false};
+export function ContributionForm(){const[form,setForm]=useState(blank);const[user,setUser]=useState<User|null>(null);const[proof,setProof]=useState<File|null>(null);const[busy,setBusy]=useState(false);const[error,setError]=useState("");const[success,setSuccess]=useState<Success|null>(null);
+useEffect(()=>{fetch("/api/auth/me").then(r=>r.json()).then((u:User)=>{setUser(u);if(u.role==="block")setForm(x=>({...x,blockNo:u.blockNo??""}));}).catch(()=>setError("Unable to load your access profile."));},[]);
+const total=useMemo(()=>Number(form.mainDonation||0)+Number(form.annadaanamDonation||0),[form.mainDonation,form.annadaanamDonation]);function update(name:string,value:string|boolean){setForm(x=>({...x,[name]:value}));}
+async function submit(e:FormEvent){e.preventDefault();if(!proof){setError("Capture or upload the UPI payment confirmation.");return;}setBusy(true);setError("");try{const data=new FormData();Object.entries(form).forEach(([k,v])=>data.set(k,String(v)));data.set("paymentProof",proof);const r=await fetch("/api/registrations",{method:"POST",body:data});const p=await r.json();if(!r.ok)throw new Error(p.error??"Submission failed.");setSuccess(p);window.scrollTo({top:0,behavior:"smooth"});}catch(c){setError(c instanceof Error?c.message:"Please try again.");}finally{setBusy(false);}}
+if(success)return <section className="wrap compact success-panel"><div className="success-icon">✓</div><div className="eyebrow"><span/>Donation recorded</div><h2>Payment submitted for verification.</h2><div className="reference-card"><small>Reference number</small><strong>{success.referenceNo}</strong></div><button className="button quiet" onClick={()=>{setSuccess(null);setProof(null);setForm({...blank,blockNo:user?.blockNo??""});}}>Add another donation</button></section>;
+return <form className="wrap form-shell" onSubmit={submit}><div className="form-main"><fieldset><legend><span>1</span>Household details</legend><div className="field-grid">
+<label className="wide">Resident name<input required name="residentName" value={form.residentName} onChange={e=>update(e.target.name,e.target.value)}/></label>
+<label>Block<select required name="blockNo" disabled={user?.role==="block"} value={form.blockNo} onChange={e=>update(e.target.name,e.target.value)}><option value="">Choose</option>{BLOCKS.map(b=><option key={b}>{b}</option>)}</select><small>{user?.role==="block"?`Locked to Block ${user.blockNo}`:"Admins may select any block"}</small></label>
+<label>Flat number<input required name="flatNo" value={form.flatNo} onChange={e=>update(e.target.name,e.target.value)}/></label><label>Gotram<input required name="gotram" value={form.gotram} onChange={e=>update(e.target.name,e.target.value)}/></label><label>Occupancy<select name="occupancy" value={form.occupancy} onChange={e=>update(e.target.name,e.target.value)}><option value="owner">Owner</option><option value="tenant">Tenant</option></select></label><label className="wide">Phone <span className="optional">optional</span><input name="phone" inputMode="tel" value={form.phone} onChange={e=>update(e.target.name,e.target.value)}/></label></div></fieldset>
+<fieldset><legend><span>2</span>UPI contribution</legend><div className="field-grid"><label>Festival donation<input required name="mainDonation" type="number" inputMode="numeric" min={MINIMUM_DONATION} step="100" value={form.mainDonation} onChange={e=>update(e.target.name,e.target.value)}/><small>Minimum and default ₹2,000</small></label><label>Extra Annadaanam<input name="annadaanamDonation" type="number" min="0" step="100" value={form.annadaanamDonation} onChange={e=>update(e.target.name,e.target.value)}/></label><label className="wide">UPI transaction reference<input required name="paymentReference" value={form.paymentReference} onChange={e=>update(e.target.name,e.target.value)} placeholder="UPI / UTR reference"/></label><label className="wide proof-picker">Payment confirmation image<input required type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={e=>setProof(e.target.files?.[0]??null)}/><small>On mobile, choose Camera to photograph the payment confirmation. JPG, PNG or WebP; maximum 5 MB.</small>{proof&&<strong>Selected: {proof.name}</strong>}</label></div></fieldset>
+<fieldset><legend><span>3</span>Annadaanam attendance</legend><div className="field-grid"><label>Adults / elders<input required name="adultCount" type="number" min="0" max="30" value={form.adultCount} onChange={e=>update(e.target.name,e.target.value)}/></label><label>Children<input required name="childCount" type="number" min="0" max="30" value={form.childCount} onChange={e=>update(e.target.name,e.target.value)}/></label><label className="wide">Notes <span className="optional">optional</span><textarea name="notes" rows={3} value={form.notes} onChange={e=>update(e.target.name,e.target.value)}/></label></div></fieldset>
+<label className="consent"><input type="checkbox" checked={form.publicNameConsent} onChange={e=>update("publicNameConsent",e.target.checked)}/><span><strong>Show resident name in verified donor list</strong><small>Block, flat, phone and payment proof remain private.</small></span></label>{error&&<p className="form-error">{error}</p>}</div><aside className="form-summary"><span className="summary-label">Donation summary</span><div><span>Festival</span><strong>{currency(Number(form.mainDonation)||0)}</strong></div><div><span>Annadaanam</span><strong>{currency(Number(form.annadaanamDonation)||0)}</strong></div><div className="summary-total"><span>Total</span><strong>{currency(total)}</strong></div><button className="button primary full" disabled={busy}>{busy?"Saving…":"Save donation"}</button><p>UPI only. Payment remains pending until an admin verifies it.</p></aside></form>}

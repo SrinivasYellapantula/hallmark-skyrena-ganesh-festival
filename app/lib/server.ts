@@ -1,18 +1,8 @@
 import { env } from "cloudflare:workers";
+import { getAppUser } from "./auth";
 
-export function isAdminRequest(request: Request) {
-  const url = new URL(request.url);
-  if (url.hostname === "localhost" || url.hostname === "127.0.0.1") return true;
-
-  const configured = (env as unknown as Record<string, unknown>).ADMIN_EMAILS;
-  const email = request.headers.get("cf-access-authenticated-user-email")?.toLowerCase();
-  if (!email || typeof configured !== "string") return false;
-
-  const allowed = configured
-    .split(",")
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
-  return allowed.includes(email);
+export async function isAdminRequest(request: Request) {
+  return (await getAppUser(request))?.role === "admin";
 }
 
 export function adminEmail(request: Request) {

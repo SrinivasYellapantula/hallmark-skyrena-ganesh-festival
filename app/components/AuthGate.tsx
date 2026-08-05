@@ -1,0 +1,3 @@
+"use client";
+import { useEffect, useState } from "react";
+export function AuthGate({children}:{children:React.ReactNode}){const[state,setState]=useState<"loading"|"allowed"|"denied">("loading");useEffect(()=>{fetch("/api/auth/me",{cache:"no-store"}).then(r=>setState(r.ok?"allowed":"denied")).catch(()=>setState("denied"));},[]);if(state==="loading")return <main className="auth-state"><div className="brand-seal">श्री</div><h1>Checking access…</h1></main>;if(state==="denied")return <main className="auth-state"><div className="brand-seal">श्री</div><h1>Access not provisioned</h1><p>Sign in through Cloudflare Access using an email that an administrator has added.</p></main>;return <>{children}</>}

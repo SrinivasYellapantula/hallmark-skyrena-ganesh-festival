@@ -7,16 +7,16 @@ export default function Home() {
       <SiteHeader />
       <section className="hero wrap">
         <div className="hero-copy">
-          <div className="eyebrow"><span /> Community-led · Accounted for · Open to all</div>
+          <div className="eyebrow"><span /> Authorized committee workspace</div>
           <h1>Together, we make the celebration <em>meaningful.</em></h1>
           <p className="hero-lede">
-            Register your family, support the celebrations and Annadaanam, and follow every verified rupee from contribution to expense.
+            Record UPI contributions, coordinate block visits and keep every verified rupee accountable.
           </p>
           <div className="hero-actions">
             <Link className="button primary" href="/contribute">Contribute now <span aria-hidden="true">→</span></Link>
             <Link className="button quiet" href="/transparency">View live accounts</Link>
           </div>
-          <p className="microcopy">Minimum festival contribution ₹1,000 · UPI, bank transfer or cash</p>
+          <p className="microcopy">Minimum festival contribution ₹2,000 · UPI only · Payment proof required</p>
         </div>
         <div className="hero-art" aria-label="2026 Ganesh Chaturthi community celebration">
           <div className="sun-disc" />

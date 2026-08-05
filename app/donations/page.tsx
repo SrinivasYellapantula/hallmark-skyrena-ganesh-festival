@@ -1,0 +1,2 @@
+import {SiteHeader,SiteFooter}from"../components/SiteChrome";import{DonationsDashboard}from"./DonationsDashboard";
+export default function DonationsPage(){return <main><SiteHeader/><section className="page-intro wrap compact"><div className="eyebrow"><span/>Authorized records</div><h1>Donation history.</h1><p>Search the list and open a record for full details, proof and permitted updates.</p></section><DonationsDashboard/><SiteFooter/></main>}

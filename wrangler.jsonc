@@ -13,6 +13,12 @@
       "migrations_dir": "drizzle"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "PAYMENT_PROOFS",
+      "bucket_name": "hallmark-skyrena-payment-proofs"
+    }
+  ],
   "observability": {
     "enabled": true
   }

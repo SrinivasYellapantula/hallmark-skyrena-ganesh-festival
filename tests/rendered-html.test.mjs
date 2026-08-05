@@ -14,14 +14,25 @@ test("home page contains the core festival calls to action", async () => {
 
 test("private data is not queried by the public summary endpoint", async () => {
   const route = await source("app/api/public/summary/route.ts");
+  assert.match(route, /authorize\(request\)/);
   assert.match(route, /public_name_consent = 1/);
   assert.doesNotMatch(route, /gotram|phone|flat_no|occupancy/);
 });
 
 test("registration validation enforces the donation minimum", async () => {
   const route = await source("app/api/registrations/route.ts");
-  assert.match(route, /wholeNumber\(body\.mainDonation, MINIMUM_DONATION\)/);
+  assert.match(route, /wholeNumber\(body\.get\("mainDonation"\), MINIMUM_DONATION\)/);
   assert.match(route, /payment reference is required/i);
+  assert.match(route, /PAYMENT_PROOFS/);
+});
+
+test("block users are scoped by the authenticated server identity", async () => {
+  const [registration, flats] = await Promise.all([
+    source("app/api/registrations/route.ts"),
+    source("app/api/flats/route.ts"),
+  ]);
+  assert.match(registration, /scopedBlock\(auth\.user/);
+  assert.match(flats, /scopedBlock\(auth\.user/);
 });
 
 test("committee APIs enforce administrator access", async () => {

@@ -4,7 +4,7 @@ import { EVENT_ID } from "../../../lib/constants";
 import { isAdminRequest } from "../../../lib/server";
 
 export async function GET(request: Request) {
-  if (!isAdminRequest(request)) return Response.json({ error: "Administrator access required." }, { status: 401 });
+  if (!(await isAdminRequest(request))) return Response.json({ error: "Administrator access required." }, { status: 401 });
   await ensureDatabase();
   const d1 = getD1();
   const [registrations, expenses, totals] = await Promise.all([

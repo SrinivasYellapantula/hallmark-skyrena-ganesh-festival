@@ -12,9 +12,9 @@ export default function ContributePage() {
     <main>
       <SiteHeader />
       <section className="page-intro wrap compact">
-        <div className="eyebrow"><span /> Household registration</div>
-        <h1>Join the celebration.</h1>
-        <p>One form records your contribution and helps the team plan Annadaanam accurately.</p>
+        <div className="eyebrow"><span /> Authorized collection entry</div>
+        <h1>Record a donation.</h1>
+        <p>Capture household details, UPI reference, payment confirmation and Annadaanam attendance.</p>
       </section>
       <ContributionForm />
       <SiteFooter />

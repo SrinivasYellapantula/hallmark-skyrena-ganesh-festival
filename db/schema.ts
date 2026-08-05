@@ -1,11 +1,11 @@
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const events = sqliteTable("events", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   year: integer("year").notNull(),
-  donationMinimum: integer("donation_minimum").notNull().default(1000),
+  donationMinimum: integer("donation_minimum").notNull().default(2000),
   status: text("status", { enum: ["draft", "open", "closed"] })
     .notNull()
     .default("open"),
@@ -32,6 +32,7 @@ export const registrations = sqliteTable(
       .notNull()
       .default(false),
     notes: text("notes").notNull().default(""),
+    createdBy: text("created_by").notNull().default("committee"),
     status: text("status", {
       enum: ["submitted", "verified", "cancelled"],
     })
@@ -69,10 +70,53 @@ export const donations = sqliteTable(
     receivedAt: text("received_at").notNull().default(sql`CURRENT_TIMESTAMP`),
     verifiedAt: text("verified_at"),
     verifiedBy: text("verified_by"),
+    paymentProofKey: text("payment_proof_key"),
+    paymentProofName: text("payment_proof_name"),
+    paymentProofType: text("payment_proof_type"),
   },
   (table) => [
     index("idx_donations_registration").on(table.registrationId),
     index("idx_donations_status_category").on(table.status, table.category),
+  ],
+);
+
+export const appUsers = sqliteTable(
+  "app_users",
+  {
+    id: text("id").primaryKey(),
+    email: text("email").notNull(),
+    displayName: text("display_name").notNull(),
+    role: text("role", { enum: ["admin", "block"] }).notNull(),
+    blockNo: text("block_no"),
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    createdBy: text("created_by").notNull(),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    uniqueIndex("idx_app_users_email").on(table.email),
+    index("idx_app_users_role_block").on(table.role, table.blockNo),
+  ],
+);
+
+export const flats = sqliteTable(
+  "flats",
+  {
+    id: text("id").primaryKey(),
+    eventId: text("event_id").notNull().references(() => events.id),
+    blockNo: text("block_no").notNull(),
+    flatNo: text("flat_no").notNull(),
+    residentName: text("resident_name").notNull().default(""),
+    visitStatus: text("visit_status", { enum: ["pending", "visited", "visit_again", "donated"] }).notNull().default("pending"),
+    visitNotes: text("visit_notes").notNull().default(""),
+    lastVisitedAt: text("last_visited_at"),
+    updatedBy: text("updated_by").notNull().default("committee"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    uniqueIndex("idx_flats_event_block_flat").on(table.eventId, table.blockNo, table.flatNo),
+    index("idx_flats_block_status").on(table.blockNo, table.visitStatus),
   ],
 );
 
