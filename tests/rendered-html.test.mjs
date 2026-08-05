@@ -57,6 +57,29 @@ test("committee APIs enforce administrator access", async () => {
   for (const file of files) assert.match(file, /isAdminRequest\(request\)/);
 });
 
+test("expense register supports private receipt images and full administration", async () => {
+  const [collectionRoute, detailRoute, receiptRoute, dashboard, categories, migration] = await Promise.all([
+    source("app/api/admin/expenses/route.ts"),
+    source("app/api/admin/expenses/[id]/route.ts"),
+    source("app/api/admin/expense-receipts/[id]/route.ts"),
+    source("app/admin/AdminDashboard.tsx"),
+    source("app/lib/expense-categories.ts"),
+    source("drizzle/0005_flawless_hawkeye.sql"),
+  ]);
+  assert.match(collectionRoute, /request\.formData\(\)/);
+  assert.match(collectionRoute, /PAYMENT_PROOFS/);
+  assert.match(detailRoute, /export async function PATCH/);
+  assert.match(detailRoute, /export async function DELETE/);
+  assert.match(receiptRoute, /private, no-store/);
+  assert.match(dashboard, /capture="environment"/);
+  assert.match(dashboard, /Recorded Expenses/);
+  assert.match(dashboard, /Edit Expense/);
+  assert.match(dashboard, /Delete Expense/);
+  assert.match(categories, /Sound & Lighting/);
+  assert.match(categories, /Licences & Permissions/);
+  assert.match(migration, /receipt_proof_key/);
+});
+
 test("application login uses hashed passwords and server-side sessions", async () => {
   const [login, passwords, auth, gate, migration, seed, compatibilityMigration] = await Promise.all([
     source("app/api/auth/login/route.ts"),

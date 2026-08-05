@@ -102,6 +102,9 @@ async function initialize() {
       amount INTEGER NOT NULL,
       expense_date TEXT NOT NULL,
       receipt_url TEXT NOT NULL DEFAULT '',
+      receipt_proof_key TEXT,
+      receipt_proof_name TEXT,
+      receipt_proof_type TEXT,
       status TEXT NOT NULL DEFAULT 'approved',
       created_by TEXT NOT NULL DEFAULT 'committee',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP

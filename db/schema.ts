@@ -160,6 +160,9 @@ export const expenses = sqliteTable(
     amount: integer("amount").notNull(),
     expenseDate: text("expense_date").notNull(),
     receiptUrl: text("receipt_url").notNull().default(""),
+    receiptProofKey: text("receipt_proof_key"),
+    receiptProofName: text("receipt_proof_name"),
+    receiptProofType: text("receipt_proof_type"),
     status: text("status", { enum: ["draft", "approved", "reversed"] })
       .notNull()
       .default("approved"),

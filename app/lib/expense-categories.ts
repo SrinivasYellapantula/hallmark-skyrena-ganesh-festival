@@ -1,0 +1,25 @@
+export const EXPENSE_CATEGORIES = [
+  "Ganesh Idol",
+  "Mandap & Stage",
+  "Decoration",
+  "Flowers & Garlands",
+  "Puja",
+  "Puja Materials",
+  "Priest & Dakshina",
+  "Mahaprasadam",
+  "Sound & Lighting",
+  "Entertainment",
+  "Cultural Programs",
+  "Procession",
+  "Logistics",
+  "Transport",
+  "Printing & Publicity",
+  "Security",
+  "Cleaning & Waste",
+  "Utilities",
+  "Licences & Permissions",
+  "Gifts & Prasadam",
+  "Other",
+] as const;
+
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];

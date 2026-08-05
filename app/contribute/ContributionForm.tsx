@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { BLOCKS, MINIMUM_DONATION, currency } from "../lib/constants";
+import { optimizeImageUpload } from "../lib/client-image";
 
 type User = { role: "admin" | "block"; blockNo: string | null };
 type Success = { referenceNo: string };
@@ -20,48 +21,6 @@ const blank = {
   paymentReference: "",
 };
 const ATTENDANCE_OPTIONS = Array.from({ length: 8 }, (_, index) => String(index));
-const MAX_STORED_PROOF_BYTES = 1024 * 1024;
-
-async function canvasBlob(canvas: HTMLCanvasElement, quality: number) {
-  return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", quality));
-}
-
-async function optimizePaymentProof(file: File) {
-  if (file.size <= MAX_STORED_PROOF_BYTES) return file;
-  const bitmap = await createImageBitmap(file);
-  let width = bitmap.width;
-  let height = bitmap.height;
-  const initialScale = Math.min(1, 1600 / Math.max(width, height));
-  width = Math.max(1, Math.round(width * initialScale));
-  height = Math.max(1, Math.round(height * initialScale));
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
-  if (!context) {
-    bitmap.close();
-    throw new Error("This browser cannot optimize the selected image.");
-  }
-  let blob: Blob | null = null;
-  for (const quality of [0.82, 0.7, 0.58]) {
-    canvas.width = width;
-    canvas.height = height;
-    context.drawImage(bitmap, 0, 0, width, height);
-    blob = await canvasBlob(canvas, quality);
-    if (blob && blob.size <= MAX_STORED_PROOF_BYTES) break;
-    if (blob) {
-      const scale = Math.min(0.9, Math.sqrt(MAX_STORED_PROOF_BYTES / blob.size) * 0.9);
-      width = Math.max(1, Math.round(width * scale));
-      height = Math.max(1, Math.round(height * scale));
-    }
-  }
-  bitmap.close();
-  if (!blob || blob.size > MAX_STORED_PROOF_BYTES)
-    throw new Error("The payment image is still too large. Please take a screenshot or crop it and try again.");
-  return new File([blob], `${file.name.replace(/\.[^.]+$/, "") || "payment-proof"}.webp`, {
-    type: "image/webp",
-    lastModified: Date.now(),
-  });
-}
-
 export function ContributionForm() {
   const [form, setForm] = useState(blank);
   const [user, setUser] = useState<User | null>(null);
@@ -96,7 +55,7 @@ export function ContributionForm() {
     if (!file) return;
     setOptimizing(true);
     try {
-      setProof(await optimizePaymentProof(file));
+      setProof(await optimizeImageUpload(file, "payment-proof"));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to optimize the payment image.");
     } finally {

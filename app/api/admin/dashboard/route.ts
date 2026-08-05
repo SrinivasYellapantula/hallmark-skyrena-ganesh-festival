@@ -25,7 +25,8 @@ export async function GET(request: Request) {
     d1
       .prepare(
         `SELECT id, category, vendor, description, amount, expense_date expenseDate,
-          receipt_url receiptUrl, status FROM expenses
+          receipt_url receiptUrl, receipt_proof_key IS NOT NULL hasReceipt,
+          receipt_proof_name receiptName, status, created_by createdBy, created_at createdAt FROM expenses
          WHERE event_id = ? AND status != 'reversed'
          ORDER BY expense_date DESC, created_at DESC LIMIT 100`,
       )
