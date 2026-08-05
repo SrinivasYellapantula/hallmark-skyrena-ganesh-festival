@@ -31,7 +31,9 @@ export function AdminDashboard() {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error ?? "Unable to load the committee console.");
     setData(payload);
-    setSelectedExpense((selected) => selected ? payload.expenses.find((expense: Expense) => expense.id === selected.id) ?? null : null);
+    setSelectedExpense((selected) => selected
+      ? payload.expenses.find((expense: Expense) => expense.id === selected.id) ?? payload.expenses[0] ?? null
+      : payload.expenses[0] ?? null);
   }, []);
 
   useEffect(() => {
@@ -41,7 +43,10 @@ export function AdminDashboard() {
       .then(({ response, payload }) => {
         if (!active) return;
         if (!response.ok) setError(payload.error ?? "Unable to load the committee console.");
-        else setData(payload);
+        else {
+          setData(payload);
+          setSelectedExpense(payload.expenses[0] ?? null);
+        }
       })
       .catch(() => active && setError("Unable to load."));
     return () => { active = false; };
@@ -92,7 +97,7 @@ export function AdminDashboard() {
     <section className="wrap admin-shell">
       <div className="admin-heading">
         <div><div className="eyebrow"><span />Restricted area</div><h1>Committee console</h1><p>Verify collections, record expenses and keep the public ledger current.</p></div>
-        <button className="button primary" onClick={() => setExpenseDialog("new")}>+ Record Expense</button>
+        <div className="admin-heading-actions"><a className="button quiet" href="#expenses">View Expenses</a><button className="button primary" onClick={() => setExpenseDialog("new")}>+ Record Expense</button></div>
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}
       <div className="admin-metrics">
@@ -107,7 +112,7 @@ export function AdminDashboard() {
         <div className="table-wrap"><table><thead><tr><th>Resident</th><th>Location</th><th>Contribution</th><th>Payment</th><th>Status</th><th>Action</th></tr></thead><tbody>{visible.map((item) => <tr key={item.id}><td><strong>{item.residentName}</strong><small>{item.referenceNo}</small></td><td>Block {item.blockNo} · {item.flatNo}<small>{item.adultCount + item.childCount} attendees</small></td><td><strong>{currency(Number(item.amount))}</strong></td><td>{item.paymentMethod?.replace("_", " ")}<small>{item.paymentReference || "No reference"}</small></td><td><span className={`status ${item.status}`}>{item.status}</span></td><td>{item.status === "submitted" ? <div className="row-actions"><button disabled={busy === item.id} onClick={() => updateRegistration(item.id, "verify")}>Verify</button><button className="danger" disabled={busy === item.id} onClick={() => updateRegistration(item.id, "reverse")}>Reject</button></div> : <span className="done">Complete</span>}</td></tr>)}</tbody></table>{visible.length === 0 && <div className="empty-state"><span>◎</span><p>No matching submissions.</p></div>}</div>
       </div>
 
-      <div className="admin-card expense-register">
+      <div className="admin-card expense-register" id="expenses">
         <header><div><span className="card-kicker">Expense register</span><h2>Recorded Expenses</h2></div><input aria-label="Search expenses" placeholder="Search category, vendor or description" value={expenseFilter} onChange={(event) => setExpenseFilter(event.target.value)} /></header>
         <div className="expense-records">
           <div className="expense-record-list">

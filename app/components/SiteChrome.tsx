@@ -14,7 +14,7 @@ export function SiteHeader() {
     <Link className="brand" href="/"><img className="brand-logo" src="/skyrena-logo.png" alt="Hallmark Skyrena" width="318" height="225"/><span className="brand-copy"><small>Ganesh Chaturthi 2026</small></span></Link>
     {user && <nav aria-label="Primary navigation">
       <Link href="/contribute">New Donation</Link><Link href="/donations">Donations</Link><Link href="/pending">Pending Flats</Link>
-      {user.role === "admin" && <><Link href="/admin">Admin</Link><Link className="admin-link" href="/admin/users">Users</Link></>}
+      {user.role === "admin" && <><Link href="/admin">Admin</Link><Link href="/admin#expenses">Expenses</Link><Link className="admin-link" href="/admin/users">Users</Link></>}
       <span className="user-chip" title={user.username}>{user.role === "block" ? `Block ${user.blockNo}` : "Admin"}</span>
       <button className="logout-link" onClick={() => void logout()}>Sign out</button>
     </nav>}

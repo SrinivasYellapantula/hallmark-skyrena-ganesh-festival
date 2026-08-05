@@ -58,11 +58,12 @@ test("committee APIs enforce administrator access", async () => {
 });
 
 test("expense register supports private receipt images and full administration", async () => {
-  const [collectionRoute, detailRoute, receiptRoute, dashboard, categories, migration] = await Promise.all([
+  const [collectionRoute, detailRoute, receiptRoute, dashboard, chrome, categories, migration] = await Promise.all([
     source("app/api/admin/expenses/route.ts"),
     source("app/api/admin/expenses/[id]/route.ts"),
     source("app/api/admin/expense-receipts/[id]/route.ts"),
     source("app/admin/AdminDashboard.tsx"),
+    source("app/components/SiteChrome.tsx"),
     source("app/lib/expense-categories.ts"),
     source("drizzle/0005_flawless_hawkeye.sql"),
   ]);
@@ -75,6 +76,9 @@ test("expense register supports private receipt images and full administration",
   assert.match(dashboard, /Recorded Expenses/);
   assert.match(dashboard, /Edit Expense/);
   assert.match(dashboard, /Delete Expense/);
+  assert.match(dashboard, /id="expenses"/);
+  assert.match(dashboard, /payload\.expenses\[0\]/);
+  assert.match(chrome, /\/admin#expenses/);
   assert.match(categories, /Sound & Lighting/);
   assert.match(categories, /Licences & Permissions/);
   assert.match(migration, /receipt_proof_key/);
