@@ -81,9 +81,13 @@ async function initialize() {
   await d1.batch(statements.map((statement) => d1.prepare(statement)));
   await d1
     .prepare(
-      `INSERT OR IGNORE INTO events (id, name, year, donation_minimum, status)
-       VALUES (?, ?, ?, ?, 'open')`,
+      `INSERT INTO events (id, name, year, donation_minimum, status)
+       VALUES (?, ?, ?, ?, 'open')
+       ON CONFLICT(id) DO UPDATE SET
+         name = excluded.name,
+         year = excluded.year,
+         donation_minimum = excluded.donation_minimum`,
     )
-    .bind("ganesh-2026", "Sri Ganesh Chaturthi Celebrations", 2026, 1000)
+    .bind("ganesh-2026", "Hallmark Skyrena, Ganesh Chaturthi 2026", 2026, 1000)
     .run();
 }

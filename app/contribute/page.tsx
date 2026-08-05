@@ -3,8 +3,8 @@ import { ContributionForm } from "./ContributionForm";
 import { SiteFooter, SiteHeader } from "../components/SiteChrome";
 
 export const metadata: Metadata = {
-  title: "Contribute | Ganesh Festival 2026",
-  description: "Register your household and record your Ganesh Festival contribution.",
+  title: "Contribute | Hallmark Skyrena Ganesh Chaturthi 2026",
+  description: "Register your household and record your Hallmark Skyrena Ganesh Chaturthi contribution.",
 };
 
 export default function ContributePage() {

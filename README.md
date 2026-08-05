@@ -1,4 +1,4 @@
-# Ganesh Festival Community Ledger
+# Hallmark Skyrena Ganesh Chaturthi Community Ledger
 
 A mobile-first, zero-cost community festival application built for Cloudflare's free tier. It keeps household registration data private while publishing verified donation and expense totals.
 
@@ -34,8 +34,8 @@ Generated D1 migrations live in `drizzle/`.
 
 ## Before production deployment
 
-1. Replace the sample block list in `app/lib/constants.ts` with the society's official block list.
-2. Replace the committee contact address in `app/components/SiteChrome.tsx`.
+1. Confirm the official flat master list for blocks A–E.
+2. Add the committee contact address in `app/components/SiteChrome.tsx`.
 3. Create a Cloudflare D1 database and bind it as `DB`.
 4. Apply `drizzle/0000_acoustic_banshee.sql` and retain the runtime initializer as a safety net.
 5. Configure `ADMIN_EMAILS` as a server-side environment value.

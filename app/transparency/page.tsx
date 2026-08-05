@@ -3,7 +3,7 @@ import { SiteFooter, SiteHeader } from "../components/SiteChrome";
 import { TransparencyDashboard } from "./TransparencyDashboard";
 
 export const metadata: Metadata = {
-  title: "Transparent Accounts | Ganesh Festival 2026",
+  title: "Transparent Accounts | Hallmark Skyrena Ganesh Chaturthi 2026",
   description: "Verified community collections, Annadaanam support and festival expenses.",
 };
 
