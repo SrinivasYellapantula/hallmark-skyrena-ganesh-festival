@@ -32,15 +32,18 @@ npm run lint
 
 Generated D1 migrations live in `drizzle/`.
 
-## Before production deployment
+## Cloudflare deployment
 
 1. Confirm the official flat master list for blocks A–E.
 2. Add the committee contact address in `app/components/SiteChrome.tsx`.
-3. Create a Cloudflare D1 database and bind it as `DB`.
-4. Apply `drizzle/0000_acoustic_banshee.sql` and retain the runtime initializer as a safety net.
-5. Configure `ADMIN_EMAILS` as a server-side environment value.
-6. Protect `/admin*` and `/api/admin*` using Cloudflare Access with the same email allowlist.
-7. Optionally configure both Turnstile keys from `.env.example`.
-8. Test one real block, reconcile against the UPI/bank statement, then publish the QR code.
+3. Sign in to Wrangler with `npx wrangler login`.
+4. Apply the D1 schema with `npm run db:migrate:remote`.
+5. Deploy once with `npm run deploy`, or connect this repository to Cloudflare Workers Builds using `npm run build` and `npx wrangler deploy`.
+6. Configure `ADMIN_EMAILS` as a runtime variable in the Worker settings.
+7. Protect `/admin*` and `/api/admin*` using Cloudflare Access with the same email allowlist.
+8. Optionally configure both Turnstile keys from `.env.example`.
+9. Test one real block, reconcile against the UPI/bank statement, then publish the QR code.
+
+The production Worker and D1 binding are defined in `wrangler.jsonc`. Dashboard-managed runtime variables are preserved across Wrangler deployments.
 
 Do not publish D1 data directly. The `/api/public/summary` endpoint is deliberately restricted to verified aggregates and consented names.
