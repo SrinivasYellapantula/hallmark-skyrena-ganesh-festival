@@ -4,7 +4,7 @@ import { TransparencyDashboard } from "./TransparencyDashboard";
 
 export const metadata: Metadata = {
   title: "Transparent Accounts | Hallmark Skyrena Ganesh Chaturthi 2026",
-  description: "Verified community collections, Annadaanam support and festival expenses.",
+  description: "Verified community collections, Mahaprasadam support and festival expenses.",
 };
 
 export default function TransparencyPage() {

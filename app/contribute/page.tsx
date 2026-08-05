@@ -12,9 +12,8 @@ export default function ContributePage() {
     <main>
       <SiteHeader />
       <section className="page-intro wrap compact">
-        <div className="eyebrow"><span /> Authorized collection entry</div>
-        <h1>Record a donation.</h1>
-        <p>Capture household details, UPI reference, payment confirmation and Annadaanam attendance.</p>
+        <h1>New Donation</h1>
+        <p>Record household details, contributions, UPI payment proof and Lunch Mahaprasadam attendance.</p>
       </section>
       <ContributionForm />
       <SiteFooter />

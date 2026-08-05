@@ -21,18 +21,18 @@ export async function POST(request: Request) {
     const phone = cleanText(body.get("phone"), 15).replace(/[^0-9+]/g, "");
     const mainDonation = wholeNumber(body.get("mainDonation"), MINIMUM_DONATION);
     const annadaanamDonation = wholeNumber(body.get("annadaanamDonation"), 0);
-    const adultCount = wholeNumber(body.get("adultCount"), 0, 30);
-    const childCount = wholeNumber(body.get("childCount"), 0, 30);
+    const adultCount = wholeNumber(body.get("adultCount"), 0, 7);
+    const childCount = wholeNumber(body.get("childCount"), 0, 7);
     const paymentReference = cleanText(body.get("paymentReference"), 80);
     const notes = cleanText(body.get("notes"), 500);
     const proof = body.get("paymentProof");
 
-    if (!residentName || !flatNo || !gotram || !BLOCKS.includes(blockNo as (typeof BLOCKS)[number]))
-      return Response.json({ error: "Name, authorized block, flat and gotram are required." }, { status: 400 });
+    if (!residentName || !flatNo || !gotram || !phone || !BLOCKS.includes(blockNo as (typeof BLOCKS)[number]))
+      return Response.json({ error: "Resident name, block, flat, gotram and phone number are required." }, { status: 400 });
     if (!['owner', 'tenant'].includes(occupancy)) return Response.json({ error: "Choose owner or tenant." }, { status: 400 });
     if (mainDonation === null || annadaanamDonation === null)
       return Response.json({ error: `Festival donation must be at least ₹${MINIMUM_DONATION.toLocaleString("en-IN")}.` }, { status: 400 });
-    if (adultCount === null || childCount === null) return Response.json({ error: "Attendance counts must be between 0 and 30." }, { status: 400 });
+    if (adultCount === null || childCount === null) return Response.json({ error: "Mahaprasadam attendance counts must be between 0 and 7." }, { status: 400 });
     if (!paymentReference) return Response.json({ error: "UPI payment reference is required." }, { status: 400 });
     if (!(proof instanceof File) || proof.size === 0) return Response.json({ error: "Payment confirmation image is required." }, { status: 400 });
     if (!IMAGE_TYPES.has(proof.type) || proof.size > MAX_PROOF_BYTES)

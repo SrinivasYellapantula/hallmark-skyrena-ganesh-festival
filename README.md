@@ -8,8 +8,8 @@ A mobile-first community festival application designed for Cloudflare's no-card 
 - Administrator and block-level roles, enforced again in every private API
 - Administrator-managed user access, with block A–E assignment
 - Block users restricted to their assigned block in both the interface and server APIs
-- Household registration with block, flat, gotram, occupancy and Annadaanam attendance
-- Main donation minimum and default of ₹2,000 plus optional Annadaanam contribution
+- Household registration with block, flat, gotram, occupancy and Lunch Mahaprasadam attendance
+- Main donation minimum and default of ₹2,000 plus optional Mahaprasadam contribution
 - UPI-only payment references and private JPG, PNG or WebP proof uploads to Workers KV
 - Automatic browser-side image compression to preserve the 1 GB KV free allowance
 - Donation list, detailed view and authorized proof retrieval

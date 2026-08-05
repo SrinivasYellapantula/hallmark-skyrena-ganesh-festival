@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const image = `${protocol}://${host}/og.png`;
   const title = "Hallmark Skyrena — Ganesh Chaturthi 2026";
-  const description = "Hallmark Skyrena community contributions, Annadaanam planning and transparent festival accounts.";
+  const description = "Hallmark Skyrena community contributions, Mahaprasadam planning and transparent festival accounts.";
   return {
     title,
     description,

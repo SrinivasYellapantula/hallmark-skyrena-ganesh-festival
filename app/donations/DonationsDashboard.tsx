@@ -88,7 +88,7 @@ export function DonationsDashboard() {
           <dl>
             <div><dt>Status</dt><dd>{selected.status}</dd></div>
             <div><dt>Festival donation</dt><dd>{currency(Number(selected.festivalAmount))}</dd></div>
-            <div><dt>Annadaanam donation</dt><dd>{currency(Number(selected.annadaanamAmount))}</dd></div>
+            <div><dt>Mahaprasadam donation</dt><dd>{currency(Number(selected.annadaanamAmount))}</dd></div>
             <div><dt>Total</dt><dd>{currency(Number(selected.amount))}</dd></div>
             <div><dt>Gotram</dt><dd>{selected.gotram}</dd></div>
             <div><dt>Resident type</dt><dd>{selected.occupancy}</dd></div>
@@ -103,8 +103,8 @@ export function DonationsDashboard() {
             <label>Festival amount<input name="mainDonation" type="number" min="2000" defaultValue={selected.festivalAmount} /></label>
             <label>UPI reference<input name="paymentReference" defaultValue={selected.paymentReference} /></label>
             <div className="field-grid">
-              <label>Adults<input name="adultCount" type="number" min="0" defaultValue={selected.adultCount} /></label>
-              <label>Children<input name="childCount" type="number" min="0" defaultValue={selected.childCount} /></label>
+              <label>Adults<input name="adultCount" type="number" min="0" max="7" defaultValue={selected.adultCount} /></label>
+              <label>Kids below 10<input name="childCount" type="number" min="0" max="7" defaultValue={selected.childCount} /></label>
             </div>
             <label>Notes<textarea name="notes" defaultValue={selected.notes} /></label>
             <button className="button primary full">Save permitted changes</button>

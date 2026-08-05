@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Image from "next/image";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<"loading" | "allowed" | "login">("loading");
@@ -30,10 +31,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }
 
-  if (state === "loading") return <main className="auth-state"><div className="brand-seal">श्री</div><h1>Loading portal…</h1></main>;
+  if (state === "loading") return <main className="auth-state"><Image className="login-logo" src="/skyrena-logo.png" alt="Hallmark Skyrena" width={318} height={225}/><h1>Loading portal…</h1></main>;
   if (state === "login") return <main className="login-page">
     <section className="login-card">
-      <div className="brand-seal">श्री</div>
+      <Image className="login-logo" src="/skyrena-logo.png" alt="Hallmark Skyrena" width={318} height={225}/>
       <span className="card-kicker">Restricted committee portal</span>
       <h1>Welcome back</h1>
       <p>Sign in with the username and password provided by the festival administrator.</p>

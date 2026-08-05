@@ -20,12 +20,21 @@ test("private data is not queried by the public summary endpoint", async () => {
 });
 
 test("registration validation enforces the donation minimum", async () => {
-  const route = await source("app/api/registrations/route.ts");
+  const [route, form] = await Promise.all([
+    source("app/api/registrations/route.ts"),
+    source("app/contribute/ContributionForm.tsx"),
+  ]);
   assert.match(route, /wholeNumber\(body\.get\("mainDonation"\), MINIMUM_DONATION\)/);
   assert.match(route, /payment reference is required/i);
+  assert.match(route, /wholeNumber\(body\.get\("adultCount"\), 0, 7\)/);
+  assert.match(route, /!phone/);
   assert.match(route, /PAYMENT_PROOFS/);
   assert.match(route, /KVNamespace/);
   assert.doesNotMatch(route, /R2Bucket/);
+  assert.match(form, /Lunch Mahaprasadam Attendance/);
+  assert.match(form, /Other Donations Amount/);
+  assert.match(form, /ATTENDANCE_OPTIONS/);
+  assert.doesNotMatch(form, /publicNameConsent|Show resident name/);
 });
 
 test("block users are scoped by the authenticated server identity", async () => {

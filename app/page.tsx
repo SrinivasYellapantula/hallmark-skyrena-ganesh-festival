@@ -45,8 +45,8 @@ export default function Home() {
           <h2>One contribution.<br />Three useful outcomes.</h2>
         </div>
         <div className="steps-list">
-          <article><b>Register</b><p>Share household details and the count attending Annadaanam.</p></article>
-          <article><b>Contribute</b><p>Record the main donation and any additional Annadaanam support.</p></article>
+          <article><b>Register</b><p>Share household details and the count attending Lunch Mahaprasadam.</p></article>
+          <article><b>Contribute</b><p>Record the main donation and any additional Mahaprasadam support.</p></article>
           <article><b>Track</b><p>Keep your reference number and watch verified community totals grow.</p></article>
         </div>
       </section>

@@ -42,7 +42,7 @@ export function TransparencyDashboard() {
       <section className={`wrap metrics-grid ${loading ? "is-loading" : ""}`} aria-busy={loading}>
         <article className="metric primary-metric"><span>Total collected</span><strong>{currency(collected)}</strong><small>{data.totals.households} verified households</small></article>
         <article className="metric"><span>Festival fund</span><strong>{currency(Number(data.totals.festival))}</strong><small>General celebrations</small></article>
-        <article className="metric"><span>Annadaanam fund</span><strong>{currency(Number(data.totals.annadaanam))}</strong><small>{Number(data.totals.adults) + Number(data.totals.children)} attendees planned</small></article>
+        <article className="metric"><span>Mahaprasadam fund</span><strong>{currency(Number(data.totals.annadaanam))}</strong><small>{Number(data.totals.adults) + Number(data.totals.children)} attendees planned</small></article>
         <article className="metric"><span>Available balance</span><strong>{currency(balance)}</strong><small>After approved expenses</small></article>
       </section>
 
@@ -53,9 +53,9 @@ export function TransparencyDashboard() {
             <div className="bar-list">{data.blocks.map((item) => <div className="bar-row" key={item.block}><b>Block {item.block}</b><div className="bar-track"><span style={{ width: `${(Number(item.amount) / maxBlock) * 100}%` }} /></div><strong>{currency(Number(item.amount))}</strong><small>{item.households} homes</small></div>)}</div>}
         </article>
         <article className="dashboard-card attendance-card">
-          <header><div><span className="card-kicker">Annadaanam plan</span><h2>Expected guests</h2></div></header>
+          <header><div><span className="card-kicker">Lunch Mahaprasadam plan</span><h2>Expected guests</h2></div></header>
           <div className="guest-total">{Number(data.totals.adults) + Number(data.totals.children)}<span>people</span></div>
-          <div className="guest-split"><div><strong>{data.totals.adults}</strong><span>Adults / elders</span></div><div><strong>{data.totals.children}</strong><span>Children</span></div></div>
+          <div className="guest-split"><div><strong>{data.totals.adults}</strong><span>Adults</span></div><div><strong>{data.totals.children}</strong><span>Kids below 10</span></div></div>
         </article>
       </section>
 
