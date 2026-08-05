@@ -145,8 +145,8 @@ export function ContributionForm() {
   return (
     <form className="wrap form-shell" onSubmit={submit}>
       <div className="form-main">
-        <fieldset>
-          <legend><span>1</span>Household Details</legend>
+        <fieldset aria-labelledby="household-section-title">
+          <div className="form-section-heading" id="household-section-title"><span>1</span><h2>Household Details</h2></div>
           <p className="fieldset-help">All household details are mandatory.</p>
           <div className="field-grid">
             <label className="wide">Resident Name
@@ -178,8 +178,8 @@ export function ContributionForm() {
           </div>
         </fieldset>
 
-        <fieldset>
-          <legend><span>2</span>Contributions</legend>
+        <fieldset aria-labelledby="contributions-section-title">
+          <div className="form-section-heading" id="contributions-section-title"><span>2</span><h2>Contributions</h2></div>
           <div className="field-grid">
             <label>Donation Amount
               <input required name="mainDonation" type="number" inputMode="numeric" min={MINIMUM_DONATION} step="100" value={form.mainDonation} onChange={(event) => update(event.target.name, event.target.value)} />
@@ -201,8 +201,8 @@ export function ContributionForm() {
           </div>
         </fieldset>
 
-        <fieldset>
-          <legend><span>3</span>Lunch Mahaprasadam Attendance</legend>
+        <fieldset aria-labelledby="attendance-section-title">
+          <div className="form-section-heading" id="attendance-section-title"><span>3</span><h2>Lunch Mahaprasadam Attendance</h2></div>
           <div className="field-grid">
             <label>No. of Adults
               <select required name="adultCount" value={form.adultCount} onChange={(event) => update(event.target.name, event.target.value)}>

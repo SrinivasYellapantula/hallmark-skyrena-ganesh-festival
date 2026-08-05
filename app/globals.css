@@ -92,15 +92,17 @@ h1 em, h2 em { color: var(--red); font-style: italic; }
 .form-shell { display: grid; grid-template-columns: minmax(0, 1fr) 320px; align-items: start; gap: 30px; padding-bottom: 90px; }
 .form-main, .form-summary, .success-panel, .dashboard-card, .admin-card { background: rgba(255,250,241,.88); border: 1px solid var(--line); box-shadow: var(--shadow); }
 .form-main { padding: 12px 40px 36px; }
-fieldset { margin: 0; padding: 35px 0; border: 0; border-bottom: 1px solid var(--line); }
-legend { display: flex; align-items: center; gap: 12px; padding: 0; font: 700 23px Georgia, serif; }
-legend span { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; background: var(--red); color: white; font: 700 13px Arial, sans-serif; }
+fieldset { margin: 0; padding: 35px 0; border: 0; }
+.form-section-heading { display: flex; align-items: center; gap: 12px; }
+.form-section-heading h2 { margin: 0; font: 700 23px Georgia, serif; }
+.form-section-heading > span { width: 30px; height: 30px; flex: 0 0 30px; display: grid; place-items: center; border-radius: 50%; background: var(--red); color: white; font: 700 13px Arial, sans-serif; }
 .fieldset-help { margin: 10px 0 20px 42px; color: var(--muted); font-size: 13px; }
 .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 25px; }
 .form-main fieldset { min-width: 0; padding: 28px 0; }
+.form-main fieldset + fieldset { border-top: 1px solid var(--line); }
 .form-main fieldset > .field-grid { margin-top: 20px; }
 .form-main .fieldset-help { margin: 10px 0 0 42px; }
-label { display: grid; gap: 8px; color: #4b4339; font-size: 12px; font-weight: 800; }
+label { display: grid; align-content: start; align-self: start; gap: 8px; color: #4b4339; font-size: 12px; font-weight: 800; }
 label.wide { grid-column: 1 / -1; }
 .optional { color: #9b9286; font-weight: 500; }
 input, select, textarea { width: 100%; border: 1px solid #d9cfc0; border-radius: 4px; outline: none; background: #fffdfa; color: var(--ink); }

@@ -10,10 +10,10 @@ export default function Home() {
           <div className="eyebrow"><span /> Authorized committee workspace</div>
           <h1>Together, we make the celebration <em>meaningful.</em></h1>
           <p className="hero-lede">
-            Record UPI contributions, coordinate block visits and keep every verified rupee accountable.
+            Record resident donations, coordinate block visits and keep every verified rupee accountable.
           </p>
           <div className="hero-actions">
-            <Link className="button primary" href="/contribute">Contribute now <span aria-hidden="true">→</span></Link>
+            <Link className="button primary" href="/contribute">Record New Donation <span aria-hidden="true">→</span></Link>
             <Link className="button quiet" href="/transparency">View live accounts</Link>
           </div>
           <p className="microcopy">Minimum festival contribution ₹2,000 · UPI only · Payment proof required</p>
@@ -42,12 +42,12 @@ export default function Home() {
       <section className="wrap section home-grid">
         <div>
           <div className="eyebrow"><span /> Simple by design</div>
-          <h2>One contribution.<br />Three useful outcomes.</h2>
+          <h2>One resident visit.<br />Three simple steps.</h2>
         </div>
         <div className="steps-list">
-          <article><b>Register</b><p>Share household details and the count attending Lunch Mahaprasadam.</p></article>
-          <article><b>Contribute</b><p>Record the main donation and any additional Mahaprasadam support.</p></article>
-          <article><b>Track</b><p>Keep your reference number and watch verified community totals grow.</p></article>
+          <article><b>Capture details</b><p>Record the resident’s household information and Lunch Mahaprasadam attendance.</p></article>
+          <article><b>Record payment</b><p>Enter donation amounts, the UPI reference and payment confirmation.</p></article>
+          <article><b>Follow up</b><p>Track completed and pending flats while verified community totals update.</p></article>
         </div>
       </section>
       <SiteFooter />

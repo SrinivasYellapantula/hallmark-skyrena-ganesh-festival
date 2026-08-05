@@ -7,7 +7,9 @@ const source = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8"
 test("home page contains the core festival calls to action", async () => {
   const page = await source("app/page.tsx");
   assert.match(page, /Together, we make the celebration/);
-  assert.match(page, /Contribute now/);
+  assert.match(page, /Record New Donation/);
+  assert.match(page, /Capture details/);
+  assert.doesNotMatch(page, />Contribute</);
   assert.match(page, /View live accounts/);
   assert.doesNotMatch(page, /codex-preview|react-loading-skeleton/i);
 });

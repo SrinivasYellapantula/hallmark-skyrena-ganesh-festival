@@ -3,8 +3,8 @@ import { ContributionForm } from "./ContributionForm";
 import { SiteFooter, SiteHeader } from "../components/SiteChrome";
 
 export const metadata: Metadata = {
-  title: "Contribute | Hallmark Skyrena Ganesh Chaturthi 2026",
-  description: "Register your household and record your Hallmark Skyrena Ganesh Chaturthi contribution.",
+  title: "New Donation | Hallmark Skyrena Ganesh Chaturthi 2026",
+  description: "Record a resident donation for Hallmark Skyrena Ganesh Chaturthi 2026.",
 };
 
 export default function ContributePage() {
