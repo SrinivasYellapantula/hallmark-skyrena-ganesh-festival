@@ -1,6 +1,6 @@
 # Hallmark Skyrena Ganesh Chaturthi Community Ledger
 
-A mobile-first community festival application designed for Cloudflare's free allowances. Cloudflare Access handles passwordless login, D1 stores records and role assignments, and a private R2 bucket stores payment proofs.
+A mobile-first community festival application designed for Cloudflare's no-card free allowances. Cloudflare Access handles passwordless login, D1 stores records and role assignments, and a private Workers KV namespace stores compressed payment proofs.
 
 ## Included workflows
 
@@ -10,7 +10,8 @@ A mobile-first community festival application designed for Cloudflare's free all
 - Block users restricted to their assigned block in both the interface and server APIs
 - Household registration with block, flat, gotram, occupancy and Annadaanam attendance
 - Main donation minimum and default of ₹2,000 plus optional Annadaanam contribution
-- UPI-only payment references and private JPG, PNG or WebP proof uploads to R2
+- UPI-only payment references and private JPG, PNG or WebP proof uploads to Workers KV
+- Automatic browser-side image compression to preserve the 1 GB KV free allowance
 - Donation list, detailed view and authorized proof retrieval
 - Block-scoped pending-flat and revisit queue
 - Committee queue for payment verification or rejection
@@ -41,7 +42,7 @@ Generated D1 migrations live in `drizzle/`.
 ## Cloudflare deployment
 
 1. Sign in to Wrangler with `npx wrangler login`.
-2. Create the private proof bucket once with `npm run r2:create`.
+2. Create the private proof namespace once with `npm run kv:create`, then copy the returned namespace ID into the `PAYMENT_PROOFS` entry in `wrangler.jsonc`. This repository is already configured with its production namespace ID.
 3. Apply the D1 schema with `npm run db:migrate:remote`.
 4. Configure `ADMIN_EMAILS` in the Worker settings as a comma-separated bootstrap-admin allowlist.
 5. Deploy with `npm run deploy`, or connect this repository to Cloudflare Workers Builds using the same command.
@@ -52,4 +53,4 @@ Generated D1 migrations live in `drizzle/`.
 
 The production Worker and D1 binding are defined in `wrangler.jsonc`. Dashboard-managed runtime variables are preserved across Wrangler deployments.
 
-Do not make the R2 bucket public or publish D1 data directly. Payment proofs are streamed only after role and block authorization. The summary endpoint returns only verified aggregates and consented names, and is also behind application login.
+Do not expose KV through a public endpoint or publish D1 data directly. Payment proofs are streamed only after role and block authorization. The summary endpoint returns only verified aggregates and consented names, and is also behind application login.

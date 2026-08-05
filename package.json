@@ -15,7 +15,7 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern work --ignore-pattern outputs",
     "db:generate": "drizzle-kit generate",
     "db:migrate:remote": "wrangler d1 migrations apply hallmark-skyrena-ganesh-2026 --remote",
-    "r2:create": "wrangler r2 bucket create hallmark-skyrena-payment-proofs"
+    "kv:create": "wrangler kv namespace create PAYMENT_PROOFS"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",

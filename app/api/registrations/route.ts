@@ -6,7 +6,7 @@ import { authorize, scopedBlock } from "../../lib/auth";
 import { cleanText, wholeNumber } from "../../lib/server";
 
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const MAX_PROOF_BYTES = 5 * 1024 * 1024;
+const MAX_PROOF_BYTES = 1024 * 1024;
 
 export async function POST(request: Request) {
   const auth = await authorize(request);
@@ -36,17 +36,19 @@ export async function POST(request: Request) {
     if (!paymentReference) return Response.json({ error: "UPI payment reference is required." }, { status: 400 });
     if (!(proof instanceof File) || proof.size === 0) return Response.json({ error: "Payment confirmation image is required." }, { status: 400 });
     if (!IMAGE_TYPES.has(proof.type) || proof.size > MAX_PROOF_BYTES)
-      return Response.json({ error: "Upload a JPG, PNG or WebP payment image up to 5 MB." }, { status: 400 });
+      return Response.json({ error: "Upload a JPG, PNG or WebP payment image up to 1 MB." }, { status: 400 });
 
-    const bucket = (env as unknown as { PAYMENT_PROOFS?: R2Bucket }).PAYMENT_PROOFS;
-    if (!bucket) throw new Error("R2 binding `PAYMENT_PROOFS` is unavailable.");
+    const proofStore = (env as unknown as { PAYMENT_PROOFS?: KVNamespace }).PAYMENT_PROOFS;
+    if (!proofStore) throw new Error("Workers KV binding `PAYMENT_PROOFS` is unavailable.");
     await ensureDatabase();
     const d1 = getD1();
     const registrationId = crypto.randomUUID();
     const donationId = crypto.randomUUID();
     const referenceNo = `GF26-${crypto.randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase()}`;
     const proofKey = `${EVENT_ID}/${blockNo}/${registrationId}/${crypto.randomUUID()}`;
-    await bucket.put(proofKey, await proof.arrayBuffer(), { httpMetadata: { contentType: proof.type }, customMetadata: { originalName: proof.name, uploadedBy: auth.user.email } });
+    await proofStore.put(proofKey, await proof.arrayBuffer(), {
+      metadata: { originalName: proof.name, contentType: proof.type, uploadedBy: auth.user.email },
+    });
     try {
       const statements = [
         d1.prepare(`INSERT INTO registrations
@@ -76,7 +78,7 @@ export async function POST(request: Request) {
       await d1.batch(statements);
       return Response.json({ referenceNo }, { status: 201 });
     } catch (error) {
-      await bucket.delete(proofKey);
+      await proofStore.delete(proofKey);
       throw error;
     }
   } catch (error) {

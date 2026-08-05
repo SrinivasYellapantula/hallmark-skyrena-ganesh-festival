@@ -13,10 +13,10 @@
       "migrations_dir": "drizzle"
     }
   ],
-  "r2_buckets": [
+  "kv_namespaces": [
     {
       "binding": "PAYMENT_PROOFS",
-      "bucket_name": "hallmark-skyrena-payment-proofs"
+      "id": "87e959fb2dcb4ab0a5095a236beb1bf2"
     }
   ],
   "observability": {

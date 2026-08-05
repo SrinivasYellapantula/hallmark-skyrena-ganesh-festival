@@ -24,6 +24,8 @@ test("registration validation enforces the donation minimum", async () => {
   assert.match(route, /wholeNumber\(body\.get\("mainDonation"\), MINIMUM_DONATION\)/);
   assert.match(route, /payment reference is required/i);
   assert.match(route, /PAYMENT_PROOFS/);
+  assert.match(route, /KVNamespace/);
+  assert.doesNotMatch(route, /R2Bucket/);
 });
 
 test("block users are scoped by the authenticated server identity", async () => {
