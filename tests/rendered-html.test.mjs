@@ -47,12 +47,13 @@ test("committee APIs enforce administrator access", async () => {
 });
 
 test("application login uses hashed passwords and server-side sessions", async () => {
-  const [login, passwords, auth, gate, migration] = await Promise.all([
+  const [login, passwords, auth, gate, migration, seed] = await Promise.all([
     source("app/api/auth/login/route.ts"),
     source("app/lib/passwords.ts"),
     source("app/lib/auth.ts"),
     source("app/components/AuthGate.tsx"),
     source("drizzle/0002_cheerful_marauders.sql"),
+    source("drizzle/0003_seed_initial_users.sql"),
   ]);
   assert.match(passwords, /PBKDF2/);
   assert.match(passwords, /120_000/);
@@ -61,4 +62,6 @@ test("application login uses hashed passwords and server-side sessions", async (
   assert.match(auth, /app_sessions/);
   assert.match(gate, /Sign in/);
   assert.match(migration, /CREATE TABLE `app_sessions`/);
+  assert.match(seed, /initial-admin/);
+  assert.doesNotMatch(seed, /nimda|skyrena@/);
 });
