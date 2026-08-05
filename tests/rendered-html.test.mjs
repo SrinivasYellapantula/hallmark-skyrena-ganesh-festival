@@ -76,6 +76,7 @@ test("expense register supports private receipt images and full administration",
   assert.match(dashboard, /Recorded Expenses/);
   assert.match(dashboard, /Edit Expense/);
   assert.match(dashboard, /Delete Expense/);
+  assert.match(dashboard, /Boolean\(selectedExpense\.hasReceipt\)/);
   assert.match(dashboard, /id="expenses"/);
   assert.match(dashboard, /payload\.expenses\[0\]/);
   assert.match(chrome, /\/admin#expenses/);

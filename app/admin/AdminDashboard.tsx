@@ -137,7 +137,7 @@ export function AdminDashboard() {
                 <div><dt>Recorded by</dt><dd>{selectedExpense.createdBy}</dd></div>
               </dl>
               <div className="expense-proof-actions">
-                {selectedExpense.hasReceipt && <a className="button quiet" target="_blank" rel="noreferrer" href={`/api/admin/expense-receipts/${selectedExpense.id}`}>View Receipt Photo</a>}
+                {Boolean(selectedExpense.hasReceipt) && <a className="button quiet" target="_blank" rel="noreferrer" href={`/api/admin/expense-receipts/${selectedExpense.id}`}>View Receipt Photo</a>}
                 {selectedExpense.receiptUrl && <a className="button quiet" target="_blank" rel="noreferrer" href={selectedExpense.receiptUrl}>Open Receipt Link</a>}
               </div>
               <div className="expense-detail-actions">
