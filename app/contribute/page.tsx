@@ -11,7 +11,7 @@ export default function ContributePage() {
   return (
     <main>
       <SiteHeader />
-      <section className="page-intro wrap compact">
+      <section className="page-intro wrap donation-intro">
         <h1>New Donation</h1>
         <p>Record household details, contributions, UPI payment proof and Lunch Mahaprasadam attendance.</p>
       </section>
