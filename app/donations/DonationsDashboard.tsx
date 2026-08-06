@@ -2,18 +2,22 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { currency } from "../lib/constants";
+import { optimizeImageUpload } from "../lib/client-image";
 
 type Row = {
   id: string; referenceNo: string; residentName: string; blockNo: string; flatNo: string;
   gotram: string; occupancy: string; phone: string | null; amount: number;
   festivalAmount: number; annadaanamAmount: number; status: string; paymentReference: string;
   createdAt: string; hasProof: number; adultCount: number; childCount: number; notes: string;
+  correctionReason: string;
 };
 
 export function DonationsDashboard() {
   const [rows, setRows] = useState<Row[]>([]);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Row | null>(null);
+  const [replacementProof, setReplacementProof] = useState<File | null>(null);
+  const [optimizingProof, setOptimizingProof] = useState(false);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -49,15 +53,24 @@ export function DonationsDashboard() {
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selected) return;
+    const form = new FormData(event.currentTarget);
+    if (replacementProof) form.set("paymentProof", replacementProof);
     const response = await fetch(`/api/donations/${selected.id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget))),
+      method: "PATCH", body: form,
     });
     const payload = await response.json();
     if (!response.ok) { setError(payload.error); return; }
-    setSelected(null);
+    setSelected(null); setReplacementProof(null);
     await load();
+  }
+
+  async function selectReplacementProof(file: File | null) {
+    setReplacementProof(null); setError("");
+    if (!file) return;
+    setOptimizingProof(true);
+    try { setReplacementProof(await optimizeImageUpload(file, "payment-proof")); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : "Unable to prepare payment proof."); }
+    finally { setOptimizingProof(false); }
   }
 
   return (
@@ -70,7 +83,7 @@ export function DonationsDashboard() {
         </header>
         <div className="record-list">
           {visible.map((row) => (
-            <button key={row.id} onClick={() => setSelected(row)}>
+            <button key={row.id} onClick={() => { setSelected(row); setReplacementProof(null); }}>
               <span><strong>{row.residentName}</strong><small>Block {row.blockNo} · Flat {row.flatNo} · {row.referenceNo}</small></span>
               <span><strong>{currency(Number(row.amount))}</strong><small className={`status ${row.status}`}>{row.status}</small></span>
             </button>
@@ -81,10 +94,11 @@ export function DonationsDashboard() {
 
       {selected && (
         <aside className="detail-panel">
-          <button className="dialog-close" onClick={() => setSelected(null)} aria-label="Close detailed view">×</button>
+          <button className="dialog-close" onClick={() => { setSelected(null); setReplacementProof(null); }} aria-label="Close detailed view">×</button>
           <span className="card-kicker">Detailed view</span>
           <h2>{selected.residentName}</h2>
           <p>Block {selected.blockNo} · Flat {selected.flatNo} · {selected.referenceNo}</p>
+          {selected.status === "correction_requested" && <div className="correction-alert"><strong>Correction requested</strong><span>{selected.correctionReason || "Please review and correct this submission."}</span><small>Saving the corrected record will send it back for administrator verification.</small></div>}
           <dl>
             <div><dt>Status</dt><dd>{selected.status}</dd></div>
             <div><dt>Festival donation</dt><dd>{currency(Number(selected.festivalAmount))}</dd></div>
@@ -102,12 +116,13 @@ export function DonationsDashboard() {
           <form onSubmit={save}>
             <label>Festival amount<input name="mainDonation" type="number" min="2000" defaultValue={selected.festivalAmount} /></label>
             <label>UPI reference<input name="paymentReference" defaultValue={selected.paymentReference} /></label>
+            <label className="proof-picker">Replace Payment Proof <span className="optional">optional</span><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event)=>void selectReplacementProof(event.target.files?.[0]??null)}/><small>{optimizingProof?"Preparing image…":replacementProof?`Ready: ${replacementProof.name}`:"Leave empty to keep the current payment proof."}</small></label>
             <div className="field-grid">
               <label>Adults<input name="adultCount" type="number" min="0" max="7" defaultValue={selected.adultCount} /></label>
               <label>Kids below 10<input name="childCount" type="number" min="0" max="7" defaultValue={selected.childCount} /></label>
             </div>
             <label>Notes<textarea name="notes" defaultValue={selected.notes} /></label>
-            <button className="button primary full">Save permitted changes</button>
+            <button className="button primary full" disabled={optimizingProof}>{selected.status === "correction_requested" ? "Save & Resubmit for Verification" : "Save Permitted Changes"}</button>
           </form>
         </aside>
       )}

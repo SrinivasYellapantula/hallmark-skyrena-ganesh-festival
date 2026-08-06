@@ -62,6 +62,32 @@ test("committee APIs enforce administrator access", async () => {
   for (const file of files) assert.match(file, /isAdminRequest\(request\)|user\?\.role !== "admin"/);
 });
 
+test("payment verification supports proof review and recoverable corrections", async () => {
+  const [adminRoute, dashboardRoute, dashboard, donationsRoute, donationDetail, donationsScreen, proofRoute] = await Promise.all([
+    source("app/api/admin/donations/route.ts"), source("app/api/admin/dashboard/route.ts"),
+    source("app/admin/AdminDashboard.tsx"), source("app/api/donations/route.ts"),
+    source("app/api/donations/[id]/route.ts"), source("app/donations/DonationsDashboard.tsx"),
+    source("app/api/payment-proofs/[id]/route.ts"),
+  ]);
+  assert.match(adminRoute, /request_correction/);
+  assert.match(adminRoute, /correction_requested/);
+  assert.doesNotMatch(adminRoute, /action === "verify" \? "verified" : "reversed"/);
+  assert.match(adminRoute, /Enter what needs to be corrected/);
+  assert.match(dashboardRoute, /hasProof/);
+  assert.match(dashboardRoute, /json_extract\(a\.details, '\$\.reason'\)/);
+  assert.match(dashboard, /View Payment Proof/);
+  assert.match(dashboard, /Verify Payment/);
+  assert.match(dashboard, /Send Back for Correction/);
+  assert.match(donationsRoute, /correctionReason/);
+  assert.match(donationDetail, /\["submitted","correction_requested"\]/);
+  assert.match(donationDetail, /request\.formData\(\)/);
+  assert.match(donationDetail, /payment_proof_key=\?/);
+  assert.match(donationDetail, /resubmitted/);
+  assert.match(donationsScreen, /Replace Payment Proof/);
+  assert.match(donationsScreen, /Save & Resubmit for Verification/);
+  assert.match(proofRoute, /auth\.user\.role === "block" && row\.blockNo !== auth\.user\.blockNo/);
+});
+
 test("portal owner can safely clear test data without removing access configuration", async () => {
   const [resetRoute, auth, dashboard, usersRoute, usersScreen] = await Promise.all([
     source("app/api/admin/reset/route.ts"), source("app/lib/auth.ts"),

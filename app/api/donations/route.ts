@@ -13,7 +13,10 @@ export async function GET(request: Request) {
     SUM(CASE WHEN d.category = 'festival' THEN d.amount ELSE 0 END) festivalAmount,
     SUM(CASE WHEN d.category = 'annadaanam' THEN d.amount ELSE 0 END) annadaanamAmount,
     MAX(d.payment_reference) paymentReference,
-    MAX(CASE WHEN d.payment_proof_key IS NOT NULL THEN 1 ELSE 0 END) hasProof
+    MAX(CASE WHEN d.payment_proof_key IS NOT NULL THEN 1 ELSE 0 END) hasProof,
+    COALESCE((SELECT json_extract(a.details, '$.reason') FROM audit_log a
+      WHERE a.entity_type='registration' AND a.entity_id=r.id AND a.action='correction_requested'
+      ORDER BY a.created_at DESC LIMIT 1), '') correctionReason
     FROM registrations r JOIN donations d ON d.registration_id=r.id
     WHERE r.event_id=? AND r.status!='cancelled' ${blockClause}
     GROUP BY r.id ORDER BY r.created_at DESC LIMIT 300`);
