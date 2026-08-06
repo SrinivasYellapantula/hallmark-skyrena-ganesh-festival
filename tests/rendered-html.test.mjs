@@ -286,6 +286,7 @@ test("occupied-flat map and block-wise CSV import preserve collection history", 
   assert.match(screen, /Download Template/);
   assert.match(screen, /Manage occupied-flat master/);
   assert.match(screen, /className="field-label">Resident Name/);
+  assert.match(screen, /className="field-label">Occupancy <span className="optional">optional/);
   assert.match(screen, /setMasterOccupancy/);
   assert.match(screen, /<dt>Occupancy<\/dt>/);
   assert.match(screen, /flat_no,resident_name,occupancy/);
