@@ -34,7 +34,7 @@ export const registrations = sqliteTable(
     notes: text("notes").notNull().default(""),
     createdBy: text("created_by").notNull().default("committee"),
     status: text("status", {
-      enum: ["submitted", "verified", "cancelled"],
+      enum: ["submitted", "verified", "correction_requested", "cancelled"],
     })
       .notNull()
       .default("submitted"),
@@ -194,6 +194,27 @@ export const auditLog = sqliteTable(
   (table) => [index("idx_audit_entity_created").on(table.entityType, table.entityId, table.createdAt)],
 );
 
+export const recycleBin = sqliteTable(
+  "recycle_bin",
+  {
+    id: text("id").primaryKey(),
+    eventId: text("event_id").notNull().references(() => events.id),
+    entityType: text("entity_type", { enum: ["expense", "meeting", "registration"] }).notNull(),
+    entityId: text("entity_id").notNull(),
+    entityLabel: text("entity_label").notNull(),
+    restoreData: text("restore_data").notNull().default("{}"),
+    deletedBy: text("deleted_by").notNull(),
+    deletedAt: text("deleted_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    restoredBy: text("restored_by"),
+    restoredAt: text("restored_at"),
+    status: text("status", { enum: ["active", "restored"] }).notNull().default("active"),
+  },
+  (table) => [
+    index("idx_recycle_event_status_deleted").on(table.eventId, table.status, table.deletedAt),
+    index("idx_recycle_entity").on(table.entityType, table.entityId),
+  ],
+);
+
 export const meetingMinutes = sqliteTable(
   "meeting_minutes",
   {
@@ -211,7 +232,7 @@ export const meetingMinutes = sqliteTable(
     discussion: text("discussion").notNull().default(""),
     decisions: text("decisions").notNull().default(""),
     nextMeetingDate: text("next_meeting_date").notNull().default(""),
-    status: text("status", { enum: ["draft", "final"] }).notNull().default("draft"),
+    status: text("status", { enum: ["draft", "final", "deleted"] }).notNull().default("draft"),
     createdBy: text("created_by").notNull(),
     updatedBy: text("updated_by").notNull(),
     createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),

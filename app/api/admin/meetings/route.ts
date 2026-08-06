@@ -30,7 +30,7 @@ async function listMeetings() {
   const meetings = await d1.prepare(`SELECT id,title,meeting_date meetingDate,start_time startTime,end_time endTime,venue,
     chairperson,attendees,absentees,agenda,discussion,decisions,next_meeting_date nextMeetingDate,status,
     created_by createdBy,updated_by updatedBy,created_at createdAt,updated_at updatedAt
-    FROM meeting_minutes WHERE event_id=? ORDER BY meeting_date DESC, created_at DESC`).bind(EVENT_ID).all<Record<string, unknown>>();
+    FROM meeting_minutes WHERE event_id=? AND status!='deleted' ORDER BY meeting_date DESC, created_at DESC`).bind(EVENT_ID).all<Record<string, unknown>>();
   const actions = await d1.prepare(`SELECT id,meeting_id meetingId,description,owner,due_date dueDate,priority,status,notes,sort_order sortOrder
     FROM meeting_action_items ORDER BY meeting_id,sort_order`).all<Record<string, unknown>>();
   const grouped = new Map<string, Record<string, unknown>[]>();
@@ -61,7 +61,7 @@ export async function PATCH(request: Request) {
   const body = await request.json() as Record<string, unknown>; const id = cleanText(body.id, 80); const meeting = meetingValues(body);
   if (!id || !meeting.title || !/^\d{4}-\d{2}-\d{2}$/.test(meeting.meetingDate)) return Response.json({ error: "Meeting title and date are required." }, { status: 400 });
   const actions = Array.isArray(body.actions) ? body.actions.map((item) => actionValues(item as ActionInput)).filter((item) => item.description) : [];
-  await ensureDatabase(); const d1 = getD1(); const existing = await d1.prepare("SELECT id FROM meeting_minutes WHERE id=? AND event_id=?").bind(id,EVENT_ID).first();
+  await ensureDatabase(); const d1 = getD1(); const existing = await d1.prepare("SELECT id FROM meeting_minutes WHERE id=? AND event_id=? AND status!='deleted'").bind(id,EVENT_ID).first();
   if (!existing) return Response.json({ error: "Meeting not found." }, { status: 404 });
   const statements = [d1.prepare(`UPDATE meeting_minutes SET title=?,meeting_date=?,start_time=?,end_time=?,venue=?,chairperson=?,attendees=?,absentees=?,agenda=?,discussion=?,decisions=?,next_meeting_date=?,status=?,updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(meeting.title,meeting.meetingDate,meeting.startTime,meeting.endTime,meeting.venue,meeting.chairperson,meeting.attendees,meeting.absentees,meeting.agenda,meeting.discussion,meeting.decisions,meeting.nextMeetingDate,meeting.status,auth.user.username,id), d1.prepare("DELETE FROM meeting_action_items WHERE meeting_id=?").bind(id)];
   actions.forEach((item,index) => statements.push(d1.prepare(`INSERT INTO meeting_action_items(id,meeting_id,description,owner,due_date,priority,status,notes,sort_order) VALUES(?,?,?,?,?,?,?,?,?)`).bind(crypto.randomUUID(),id,item.description,item.owner,item.dueDate,item.priority,item.status,item.notes,index)));
@@ -72,6 +72,13 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   const auth = await authorize(request, ["admin"]); if ("response" in auth) return auth.response;
   const id = cleanText(new URL(request.url).searchParams.get("id"), 80); if (!id) return Response.json({ error: "Meeting id required." }, { status: 400 });
-  await ensureDatabase(); const d1 = getD1(); await d1.batch([d1.prepare("DELETE FROM meeting_action_items WHERE meeting_id=?").bind(id),d1.prepare("DELETE FROM meeting_minutes WHERE id=? AND event_id=?").bind(id,EVENT_ID),d1.prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor) VALUES(?,'meeting_minutes',?,'deleted',?)`).bind(crypto.randomUUID(),id,auth.user.username)]);
-  return Response.json({ ok: true });
+  await ensureDatabase(); const d1 = getD1();
+  const existing=await d1.prepare("SELECT title,meeting_date meetingDate,status FROM meeting_minutes WHERE id=? AND event_id=? AND status!='deleted'").bind(id,EVENT_ID).first<{title:string;meetingDate:string;status:string}>();
+  if(!existing)return Response.json({error:"Meeting not found."},{status:404});
+  await d1.batch([
+    d1.prepare("UPDATE meeting_minutes SET status='deleted',updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND event_id=?").bind(auth.user.username,id,EVENT_ID),
+    d1.prepare(`INSERT INTO recycle_bin(id,event_id,entity_type,entity_id,entity_label,restore_data,deleted_by) VALUES(?,?,'meeting',?,?,?,?)`).bind(crypto.randomUUID(),EVENT_ID,id,`${existing.title} · ${existing.meetingDate}`,JSON.stringify({status:existing.status}),auth.user.username),
+    d1.prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor) VALUES(?,'meeting_minutes',?,'moved_to_recycle_bin',?)`).bind(crypto.randomUUID(),id,auth.user.username),
+  ]);
+  return Response.json({ ok: true, recycled: true });
 }

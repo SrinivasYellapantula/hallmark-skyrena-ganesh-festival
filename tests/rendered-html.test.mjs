@@ -88,6 +88,35 @@ test("payment verification supports proof review and recoverable corrections", a
   assert.match(proofRoute, /auth\.user\.role === "block" && row\.blockNo !== auth\.user\.blockNo/);
 });
 
+test("accidental deletions are protected by a Portal Admin recycle bin", async () => {
+  const [recycleRoute, expenseRoute, meetingRoute, donationRoute, proofRoute, dashboard, donationsScreen, meetingsScreen, chrome, migration, resetRoute] = await Promise.all([
+    source("app/api/admin/recycle-bin/route.ts"), source("app/api/admin/expenses/[id]/route.ts"),
+    source("app/api/admin/meetings/route.ts"), source("app/api/donations/[id]/route.ts"), source("app/api/payment-proofs/[id]/route.ts"),
+    source("app/admin/AdminDashboard.tsx"), source("app/donations/DonationsDashboard.tsx"),
+    source("app/meetings/MeetingMinutes.tsx"), source("app/components/SiteChrome.tsx"),
+    source("drizzle/0009_recycle_bin.sql"), source("app/api/admin/reset/route.ts"),
+  ]);
+  assert.match(recycleRoute, /isPortalOwner\(auth\.user\)/);
+  assert.match(recycleRoute, /status='restored'/);
+  assert.match(recycleRoute, /Number\(row\.ageDays\)<30/);
+  assert.match(recycleRoute, /DELETE \$\{row\.entityLabel\}/);
+  assert.match(recycleRoute, /permanently_deleted/);
+  assert.match(expenseRoute, /UPDATE expenses SET status='reversed'/);
+  assert.match(expenseRoute, /moved_to_recycle_bin/);
+  assert.match(meetingRoute, /UPDATE meeting_minutes SET status='deleted'/);
+  assert.doesNotMatch(meetingRoute, /DELETE FROM meeting_minutes/);
+  assert.match(donationRoute, /export async function DELETE/);
+  assert.match(donationRoute, /UPDATE registrations SET status='cancelled'/);
+  assert.match(proofRoute, /row\.status==="cancelled"&&!isPortalOwner\(auth\.user\)/);
+  assert.match(dashboard, /id="recycle-bin"/);
+  assert.match(dashboard, /Delete in/);
+  assert.match(donationsScreen, /Move Donation to Recycle Bin/);
+  assert.match(meetingsScreen, /Move to Recycle Bin/);
+  assert.match(chrome, /Restore removed records/);
+  assert.match(migration, /CREATE TABLE `recycle_bin`/);
+  assert.match(resetRoute, /DELETE FROM recycle_bin/);
+});
+
 test("portal owner can safely clear test data without removing access configuration", async () => {
   const [resetRoute, auth, dashboard, usersRoute, usersScreen] = await Promise.all([
     source("app/api/admin/reset/route.ts"), source("app/lib/auth.ts"),
@@ -132,7 +161,7 @@ test("expense register supports private receipt images and full administration",
   assert.match(dashboard, /capture="environment"/);
   assert.match(dashboard, /Recorded Expenses/);
   assert.match(dashboard, /Edit Expense/);
-  assert.match(dashboard, /Delete Expense/);
+  assert.match(dashboard, /Move to Recycle Bin/);
   assert.match(dashboard, /Boolean\(selectedExpense\.hasReceipt\)/);
   assert.match(dashboard, /id="expenses"/);
   assert.match(dashboard, /payload\.expenses\[0\]/);
@@ -205,7 +234,7 @@ test("meeting minutes support structured actions and PDF-ready printing", async 
   assert.match(screen, /Action Items/);
   assert.match(screen, /Print \/ Save as PDF/);
   assert.match(screen, /Edit Minutes/);
-  assert.match(screen, /Delete/);
+  assert.match(screen, /Move to Recycle Bin/);
   assert.match(migration, /CREATE TABLE `meeting_minutes`/);
   assert.match(styles, /@media print/);
 });

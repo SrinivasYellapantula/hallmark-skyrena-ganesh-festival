@@ -94,21 +94,22 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const { id } = await params;
   const d1 = getD1();
   const existing = await d1.prepare(
-    `SELECT receipt_proof_key receiptProofKey FROM expenses
+    `SELECT category,amount,status,receipt_proof_key receiptProofKey FROM expenses
      WHERE id = ? AND event_id = ? AND status != 'reversed' LIMIT 1`,
-  ).bind(id, EVENT_ID).first<{ receiptProofKey: string | null }>();
+  ).bind(id, EVENT_ID).first<{ category: string; amount: number; status: string; receiptProofKey: string | null }>();
   if (!existing) return Response.json({ error: "Expense not found." }, { status: 404 });
   const actor = await adminActor(request);
   await d1.batch([
-    d1.prepare("DELETE FROM expenses WHERE id = ? AND event_id = ?").bind(id, EVENT_ID),
+    d1.prepare("UPDATE expenses SET status='reversed' WHERE id = ? AND event_id = ?").bind(id, EVENT_ID),
+    d1.prepare(`INSERT INTO recycle_bin(id,event_id,entity_type,entity_id,entity_label,restore_data,deleted_by)
+      VALUES(?,?,'expense',?,?,?,?)`).bind(
+        crypto.randomUUID(),EVENT_ID,id,`${existing.category} · ₹${existing.amount}`,
+        JSON.stringify({ status: existing.status }),actor,
+      ),
     d1.prepare(
       `INSERT INTO audit_log (id, entity_type, entity_id, action, actor, details)
-       VALUES (?, 'expense', ?, 'deleted', ?, '{}')`,
+       VALUES (?, 'expense', ?, 'moved_to_recycle_bin', ?, '{}')`,
     ).bind(crypto.randomUUID(), id, actor),
   ]);
-  if (existing.receiptProofKey) {
-    const proofStore = (env as unknown as { PAYMENT_PROOFS?: KVNamespace }).PAYMENT_PROOFS;
-    await proofStore?.delete(existing.receiptProofKey);
-  }
-  return Response.json({ ok: true });
+  return Response.json({ ok: true, recycled: true });
 }

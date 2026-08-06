@@ -39,6 +39,7 @@ export async function POST(request: Request) {
         updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE event_id=?`).bind(auth.user.username, EVENT_ID);
 
   await d1.batch([
+    d1.prepare("DELETE FROM recycle_bin WHERE event_id=?").bind(EVENT_ID),
     d1.prepare("DELETE FROM donations WHERE registration_id IN (SELECT id FROM registrations WHERE event_id=?)").bind(EVENT_ID),
     d1.prepare("DELETE FROM registrations WHERE event_id=?").bind(EVENT_ID),
     d1.prepare("DELETE FROM expenses WHERE event_id=?").bind(EVENT_ID),

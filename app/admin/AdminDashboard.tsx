@@ -14,6 +14,7 @@ type Expense = {
   id: string; category: string; vendor: string; description: string; amount: number; expenseDate: string;
   receiptUrl: string; hasReceipt: number; receiptName: string | null; status: string; createdBy: string; createdAt: string;
 };
+type RecycleItem={id:string;entityType:"expense"|"meeting"|"registration";entityId:string;entityLabel:string;deletedBy:string;deletedAt:string;ageDays:number};
 type Dashboard = { registrations: Registration[]; expenses: Expense[]; totals: { verified: number; pending: number; submissions: number }; portalOwner: boolean };
 const blank: Dashboard = { registrations: [], expenses: [], totals: { verified: 0, pending: 0, submissions: 0 }, portalOwner: false };
 
@@ -27,16 +28,20 @@ export function AdminDashboard() {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [resetDialog, setResetDialog] = useState(false);
   const [correctionTarget, setCorrectionTarget] = useState<Registration | null>(null);
+  const [recycleItems,setRecycleItems]=useState<RecycleItem[]>([]);
+
+  const loadRecycle=useCallback(async()=>{const response=await fetch("/api/admin/recycle-bin",{cache:"no-store"});const payload=await response.json();if(!response.ok)throw new Error(payload.error??"Unable to load the Recycle Bin.");setRecycleItems(payload.items??[]);},[]);
 
   const load = useCallback(async () => {
     const response = await fetch("/api/admin/dashboard");
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error ?? "Unable to load festival accounts.");
     setData(payload);
+    if(payload.portalOwner)await loadRecycle();else setRecycleItems([]);
     setSelectedExpense((selected) => selected
       ? payload.expenses.find((expense: Expense) => expense.id === selected.id) ?? payload.expenses[0] ?? null
       : payload.expenses[0] ?? null);
-  }, []);
+  }, [loadRecycle]);
 
   useEffect(() => {
     let active = true;
@@ -48,11 +53,13 @@ export function AdminDashboard() {
         else {
           setData(payload);
           setSelectedExpense(payload.expenses[0] ?? null);
+          if(payload.portalOwner)void loadRecycle().catch(()=>active&&setError("Unable to load the Recycle Bin."));
         }
       })
       .catch(() => active && setError("Unable to load."));
     return () => { active = false; };
-  }, []);
+  }, [loadRecycle]);
+  useEffect(()=>{if(data.portalOwner&&window.location.hash==="#recycle-bin")requestAnimationFrame(()=>document.getElementById("recycle-bin")?.scrollIntoView({behavior:"smooth"}));},[data.portalOwner]);
 
   const visible = useMemo(
     () => data.registrations.filter((item) => `${item.residentName} ${item.blockNo} ${item.flatNo} ${item.referenceNo}`.toLowerCase().includes(filter.toLowerCase())),
@@ -82,20 +89,23 @@ export function AdminDashboard() {
   }
 
   async function deleteExpense(expense: Expense) {
-    if (!window.confirm(`Delete the ${expense.category} expense of ${currency(Number(expense.amount))}? This cannot be undone.`)) return;
+    if (!window.confirm(`Move the ${expense.category} expense of ${currency(Number(expense.amount))} to the Recycle Bin? The Portal Admin can restore it.`)) return;
     setBusy(expense.id); setError("");
     try {
       const response = await fetch(`/api/admin/expenses/${expense.id}`, { method: "DELETE" });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "Could not delete expense.");
+      if (!response.ok) throw new Error(body.error ?? "Could not move the expense to the Recycle Bin.");
       setSelectedExpense(null);
       await load();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not delete expense.");
+      setError(caught instanceof Error ? caught.message : "Could not move the expense to the Recycle Bin.");
     } finally {
       setBusy("");
     }
   }
+
+  async function restoreRecycleItem(item:RecycleItem){setBusy(item.id);setError("");try{const response=await fetch("/api/admin/recycle-bin",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({id:item.id})});const payload=await response.json();if(!response.ok)throw new Error(payload.error??"Could not restore the record.");await load();}catch(caught){setError(caught instanceof Error?caught.message:"Could not restore the record.");}finally{setBusy("");}}
+  async function permanentlyDeleteRecycleItem(item:RecycleItem){const phrase=`DELETE ${item.entityLabel}`;const confirmation=window.prompt(`Permanent deletion cannot be undone. Type exactly:\n\n${phrase}`);if(confirmation===null)return;setBusy(item.id);setError("");try{const response=await fetch("/api/admin/recycle-bin",{method:"DELETE",headers:{"content-type":"application/json"},body:JSON.stringify({id:item.id,confirmation})});const payload=await response.json();if(!response.ok)throw new Error(payload.error??"Could not permanently delete the record.");await loadRecycle();}catch(caught){setError(caught instanceof Error?caught.message:"Could not permanently delete the record.");}finally{setBusy("");}}
 
   return (
     <section className="wrap admin-shell">
@@ -146,7 +156,7 @@ export function AdminDashboard() {
               </div>
               <div className="expense-detail-actions">
                 <button className="button quiet" onClick={() => setExpenseDialog(selectedExpense)}>Edit Expense</button>
-                <button className="button danger-button" disabled={busy === selectedExpense.id} onClick={() => void deleteExpense(selectedExpense)}>{busy === selectedExpense.id ? "Deleting…" : "Delete Expense"}</button>
+                <button className="button danger-button" disabled={busy === selectedExpense.id} onClick={() => void deleteExpense(selectedExpense)}>{busy === selectedExpense.id ? "Moving…" : "Move to Recycle Bin"}</button>
               </div>
             </aside>
           ) : <aside className="expense-detail expense-detail-empty"><span>Choose an expense to view its details.</span></aside>}
@@ -154,6 +164,7 @@ export function AdminDashboard() {
       </div>
 
       <div className="security-note"><strong>Security checkpoint</strong><p>Change the initial administrator password before sharing the portal. New passwords are salted and hashed, and all active sessions are revoked when a password is reset.</p></div>
+      {data.portalOwner&&<section className="admin-card recycle-bin" id="recycle-bin"><header><div><span className="card-kicker">Portal Admin recovery</span><h2>Recycle Bin</h2><p>Restore accidentally removed records. Permanent deletion is locked for 30 days and requires typed confirmation.</p></div><span className="recycle-count">{recycleItems.length} item{recycleItems.length===1?"":"s"}</span></header>{recycleItems.length?<div className="recycle-list">{recycleItems.map((item)=><article key={item.id}><div><span className="status recycled">{item.entityType}</span><strong>{item.entityLabel}</strong><small>Removed by {item.deletedBy} · {new Date(item.deletedAt+"Z").toLocaleString("en-IN")}</small></div><div className="recycle-actions"><button className="button quiet" disabled={busy===item.id} onClick={()=>void restoreRecycleItem(item)}>Restore</button><button className="button danger-button" disabled={busy===item.id||Number(item.ageDays)<30} title={Number(item.ageDays)<30?`Available in ${30-Number(item.ageDays)} day(s)`:"Permanently delete"} onClick={()=>void permanentlyDeleteRecycleItem(item)}>{Number(item.ageDays)<30?`Delete in ${30-Number(item.ageDays)}d`:"Permanently Delete"}</button></div></article>)}</div>:<div className="empty-state"><p>The Recycle Bin is empty.</p></div>}</section>}
       {data.portalOwner && <section className="portal-danger-zone"><div><span className="card-kicker">Portal Admin only</span><h2>Test-data reset</h2><p>Clear trial activity before the committee starts entering live festival records. Login accounts and portal configuration are always preserved.</p></div><button className="button danger-button" onClick={() => setResetDialog(true)}>Clear Test Data</button></section>}
       {expenseDialog && <ExpenseDialog expense={expenseDialog === "new" ? null : expenseDialog} close={() => setExpenseDialog(null)} saved={async () => { setExpenseDialog(null); await load(); }} />}
       {correctionTarget && <CorrectionDialog registration={correctionTarget} close={() => setCorrectionTarget(null)} submit={async (reason) => { const saved=await updateRegistration(correctionTarget.id,"request_correction",reason); if(saved)setCorrectionTarget(null); return saved; }} />}

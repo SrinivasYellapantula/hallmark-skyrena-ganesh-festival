@@ -56,3 +56,24 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
   if(newProofKey&&existing.proofKey&&existing.proofKey!==newProofKey)await proofStore?.delete(existing.proofKey).catch(()=>undefined);
   return Response.json({ok:true,resubmitted});
 }
+
+export async function DELETE(request:Request,{params}:{params:Promise<{id:string}>}) {
+  const auth=await authorize(request,["admin"]);if("response" in auth)return auth.response;await ensureDatabase();const{id}=await params;const d1=getD1();
+  const registration=await d1.prepare(`SELECT id,reference_no referenceNo,resident_name residentName,block_no blockNo,flat_no flatNo,status FROM registrations WHERE id=? AND event_id=? AND status!='cancelled'`).bind(id,EVENT_ID).first<{id:string;referenceNo:string;residentName:string;blockNo:string;flatNo:string;status:string}>();
+  if(!registration)return Response.json({error:"Donation not found."},{status:404});
+  const [donationRows,flat,otherActive]=await Promise.all([
+    d1.prepare("SELECT id,status FROM donations WHERE registration_id=?").bind(id).all<{id:string;status:string}>(),
+    d1.prepare("SELECT visit_status visitStatus FROM flats WHERE event_id=? AND block_no=? AND flat_no=?").bind(EVENT_ID,registration.blockNo,registration.flatNo).first<{visitStatus:string}>(),
+    d1.prepare(`SELECT COUNT(*) count FROM registrations WHERE event_id=? AND block_no=? AND flat_no=? AND id!=? AND status!='cancelled'`).bind(EVENT_ID,registration.blockNo,registration.flatNo,id).first<{count:number}>(),
+  ]);
+  const restoreData={registrationStatus:registration.status,donations:donationRows.results,flatVisitStatus:flat?.visitStatus??"pending"};
+  const statements=[
+    d1.prepare("UPDATE registrations SET status='cancelled',updated_at=CURRENT_TIMESTAMP WHERE id=? AND event_id=?").bind(id,EVENT_ID),
+    d1.prepare("UPDATE donations SET status='reversed' WHERE registration_id=?").bind(id),
+    d1.prepare(`INSERT INTO recycle_bin(id,event_id,entity_type,entity_id,entity_label,restore_data,deleted_by) VALUES(?,?,'registration',?,?,?,?)`).bind(crypto.randomUUID(),EVENT_ID,id,`${registration.referenceNo} · ${registration.residentName} · ${registration.blockNo}-${registration.flatNo}`,JSON.stringify(restoreData),auth.user.username),
+    d1.prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor,details) VALUES(?,'registration',?,'moved_to_recycle_bin',?,'{}')`).bind(crypto.randomUUID(),id,auth.user.username),
+  ];
+  if(!Number(otherActive?.count??0))statements.push(d1.prepare("UPDATE flats SET visit_status='pending',updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE event_id=? AND block_no=? AND flat_no=?").bind(auth.user.username,EVENT_ID,registration.blockNo,registration.flatNo));
+  await d1.batch(statements);
+  return Response.json({ok:true,recycled:true});
+}

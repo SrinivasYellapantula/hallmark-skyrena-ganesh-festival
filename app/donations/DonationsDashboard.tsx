@@ -11,9 +11,11 @@ type Row = {
   createdAt: string; hasProof: number; adultCount: number; childCount: number; notes: string;
   correctionReason: string;
 };
+type User = { role: "admin" | "block"; blockNo: string | null };
 
 export function DonationsDashboard() {
   const [rows, setRows] = useState<Row[]>([]);
+  const [user, setUser] = useState<User | null>(null);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Row | null>(null);
   const [replacementProof, setReplacementProof] = useState<File | null>(null);
@@ -26,6 +28,7 @@ export function DonationsDashboard() {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error);
       setRows(payload.donations);
+      setUser(payload.user);
       setError("");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to load donations.");
@@ -39,7 +42,7 @@ export function DonationsDashboard() {
       .then(({ response, payload }) => {
         if (!active) return;
         if (!response.ok) setError(payload.error);
-        else setRows(payload.donations);
+        else { setRows(payload.donations); setUser(payload.user); }
       })
       .catch(() => active && setError("Unable to load donations."));
     return () => { active = false; };
@@ -71,6 +74,15 @@ export function DonationsDashboard() {
     try { setReplacementProof(await optimizeImageUpload(file, "payment-proof")); }
     catch (caught) { setError(caught instanceof Error ? caught.message : "Unable to prepare payment proof."); }
     finally { setOptimizingProof(false); }
+  }
+
+  async function archiveDonation(row:Row) {
+    if(!window.confirm(`Move ${row.referenceNo} for ${row.residentName} to the Recycle Bin? The Portal Admin can restore it.`))return;
+    setError("");
+    const response=await fetch(`/api/donations/${row.id}`,{method:"DELETE"});
+    const payload=await response.json();
+    if(!response.ok){setError(payload.error??"Could not move the donation to the Recycle Bin.");return;}
+    setSelected(null);setReplacementProof(null);await load();
   }
 
   return (
@@ -124,6 +136,7 @@ export function DonationsDashboard() {
             <label>Notes<textarea name="notes" defaultValue={selected.notes} /></label>
             <button className="button primary full" disabled={optimizingProof}>{selected.status === "correction_requested" ? "Save & Resubmit for Verification" : "Save Permitted Changes"}</button>
           </form>
+          {user?.role==="admin"&&<button type="button" className="button danger-button full recycle-action" onClick={()=>void archiveDonation(selected)}>Move Donation to Recycle Bin</button>}
         </aside>
       )}
     </section>

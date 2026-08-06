@@ -170,6 +170,19 @@ async function initialize() {
       details TEXT NOT NULL DEFAULT '{}',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`,
+    `CREATE TABLE IF NOT EXISTS recycle_bin (
+      id TEXT PRIMARY KEY NOT NULL,
+      event_id TEXT NOT NULL REFERENCES events(id),
+      entity_type TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      entity_label TEXT NOT NULL,
+      restore_data TEXT NOT NULL DEFAULT '{}',
+      deleted_by TEXT NOT NULL,
+      deleted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      restored_by TEXT,
+      restored_at TEXT,
+      status TEXT NOT NULL DEFAULT 'active'
+    )`,
     "CREATE INDEX IF NOT EXISTS idx_registrations_event_block_flat ON registrations(event_id, block_no, flat_no)",
     "CREATE INDEX IF NOT EXISTS idx_registrations_status_created ON registrations(status, created_at)",
     "CREATE INDEX IF NOT EXISTS idx_donations_registration ON donations(registration_id)",
@@ -179,6 +192,8 @@ async function initialize() {
     "CREATE INDEX IF NOT EXISTS idx_meeting_actions_meeting ON meeting_action_items(meeting_id, sort_order)",
     "CREATE INDEX IF NOT EXISTS idx_cultural_programmes_event_date ON cultural_programmes(event_id, programme_date)",
     "CREATE INDEX IF NOT EXISTS idx_audit_entity_created ON audit_log(entity_type, entity_id, created_at)",
+    "CREATE INDEX IF NOT EXISTS idx_recycle_event_status_deleted ON recycle_bin(event_id, status, deleted_at)",
+    "CREATE INDEX IF NOT EXISTS idx_recycle_entity ON recycle_bin(entity_type, entity_id)",
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_app_users_email ON app_users(email)",
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_app_users_username ON app_users(username)",
     "CREATE INDEX IF NOT EXISTS idx_app_users_role_block ON app_users(role, block_no)",
