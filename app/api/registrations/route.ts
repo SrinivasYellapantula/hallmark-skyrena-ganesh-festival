@@ -63,11 +63,11 @@ export async function POST(request: Request) {
            payment_proof_key, payment_proof_name, payment_proof_type)
           VALUES (?, ?, 'festival', ?, 'upi', ?, 'pending', ?, ?, ?)`)
           .bind(donationId, registrationId, mainDonation, paymentReference, proofKey, proof.name, proof.type),
-        d1.prepare(`INSERT INTO flats (id, event_id, block_no, flat_no, resident_name, occupied, visit_status, updated_by)
-          VALUES (?, ?, ?, ?, ?, 1, 'donated', ?)
+        d1.prepare(`INSERT INTO flats (id, event_id, block_no, flat_no, resident_name, occupancy, occupied, visit_status, updated_by)
+          VALUES (?, ?, ?, ?, ?, ?, 1, 'donated', ?)
           ON CONFLICT(event_id, block_no, flat_no) DO UPDATE SET resident_name=excluded.resident_name,
-          occupied=1, visit_status='donated', updated_by=excluded.updated_by, updated_at=CURRENT_TIMESTAMP`)
-          .bind(crypto.randomUUID(), EVENT_ID, blockNo, flatNo, residentName, auth.user.username),
+          occupancy=excluded.occupancy, occupied=1, visit_status='donated', updated_by=excluded.updated_by, updated_at=CURRENT_TIMESTAMP`)
+          .bind(crypto.randomUUID(), EVENT_ID, blockNo, flatNo, residentName, occupancy, auth.user.username),
         d1.prepare(`INSERT INTO audit_log (id, entity_type, entity_id, action, actor, details)
           VALUES (?, 'registration', ?, 'submitted', ?, ?)`)
           .bind(crypto.randomUUID(), registrationId, auth.user.username, JSON.stringify({ blockNo, flatNo, proofKey })),

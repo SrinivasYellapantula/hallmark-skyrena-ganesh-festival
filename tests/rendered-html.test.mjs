@@ -228,10 +228,12 @@ test("mobile app metadata and compact controls are present", async () => {
 });
 
 test("occupied-flat map and block-wise CSV import preserve collection history", async () => {
-  const [mapRoute, flatsRoute, importRoute, screen, chrome, migration] = await Promise.all([
+  const [mapRoute, flatsRoute, importRoute, screen, contribution, registration, chrome, migration, occupancyMigration] = await Promise.all([
     source("app/api/flats/map/route.ts"), source("app/api/flats/route.ts"),
-    source("app/api/admin/flats/import/route.ts"), source("app/flat-status/FlatStatusMap.tsx"), source("app/components/SiteChrome.tsx"),
-    source("drizzle/0007_occupied_flat_map.sql"),
+    source("app/api/admin/flats/import/route.ts"), source("app/flat-status/FlatStatusMap.tsx"),
+    source("app/contribute/ContributionForm.tsx"), source("app/api/registrations/route.ts"),
+    source("app/components/SiteChrome.tsx"), source("drizzle/0007_occupied_flat_map.sql"),
+    source("drizzle/0008_flat_occupancy.sql"),
   ]);
   assert.match(mapRoute, /f\.occupied=1/);
   assert.match(mapRoute, /donationAmount/);
@@ -242,6 +244,9 @@ test("occupied-flat map and block-wise CSV import preserve collection history", 
   assert.match(screen, /Download Template/);
   assert.match(screen, /Manage occupied-flat master/);
   assert.match(screen, /className="field-label">Resident Name/);
+  assert.match(screen, /setMasterOccupancy/);
+  assert.match(screen, /<dt>Occupancy<\/dt>/);
+  assert.match(screen, /flat_no,resident_name,occupancy/);
   assert.match(screen, /Add \/ Update Flat/);
   assert.match(screen, /Remove Flat/);
   assert.match(screen, /groupFloors/);
@@ -251,6 +256,11 @@ test("occupied-flat map and block-wise CSV import preserve collection history", 
   assert.match(flatsRoute, /export async function DELETE/);
   assert.match(flatsRoute, /occupied=0/);
   assert.match(flatsRoute, /scopedBlock\(auth\.user/);
+  assert.match(flatsRoute, /occupancy/);
+  assert.match(importRoute, /flat\.occupancy/);
+  assert.match(contribution, /occupancy: selectedFlat\?\.occupancy/);
+  assert.match(registration, /occupancy=excluded\.occupancy/);
   assert.match(chrome, /\/flat-status/);
   assert.match(migration, /ADD `occupied`/);
+  assert.match(occupancyMigration, /ADD `occupancy` text NOT NULL DEFAULT ''/);
 });

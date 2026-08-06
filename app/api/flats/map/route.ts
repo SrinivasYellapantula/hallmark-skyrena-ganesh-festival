@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   if (!BLOCKS.includes(block as (typeof BLOCKS)[number])) return Response.json({ flats: [], block, user: auth.user });
   await ensureDatabase();
   const rows = await getD1().prepare(
-    `SELECT f.id,f.block_no blockNo,f.flat_no flatNo,
+    `SELECT f.id,f.block_no blockNo,f.flat_no flatNo,f.occupancy,
       CASE WHEN COALESCE(d.donated,0)=1 AND d.donorName<>'' THEN d.donorName ELSE f.resident_name END residentName,
       f.visit_status visitStatus,f.visit_notes visitNotes,COALESCE(d.donated,0) donated,
       COALESCE(d.donationAmount,0) donationAmount,d.referenceNo

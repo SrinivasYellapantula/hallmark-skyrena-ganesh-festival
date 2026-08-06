@@ -6,7 +6,7 @@ import { optimizeImageUpload } from "../lib/client-image";
 
 type User = { role: "admin" | "block"; blockNo: string | null };
 type Success = { referenceNo: string };
-type MasterFlat = { flatNo: string; residentName: string; donated: number };
+type MasterFlat = { flatNo: string; residentName: string; occupancy: string; donated: number };
 
 const blank = {
   residentName: "",
@@ -71,11 +71,11 @@ export function ContributionForm() {
   function update(name: string, value: string) {
     if (name === "blockNo") { setMasterFlats([]); setFlatsLoading(Boolean(value)); }
     setForm((current) => {
-      if (name === "blockNo") return { ...current, blockNo: value, floorNo: "", flatNo: "", residentName: "" };
-      if (name === "floorNo") return { ...current, floorNo: value, flatNo: "", residentName: "" };
+      if (name === "blockNo") return { ...current, blockNo: value, floorNo: "", flatNo: "", residentName: "", occupancy: "" };
+      if (name === "floorNo") return { ...current, floorNo: value, flatNo: "", residentName: "", occupancy: "" };
       if (name === "flatNo") {
         const selectedFlat = masterFlats.find((flat) => flat.flatNo === value);
-        return { ...current, flatNo: value, residentName: selectedFlat?.residentName || "" };
+        return { ...current, flatNo: value, residentName: selectedFlat?.residentName || "", occupancy: selectedFlat?.occupancy || "" };
       }
       return { ...current, [name]: value };
     });
@@ -112,7 +112,7 @@ export function ContributionForm() {
       const response = await fetch("/api/registrations", { method: "POST", body: data });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "Submission failed.");
-      setMasterFlats((current) => current.map((flat) => flat.flatNo === form.flatNo ? { ...flat, residentName: form.residentName, donated: 1 } : flat));
+      setMasterFlats((current) => current.map((flat) => flat.flatNo === form.flatNo ? { ...flat, residentName: form.residentName, occupancy: form.occupancy, donated: 1 } : flat));
       setSuccess(payload);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (caught) {
@@ -176,6 +176,7 @@ export function ContributionForm() {
                 <option value="owner">Owner</option>
                 <option value="tenant">Tenant</option>
               </select>
+              <small>Prefilled from the occupied-flat master when available.</small>
             </label>
             <label className="wide">Phone No.
               <input required name="phone" type="tel" inputMode="tel" autoComplete="tel" minLength={10} maxLength={15} value={form.phone} onChange={(event) => update(event.target.name, event.target.value)} />
