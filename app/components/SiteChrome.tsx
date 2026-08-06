@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-type User = { displayName: string; username: string; role: "admin" | "block" | "cultural"; blockNo: string | null };
+type User = { displayName: string; username: string; role: "admin" | "block" | "cultural"; blockNo: string | null; portalOwner?: boolean };
 
 export function SiteHeader() {
   const [user, setUser] = useState<User | null>(null);
@@ -30,7 +30,7 @@ export function SiteHeader() {
           {(user.role === "admin" || user.role === "cultural") && <Link onClick={() => setNavOpen(false)} href="/cultural">Cultural Programme</Link>}
           {user.role === "admin" && <details ref={adminMenuRef} className="admin-menu"><summary><span>Administration</span><svg className="admin-chevron" aria-hidden="true" viewBox="0 0 12 12"><path d="m2.25 4.25 3.75 3.5 3.75-3.5"/></svg></summary><div><Link onClick={() => setNavOpen(false)} href="/admin"><strong>Festival Accounts</strong><small>Collections and verification</small></Link><Link onClick={() => setNavOpen(false)} href="/admin#expenses"><strong>Expenses</strong><small>Expense register and receipts</small></Link><Link onClick={() => setNavOpen(false)} href="/meetings"><strong>Meeting Minutes</strong><small>Decisions and action items</small></Link><Link onClick={() => setNavOpen(false)} href="/admin/users"><strong>User Access</strong><small>Roles and coordinators</small></Link></div></details>}
         </div>
-        <div className="nav-account"><span className="user-chip" title={`${user.displayName} · ${user.username}`}>{user.role === "block" ? `Block ${user.blockNo}` : user.role === "cultural" ? "Cultural" : "Admin"}</span><button className="logout-link" onClick={() => void logout()}>Sign out</button></div>
+        <div className="nav-account"><span className="user-chip" title={`${user.displayName} · ${user.username}`}>{user.role === "block" ? `Block ${user.blockNo}` : user.role === "cultural" ? "Cultural" : user.portalOwner ? "Portal Admin" : "Admin"}</span><button className="logout-link" onClick={() => void logout()}>Sign out</button></div>
       </nav>
     </>}
   </div></header>;

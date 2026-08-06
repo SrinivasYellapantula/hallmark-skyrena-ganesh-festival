@@ -38,9 +38,9 @@ export async function POST(request: Request) {
   const existing = await d1.prepare("SELECT id,role FROM app_users WHERE username = ?").bind(username).first<{ id: string; role: string }>();
   const portalOwner = isPortalOwner(auth.user);
   if (!portalOwner && (role === "admin" || existing?.role === "admin"))
-    return Response.json({ error: "Only the Portal Owner can create or modify administrator accounts." }, { status: 403 });
+    return Response.json({ error: "Only the Portal Admin can create or modify Admin accounts." }, { status: 403 });
   if (existing?.id === "initial-admin" && role !== "admin")
-    return Response.json({ error: "The Portal Owner account must remain an administrator." }, { status: 400 });
+    return Response.json({ error: "The Portal Admin account must retain super-admin access." }, { status: 400 });
   const id = existing?.id ?? crypto.randomUUID();
   const credentials = await hashPassword(password);
   const statements = existing ? [
@@ -75,14 +75,14 @@ export async function PATCH(request: Request) {
   const id = cleanText(body.id, 80);
   const active = body.active === true ? 1 : 0;
   if (!id) return Response.json({ error: "User id required." }, { status: 400 });
-  if (id === "initial-admin" && !active) return Response.json({ error: "The Portal Owner account cannot be disabled." }, { status: 400 });
+  if (id === "initial-admin" && !active) return Response.json({ error: "The Portal Admin account cannot be disabled." }, { status: 400 });
   if (id === auth.user.id && !active) return Response.json({ error: "You cannot disable your own account." }, { status: 400 });
   await ensureDatabase();
   const d1 = getD1();
   const target = await d1.prepare("SELECT role FROM app_users WHERE id=?").bind(id).first<{ role: string }>();
   if (!target) return Response.json({ error: "User not found." }, { status: 404 });
   if (target.role === "admin" && !isPortalOwner(auth.user))
-    return Response.json({ error: "Only the Portal Owner can change administrator access." }, { status: 403 });
+    return Response.json({ error: "Only the Portal Admin can change Admin access." }, { status: 403 });
   await d1.batch([
     d1.prepare("UPDATE app_users SET active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(active, id),
     ...(active ? [] : [d1.prepare("DELETE FROM app_sessions WHERE user_id=?").bind(id)]),

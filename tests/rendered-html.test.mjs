@@ -107,9 +107,10 @@ test("portal owner can safely clear test data without removing access configurat
   assert.doesNotMatch(resetRoute, /DELETE FROM app_users|DELETE FROM app_sessions/);
   assert.match(dashboard, /Clear Test Data/);
   assert.match(dashboard, /Also remove the occupied-flat master/);
-  assert.match(usersRoute, /Only the Portal Owner can create or modify administrator accounts/);
-  assert.match(usersRoute, /The Portal Owner account cannot be disabled/);
-  assert.match(usersScreen, /Portal Owner/);
+  assert.match(usersRoute, /Only the Portal Admin can create or modify Admin accounts/);
+  assert.match(usersRoute, /The Portal Admin account cannot be disabled/);
+  assert.match(usersScreen, /initial-admin"\?"Portal Admin"/);
+  assert.match(usersScreen, /<option value="admin">Admin<\/option>/);
   assert.match(usersScreen, /Protected/);
 });
 

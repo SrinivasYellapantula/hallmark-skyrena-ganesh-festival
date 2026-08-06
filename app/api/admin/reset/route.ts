@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   const auth = await authorize(request, ["admin"]);
   if ("response" in auth) return auth.response;
   if (!isPortalOwner(auth.user))
-    return Response.json({ error: "Portal Owner access required." }, { status: 403 });
+    return Response.json({ error: "Portal Admin access required." }, { status: 403 });
 
   const body = await request.json() as Record<string, unknown>;
   if (cleanText(body.confirmation, 80).toUpperCase() !== RESET_CONFIRMATION)
