@@ -149,7 +149,7 @@ export function ContributionForm() {
               <small>Enter 0 when there is no additional contribution.</small>
             </label>
             <label className="wide">UPI Transaction Reference No.
-              <input required name="paymentReference" value={form.paymentReference} onChange={(event) => update(event.target.name, event.target.value)} placeholder="UPI / UTR reference" />
+              <input name="paymentReference" value={form.paymentReference} onChange={(event) => update(event.target.name, event.target.value)} placeholder="UPI / UTR reference" />
             </label>
             <label className="wide proof-picker">Payment Confirmation Image
               <input required type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => void selectProof(event.target.files?.[0] ?? null)} />
