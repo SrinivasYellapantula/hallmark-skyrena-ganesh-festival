@@ -151,8 +151,8 @@ test("meeting minutes support structured actions and PDF-ready printing", async 
 });
 
 test("mobile app metadata and compact controls are present", async () => {
-  const [manifest, styles, pending, layout] = await Promise.all([
-    source("app/manifest.ts"), source("app/globals.css"), source("app/pending/PendingFlats.tsx"), source("app/layout.tsx"),
+  const [manifest, styles, pending, layout, chrome] = await Promise.all([
+    source("app/manifest.ts"), source("app/globals.css"), source("app/pending/PendingFlats.tsx"), source("app/layout.tsx"), source("app/components/SiteChrome.tsx"),
   ]);
   assert.match(manifest, /display: "standalone"/);
   assert.match(manifest, /skyrena-app-192\.png/);
@@ -160,7 +160,9 @@ test("mobile app metadata and compact controls are present", async () => {
   assert.match(layout, /skyrena-favicon-32\.png/);
   assert.match(layout, /apple-touch-icon\.png/);
   assert.match(styles, /@media \(max-width: 480px\)/);
-  assert.match(styles, /\.admin-menu summary::after/);
+  assert.match(chrome, /className="admin-chevron"/);
+  assert.match(styles, /\.admin-chevron\{/);
+  assert.match(styles, /\.admin-menu\[open\] \.admin-chevron/);
   assert.match(styles, /\.block-filter\{width:140px/);
   assert.match(pending, /className="block-filter"/);
 });
