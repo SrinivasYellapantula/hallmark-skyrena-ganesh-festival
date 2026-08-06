@@ -271,6 +271,32 @@ test("mobile app metadata and compact controls are present", async () => {
   assert.match(pending, /className="block-filter"/);
 });
 
+test("role-scoped collection summary shows block and overall donation metrics", async () => {
+  const [route, screen, page, chrome, styles] = await Promise.all([
+    source("app/api/collection-summary/route.ts"),
+    source("app/collection-summary/CollectionSummary.tsx"),
+    source("app/collection-summary/page.tsx"),
+    source("app/components/SiteChrome.tsx"),
+    source("app/globals.css"),
+  ]);
+  assert.match(route, /authorize\(request, \["admin", "block"\]\)/);
+  assert.match(route, /auth\.user\.role === "block"/);
+  assert.match(route, /auth\.user\.blockNo/);
+  assert.match(route, /donatedOccupiedFlats/);
+  assert.match(route, /totalCollection/);
+  assert.match(route, /verifiedCollection/);
+  assert.match(route, /maximumDonation/);
+  assert.match(route, /averageDonation/);
+  assert.match(screen, /Blocks A–E/);
+  assert.match(screen, /Overall Summary/);
+  assert.match(screen, /Pending flats/);
+  assert.match(screen, /Maximum flat donation/);
+  assert.doesNotMatch(screen, /<select/);
+  assert.match(page, /CollectionSummary/);
+  assert.match(chrome, /href="\/collection-summary">Collection Summary/);
+  assert.match(styles, /\.block-summary-grid/);
+});
+
 test("occupied-flat map and block-wise CSV import preserve collection history", async () => {
   const [mapRoute, flatsRoute, importRoute, screen, contribution, registration, chrome, migration, occupancyMigration] = await Promise.all([
     source("app/api/flats/map/route.ts"), source("app/api/flats/route.ts"),
