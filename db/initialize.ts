@@ -86,6 +86,7 @@ async function initialize() {
       block_no TEXT NOT NULL,
       flat_no TEXT NOT NULL,
       resident_name TEXT NOT NULL DEFAULT '',
+      occupied INTEGER NOT NULL DEFAULT 1,
       visit_status TEXT NOT NULL DEFAULT 'pending',
       visit_notes TEXT NOT NULL DEFAULT '',
       last_visited_at TEXT,

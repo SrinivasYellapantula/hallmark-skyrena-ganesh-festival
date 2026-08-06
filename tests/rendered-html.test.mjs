@@ -159,3 +159,22 @@ test("mobile app metadata and compact controls are present", async () => {
   assert.match(styles, /\.block-filter\{width:140px/);
   assert.match(pending, /className="block-filter"/);
 });
+
+test("occupied-flat map and block-wise CSV import preserve collection history", async () => {
+  const [mapRoute, importRoute, screen, chrome, migration] = await Promise.all([
+    source("app/api/flats/map/route.ts"), source("app/api/admin/flats/import/route.ts"),
+    source("app/flat-status/FlatStatusMap.tsx"), source("app/components/SiteChrome.tsx"),
+    source("drizzle/0007_occupied_flat_map.sql"),
+  ]);
+  assert.match(mapRoute, /f\.occupied=1/);
+  assert.match(mapRoute, /donationAmount/);
+  assert.match(importRoute, /authorize\(request, \["admin"\]\)/);
+  assert.match(importRoute, /UPDATE flats SET occupied=0/);
+  assert.match(importRoute, /visit history are preserved|ON CONFLICT/);
+  assert.match(screen, /Upload Block/);
+  assert.match(screen, /Download Template/);
+  assert.match(screen, /groupFloors/);
+  assert.match(screen, /Donation recorded/);
+  assert.match(chrome, /\/flat-status/);
+  assert.match(migration, /ADD `occupied`/);
+});

@@ -50,6 +50,13 @@
       "when": 1785999600000,
       "tag": "0006_committee_workspaces",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1786008600000,
+      "tag": "0007_occupied_flat_map",
+      "breakpoints": true
     }
   ]
 }
