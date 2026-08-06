@@ -55,6 +55,8 @@ test("donation form shows the official payment QR and Visarjan Mahaprasadam note
   assert.match(styles, /\.payment-qr-card/);
   assert.match(styles, /\.field-grid > \.wide \{ grid-column: 1 \/ -1; \}/);
   assert.match(styles, /max-width:360px/);
+  assert.match(styles, /\.form-summary \{ position: static; grid-row: auto; \}/);
+  assert.doesNotMatch(styles, /\.form-summary \{ position: static; grid-row: 1; \}/);
 });
 
 test("block users are scoped by the authenticated server identity", async () => {
