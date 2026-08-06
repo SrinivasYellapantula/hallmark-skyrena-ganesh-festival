@@ -29,7 +29,7 @@ export function AdminDashboard() {
   const load = useCallback(async () => {
     const response = await fetch("/api/admin/dashboard");
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error ?? "Unable to load the committee console.");
+    if (!response.ok) throw new Error(payload.error ?? "Unable to load festival accounts.");
     setData(payload);
     setSelectedExpense((selected) => selected
       ? payload.expenses.find((expense: Expense) => expense.id === selected.id) ?? payload.expenses[0] ?? null
@@ -42,7 +42,7 @@ export function AdminDashboard() {
       .then(async (response) => ({ response, payload: await response.json() }))
       .then(({ response, payload }) => {
         if (!active) return;
-        if (!response.ok) setError(payload.error ?? "Unable to load the committee console.");
+        if (!response.ok) setError(payload.error ?? "Unable to load festival accounts.");
         else {
           setData(payload);
           setSelectedExpense(payload.expenses[0] ?? null);
@@ -96,7 +96,7 @@ export function AdminDashboard() {
   return (
     <section className="wrap admin-shell">
       <div className="admin-heading">
-        <div><div className="eyebrow"><span />Restricted area</div><h1>Committee console</h1><p>Verify collections, record expenses and keep the public ledger current.</p></div>
+        <div><div className="eyebrow"><span />Portal administrator</div><h1>Festival Accounts</h1><p>Verify collections, record expenses and keep the public ledger current.</p></div>
         <div className="admin-heading-actions"><a className="button quiet" href="#expenses">View Expenses</a><button className="button primary" onClick={() => setExpenseDialog("new")}>+ Record Expense</button></div>
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}

@@ -10,7 +10,7 @@ export type AppUser = {
   id: string;
   username: string;
   displayName: string;
-  role: "admin" | "block";
+  role: "admin" | "block" | "cultural";
   blockNo: string | null;
 };
 
@@ -38,7 +38,7 @@ export async function getAppUser(request: Request): Promise<AppUser | null> {
      FROM app_sessions s JOIN app_users u ON u.id = s.user_id
      WHERE s.token_hash = ? AND s.expires_at > CURRENT_TIMESTAMP AND u.active = 1 LIMIT 1`,
   ).bind(tokenHash).first<AppUser>();
-  if (!row || !row.username || !["admin", "block"].includes(row.role)) return null;
+  if (!row || !row.username || !["admin", "block", "cultural"].includes(row.role)) return null;
   if (row.role === "block" && !BLOCKS.includes(row.blockNo as (typeof BLOCKS)[number])) return null;
   return row;
 }
@@ -46,7 +46,7 @@ export async function getAppUser(request: Request): Promise<AppUser | null> {
 export async function authorize(request: Request, roles: Array<AppUser["role"]> = ["admin", "block"]) {
   const user = await getAppUser(request);
   if (!user) return { response: Response.json({ error: "Please sign in to continue." }, { status: 401 }) } as const;
-  if (!roles.includes(user.role)) return { response: Response.json({ error: "Administrator access required." }, { status: 403 }) } as const;
+  if (!roles.includes(user.role)) return { response: Response.json({ error: "You do not have access to this area." }, { status: 403 }) } as const;
   return { user } as const;
 }
 

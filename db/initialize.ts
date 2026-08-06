@@ -109,6 +109,56 @@ async function initialize() {
       created_by TEXT NOT NULL DEFAULT 'committee',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`,
+    `CREATE TABLE IF NOT EXISTS meeting_minutes (
+      id TEXT PRIMARY KEY NOT NULL,
+      event_id TEXT NOT NULL REFERENCES events(id),
+      title TEXT NOT NULL,
+      meeting_date TEXT NOT NULL,
+      start_time TEXT NOT NULL DEFAULT '',
+      end_time TEXT NOT NULL DEFAULT '',
+      venue TEXT NOT NULL DEFAULT '',
+      chairperson TEXT NOT NULL DEFAULT '',
+      attendees TEXT NOT NULL DEFAULT '',
+      absentees TEXT NOT NULL DEFAULT '',
+      agenda TEXT NOT NULL DEFAULT '',
+      discussion TEXT NOT NULL DEFAULT '',
+      decisions TEXT NOT NULL DEFAULT '',
+      next_meeting_date TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'draft',
+      created_by TEXT NOT NULL,
+      updated_by TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS meeting_action_items (
+      id TEXT PRIMARY KEY NOT NULL,
+      meeting_id TEXT NOT NULL REFERENCES meeting_minutes(id) ON DELETE CASCADE,
+      description TEXT NOT NULL,
+      owner TEXT NOT NULL DEFAULT '',
+      due_date TEXT NOT NULL DEFAULT '',
+      priority TEXT NOT NULL DEFAULT 'medium',
+      status TEXT NOT NULL DEFAULT 'open',
+      notes TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0
+    )`,
+    `CREATE TABLE IF NOT EXISTS cultural_programmes (
+      id TEXT PRIMARY KEY NOT NULL,
+      event_id TEXT NOT NULL REFERENCES events(id),
+      title TEXT NOT NULL,
+      category TEXT NOT NULL,
+      participant_details TEXT NOT NULL DEFAULT '',
+      coordinator TEXT NOT NULL DEFAULT '',
+      block_no TEXT NOT NULL DEFAULT '',
+      flat_no TEXT NOT NULL DEFAULT '',
+      programme_date TEXT NOT NULL DEFAULT '',
+      start_time TEXT NOT NULL DEFAULT '',
+      duration_minutes INTEGER NOT NULL DEFAULT 10,
+      status TEXT NOT NULL DEFAULT 'proposed',
+      notes TEXT NOT NULL DEFAULT '',
+      created_by TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
     `CREATE TABLE IF NOT EXISTS audit_log (
       id TEXT PRIMARY KEY NOT NULL,
       entity_type TEXT NOT NULL,
@@ -123,6 +173,9 @@ async function initialize() {
     "CREATE INDEX IF NOT EXISTS idx_donations_registration ON donations(registration_id)",
     "CREATE INDEX IF NOT EXISTS idx_donations_status_category ON donations(status, category)",
     "CREATE INDEX IF NOT EXISTS idx_expenses_event_status_date ON expenses(event_id, status, expense_date)",
+    "CREATE INDEX IF NOT EXISTS idx_meeting_minutes_event_date ON meeting_minutes(event_id, meeting_date)",
+    "CREATE INDEX IF NOT EXISTS idx_meeting_actions_meeting ON meeting_action_items(meeting_id, sort_order)",
+    "CREATE INDEX IF NOT EXISTS idx_cultural_programmes_event_date ON cultural_programmes(event_id, programme_date)",
     "CREATE INDEX IF NOT EXISTS idx_audit_entity_created ON audit_log(entity_type, entity_id, created_at)",
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_app_users_email ON app_users(email)",
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_app_users_username ON app_users(username)",
@@ -148,16 +201,16 @@ async function initialize() {
 
   const initialUsers = [
     ["initial-admin", "admin@local", "admin", "sMd4jOhPD5gCJMMC4x13ItQ6/NJwmwOOQuzSvLpKaeo=", "Ad/XCSp5mCEiqVpPV2vPYw==", "Administrator", "admin", null],
-    ["initial-block-a", "a_user@local", "a_user", "ni5aQN4AWhbjun58PmPwJWPuAoLta06vQZqAhlzQRXw=", "3QnKsKQdYD9IIJFO0G38lQ==", "Block A Volunteer", "block", "A"],
-    ["initial-block-b", "b_user@local", "b_user", "hjwqQiz2MGmbA2yhdVUlCue+eMIlm58Ip4aGzqTBBow=", "VzHGmrCWQyXiiyeSM2b54Q==", "Block B Volunteer", "block", "B"],
-    ["initial-block-c", "c_user@local", "c_user", "NWvy2rQDfSr5+BBG4f8AYRFHAjPrJCysEmz5nzRHWUc=", "uhIfhIuTSNKiOPFMy6SU4Q==", "Block C Volunteer", "block", "C"],
-    ["initial-block-d", "d_user@local", "d_user", "bAev+gKTxkR2Q/SPOwn+O/wuWfcWwXk/ZFUB6Cg2KLE=", "j2wxXLd05zWU7eaGwtf9Ew==", "Block D Volunteer", "block", "D"],
-    ["initial-block-e", "e_user@local", "e_user", "vccRn4s+FRXhTe/62VBy1Ks2hZYeo4UrjLh37IgJOtI=", "IOF7jioPkSYfgICti6nGqg==", "Block E Volunteer", "block", "E"],
+    ["initial-block-a", "block_a_coordinator@local", "block_a_coordinator", "ni5aQN4AWhbjun58PmPwJWPuAoLta06vQZqAhlzQRXw=", "3QnKsKQdYD9IIJFO0G38lQ==", "Block A Coordinator", "block", "A"],
+    ["initial-block-b", "block_b_coordinator@local", "block_b_coordinator", "hjwqQiz2MGmbA2yhdVUlCue+eMIlm58Ip4aGzqTBBow=", "VzHGmrCWQyXiiyeSM2b54Q==", "Block B Coordinator", "block", "B"],
+    ["initial-block-c", "block_c_coordinator@local", "block_c_coordinator", "NWvy2rQDfSr5+BBG4f8AYRFHAjPrJCysEmz5nzRHWUc=", "uhIfhIuTSNKiOPFMy6SU4Q==", "Block C Coordinator", "block", "C"],
+    ["initial-block-d", "block_d_coordinator@local", "block_d_coordinator", "bAev+gKTxkR2Q/SPOwn+O/wuWfcWwXk/ZFUB6Cg2KLE=", "j2wxXLd05zWU7eaGwtf9Ew==", "Block D Coordinator", "block", "D"],
+    ["initial-block-e", "block_e_coordinator@local", "block_e_coordinator", "vccRn4s+FRXhTe/62VBy1Ks2hZYeo4UrjLh37IgJOtI=", "IOF7jioPkSYfgICti6nGqg==", "Block E Coordinator", "block", "E"],
   ] as const;
   await d1.batch(initialUsers.map((user) => d1.prepare(
     `INSERT INTO app_users
       (id,email,username,password_hash,password_salt,password_updated_at,display_name,role,block_no,active,created_by)
      VALUES (?,?,?,?,?,CURRENT_TIMESTAMP,?,?,?,1,'system')
-     ON CONFLICT(username) DO NOTHING`,
+     ON CONFLICT DO NOTHING`,
   ).bind(...user)));
 }

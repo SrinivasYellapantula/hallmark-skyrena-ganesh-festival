@@ -1,7 +1,7 @@
-import { authorize } from "../../../lib/auth";
+import { getAppUser } from "../../../lib/auth";
 
 export async function GET(request: Request) {
-  const auth = await authorize(request);
-  if ("response" in auth) return auth.response;
-  return Response.json(auth.user);
+  const user = await getAppUser(request);
+  if (!user) return Response.json({ error: "Please sign in to continue." }, { status: 401 });
+  return Response.json(user);
 }

@@ -24,6 +24,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title,
     description,
+    manifest: "/manifest.webmanifest",
+    appleWebApp: { capable: true, statusBarStyle: "default", title: "Skyrena Ganesh 2026" },
+    formatDetection: { telephone: false },
     openGraph: { title, description, images: [{ url: image, width: 1732, height: 908 }] },
     twitter: { card: "summary_large_image", title, description, images: [image] },
   };
@@ -35,7 +38,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

@@ -108,3 +108,48 @@ test("application login uses hashed passwords and server-side sessions", async (
   assert.match(compatibilityMigration, /sMd4jOhPD5gCJMMC4x13ItQ6\/NJwmwOOQuzSvLpKaeo=/);
   assert.doesNotMatch(compatibilityMigration, /nimda|skyrena@/);
 });
+
+test("role-specific workspaces are enforced and clearly named", async () => {
+  const [auth, chrome, users, userRoute, culturalRoute, gate, migration] = await Promise.all([
+    source("app/lib/auth.ts"), source("app/components/SiteChrome.tsx"),
+    source("app/admin/users/UserManagement.tsx"), source("app/api/admin/users/route.ts"),
+    source("app/api/cultural/programmes/route.ts"), source("app/components/AuthGate.tsx"),
+    source("drizzle/0006_committee_workspaces.sql"),
+  ]);
+  assert.match(auth, /"cultural"/);
+  assert.match(chrome, /Cultural Programme/);
+  assert.match(chrome, /Festival Accounts/);
+  assert.match(chrome, /Meeting Minutes/);
+  assert.match(users, /Block Coordinator/);
+  assert.match(users, /Cultural Committee/);
+  assert.match(userRoute, /"admin", "block", "cultural"/);
+  assert.match(culturalRoute, /authorize\(request,\["admin","cultural"\]\)/);
+  assert.match(gate, /user\.role === "cultural"/);
+  assert.match(migration, /block_a_coordinator/);
+});
+
+test("meeting minutes support structured actions and PDF-ready printing", async () => {
+  const [route, screen, migration, styles] = await Promise.all([
+    source("app/api/admin/meetings/route.ts"), source("app/meetings/MeetingMinutes.tsx"),
+    source("drizzle/0006_committee_workspaces.sql"), source("app/globals.css"),
+  ]);
+  assert.match(route, /authorize\(request, \["admin"\]\)/);
+  assert.match(route, /export async function DELETE/);
+  assert.match(route, /meeting_action_items/);
+  assert.match(screen, /Action Items/);
+  assert.match(screen, /Print \/ Save as PDF/);
+  assert.match(screen, /Edit Minutes/);
+  assert.match(screen, /Delete/);
+  assert.match(migration, /CREATE TABLE `meeting_minutes`/);
+  assert.match(styles, /@media print/);
+});
+
+test("mobile app metadata and compact controls are present", async () => {
+  const [manifest, styles, pending] = await Promise.all([
+    source("app/manifest.ts"), source("app/globals.css"), source("app/pending/PendingFlats.tsx"),
+  ]);
+  assert.match(manifest, /display: "standalone"/);
+  assert.match(styles, /@media \(max-width: 480px\)/);
+  assert.match(styles, /\.block-filter\{width:140px/);
+  assert.match(pending, /className="block-filter"/);
+});

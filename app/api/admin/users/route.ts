@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   const displayName = cleanText(body.displayName, 100);
   const role = cleanText(body.role, 10);
   const blockNo = cleanText(body.blockNo, 2).toUpperCase();
-  if (!validUsername(username) || !displayName || !["admin", "block"].includes(role))
+  if (!validUsername(username) || !displayName || !["admin", "block", "cultural"].includes(role))
     return Response.json({ error: "Enter a valid name, username and role." }, { status: 400 });
   if (password.length < 8 || password.length > 200)
     return Response.json({ error: "Passwords must contain at least 8 characters." }, { status: 400 });

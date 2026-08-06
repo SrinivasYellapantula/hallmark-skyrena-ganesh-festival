@@ -90,7 +90,7 @@ export const appUsers = sqliteTable(
     passwordSalt: text("password_salt"),
     passwordUpdatedAt: text("password_updated_at"),
     displayName: text("display_name").notNull(),
-    role: text("role", { enum: ["admin", "block"] }).notNull(),
+    role: text("role", { enum: ["admin", "block", "cultural"] }).notNull(),
     blockNo: text("block_no"),
     active: integer("active", { mode: "boolean" }).notNull().default(true),
     createdBy: text("created_by").notNull(),
@@ -190,4 +190,69 @@ export const auditLog = sqliteTable(
     createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [index("idx_audit_entity_created").on(table.entityType, table.entityId, table.createdAt)],
+);
+
+export const meetingMinutes = sqliteTable(
+  "meeting_minutes",
+  {
+    id: text("id").primaryKey(),
+    eventId: text("event_id").notNull().references(() => events.id),
+    title: text("title").notNull(),
+    meetingDate: text("meeting_date").notNull(),
+    startTime: text("start_time").notNull().default(""),
+    endTime: text("end_time").notNull().default(""),
+    venue: text("venue").notNull().default(""),
+    chairperson: text("chairperson").notNull().default(""),
+    attendees: text("attendees").notNull().default(""),
+    absentees: text("absentees").notNull().default(""),
+    agenda: text("agenda").notNull().default(""),
+    discussion: text("discussion").notNull().default(""),
+    decisions: text("decisions").notNull().default(""),
+    nextMeetingDate: text("next_meeting_date").notNull().default(""),
+    status: text("status", { enum: ["draft", "final"] }).notNull().default("draft"),
+    createdBy: text("created_by").notNull(),
+    updatedBy: text("updated_by").notNull(),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("idx_meeting_minutes_event_date").on(table.eventId, table.meetingDate)],
+);
+
+export const meetingActionItems = sqliteTable(
+  "meeting_action_items",
+  {
+    id: text("id").primaryKey(),
+    meetingId: text("meeting_id").notNull().references(() => meetingMinutes.id, { onDelete: "cascade" }),
+    description: text("description").notNull(),
+    owner: text("owner").notNull().default(""),
+    dueDate: text("due_date").notNull().default(""),
+    priority: text("priority", { enum: ["low", "medium", "high"] }).notNull().default("medium"),
+    status: text("status", { enum: ["open", "in_progress", "completed"] }).notNull().default("open"),
+    notes: text("notes").notNull().default(""),
+    sortOrder: integer("sort_order").notNull().default(0),
+  },
+  (table) => [index("idx_meeting_actions_meeting").on(table.meetingId, table.sortOrder)],
+);
+
+export const culturalProgrammes = sqliteTable(
+  "cultural_programmes",
+  {
+    id: text("id").primaryKey(),
+    eventId: text("event_id").notNull().references(() => events.id),
+    title: text("title").notNull(),
+    category: text("category").notNull(),
+    participantDetails: text("participant_details").notNull().default(""),
+    coordinator: text("coordinator").notNull().default(""),
+    blockNo: text("block_no").notNull().default(""),
+    flatNo: text("flat_no").notNull().default(""),
+    programmeDate: text("programme_date").notNull().default(""),
+    startTime: text("start_time").notNull().default(""),
+    durationMinutes: integer("duration_minutes").notNull().default(10),
+    status: text("status", { enum: ["proposed", "confirmed", "completed", "cancelled"] }).notNull().default("proposed"),
+    notes: text("notes").notNull().default(""),
+    createdBy: text("created_by").notNull(),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("idx_cultural_programmes_event_date").on(table.eventId, table.programmeDate)],
 );

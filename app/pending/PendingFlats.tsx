@@ -90,7 +90,7 @@ export function PendingFlats() {
         <header>
           <div><span className="card-kicker">Visit queue</span><h2>{block ? `Block ${block}` : "Choose a block"}</h2></div>
           {user?.role === "admin" && (
-            <select value={block} onChange={(event) => { setBlock(event.target.value); void load(event.target.value); }}>
+            <select className="block-filter" aria-label="Choose block" value={block} onChange={(event) => { setBlock(event.target.value); void load(event.target.value); }}>
               <option value="">Choose block</option>
               {BLOCKS.map((item) => <option key={item}>{item}</option>)}
             </select>

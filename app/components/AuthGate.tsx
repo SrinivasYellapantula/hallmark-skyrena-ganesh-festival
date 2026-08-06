@@ -10,7 +10,16 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     fetch("/api/auth/me", { cache: "no-store" })
-      .then((response) => setState(response.ok ? "allowed" : "login"))
+      .then(async (response) => {
+        if (!response.ok) { setState("login"); return; }
+        const user = await response.json() as { role: "admin" | "block" | "cultural" };
+        const path = window.location.pathname;
+        const adminOnly = path.startsWith("/admin") || path.startsWith("/meetings");
+        const culturalOnly = path.startsWith("/cultural");
+        if (user.role === "cultural" && !culturalOnly) { window.location.replace("/cultural"); return; }
+        if (user.role === "block" && (adminOnly || culturalOnly)) { window.location.replace("/"); return; }
+        setState("allowed");
+      })
       .catch(() => setState("login"));
   }, []);
 
