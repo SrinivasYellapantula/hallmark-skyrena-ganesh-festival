@@ -31,7 +31,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget))),
       });
-      const payload = await response.json();
+      const responseText = await response.text();
+      let payload: { error?: string; ok?: boolean } = {};
+      if (responseText) {
+        try { payload = JSON.parse(responseText) as { error?: string; ok?: boolean }; }
+        catch { throw new Error(`The login service returned an invalid response (${response.status}). Please try again or contact the portal administrator.`); }
+      }
+      if (!responseText) throw new Error(`The login service returned an empty response (${response.status}). Please try again or contact the portal administrator.`);
       if (!response.ok) throw new Error(payload.error ?? "Unable to sign in.");
       window.location.reload();
     } catch (caught) {

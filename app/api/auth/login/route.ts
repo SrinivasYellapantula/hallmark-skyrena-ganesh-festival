@@ -8,7 +8,15 @@ const DUMMY_HASH = "sMd4jOhPD5gCJMMC4x13ItQ6/NJwmwOOQuzSvLpKaeo=";
 const AUTH_HEADERS = { "x-auth-engine": "node-pbkdf2-100k-v4" };
 
 export async function POST(request: Request) {
-  await ensureDatabase();
+  try {
+    await ensureDatabase();
+  } catch (error) {
+    console.error("Login database initialization failed", error);
+    return Response.json(
+      { error: "The login database is not ready. Please apply the latest database migration and deploy again." },
+      { status: 503, headers: AUTH_HEADERS },
+    );
+  }
   const body = await request.json() as Record<string, unknown>;
   const username = normalizeUsername(body.username);
   const password = String(body.password ?? "");

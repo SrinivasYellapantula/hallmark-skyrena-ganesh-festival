@@ -102,6 +102,9 @@ test("application login uses hashed passwords and server-side sessions", async (
   assert.match(auth, /HttpOnly; SameSite=Strict/);
   assert.match(auth, /app_sessions/);
   assert.match(gate, /Sign in/);
+  assert.match(gate, /response\.text\(\)/);
+  assert.match(gate, /empty response/);
+  assert.match(login, /Login database initialization failed/);
   assert.match(migration, /CREATE TABLE `app_sessions`/);
   assert.match(seed, /initial-admin/);
   assert.doesNotMatch(seed, /nimda|skyrena@/);
