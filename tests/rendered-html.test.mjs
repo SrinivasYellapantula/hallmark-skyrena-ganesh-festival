@@ -27,7 +27,8 @@ test("registration validation enforces the donation minimum", async () => {
     source("app/contribute/ContributionForm.tsx"),
   ]);
   assert.match(route, /wholeNumber\(body\.get\("mainDonation"\), MINIMUM_DONATION\)/);
-  assert.match(route, /payment reference is required/i);
+  assert.doesNotMatch(route, /payment reference is required/i);
+  assert.match(form, /UPI Transaction Reference No\. <span className="optional">optional<\/span>/);
   assert.match(route, /wholeNumber\(body\.get\("adultCount"\), 0, 7\)/);
   assert.match(route, /!phone/);
   assert.match(route, /PAYMENT_PROOFS/);

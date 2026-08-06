@@ -94,7 +94,7 @@ export function DonationsDashboard() {
             <div><dt>Resident type</dt><dd>{selected.occupancy}</dd></div>
             <div><dt>Phone</dt><dd>{selected.phone || "Not recorded"}</dd></div>
             <div><dt>Attendees</dt><dd>{selected.adultCount} adults · {selected.childCount} children</dd></div>
-            <div><dt>UPI reference</dt><dd>{selected.paymentReference}</dd></div>
+            <div><dt>UPI reference</dt><dd>{selected.paymentReference || "Not recorded"}</dd></div>
           </dl>
           {selected.hasProof ? (
             <a className="button quiet full" target="_blank" rel="noreferrer" href={`/api/payment-proofs/${selected.id}`}>View payment proof</a>

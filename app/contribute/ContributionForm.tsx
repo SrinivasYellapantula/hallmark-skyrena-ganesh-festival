@@ -194,7 +194,7 @@ export function ContributionForm() {
               <input name="annadaanamDonation" type="number" inputMode="numeric" min="0" step="100" value={form.annadaanamDonation} onChange={(event) => update(event.target.name, event.target.value)} />
               <small>Enter 0 when there is no additional contribution.</small>
             </label>
-            <label className="wide">UPI Transaction Reference No.
+            <label className="wide">UPI Transaction Reference No. <span className="optional">optional</span>
               <input name="paymentReference" value={form.paymentReference} onChange={(event) => update(event.target.name, event.target.value)} placeholder="UPI / UTR reference" />
             </label>
             <label className="wide proof-picker">Payment Confirmation Image

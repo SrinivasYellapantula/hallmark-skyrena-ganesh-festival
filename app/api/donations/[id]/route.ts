@@ -24,7 +24,7 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
   if(auth.user.role === "block" && current.status !== "submitted") return Response.json({error:"Verified donations can only be changed by an admin."},{status:403});
   const body=await request.json() as Record<string,unknown>; const amount=wholeNumber(body.mainDonation,MINIMUM_DONATION);
   const paymentReference=cleanText(body.paymentReference,80); const adults=wholeNumber(body.adultCount,0,7); const children=wholeNumber(body.childCount,0,7); const notes=cleanText(body.notes,500);
-  if(amount===null||!paymentReference||adults===null||children===null)return Response.json({error:"Complete all update fields."},{status:400});
+  if(amount===null||adults===null||children===null)return Response.json({error:"Complete all required update fields."},{status:400});
   const d1=getD1(); await d1.batch([
     d1.prepare(`UPDATE registrations SET adult_count=?,child_count=?,notes=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(adults,children,notes,id),
     d1.prepare(`UPDATE donations SET amount=?,payment_reference=? WHERE registration_id=? AND category='festival'`).bind(amount,paymentReference,id),

@@ -33,7 +33,6 @@ export async function POST(request: Request) {
     if (mainDonation === null || annadaanamDonation === null)
       return Response.json({ error: `Festival donation must be at least ₹${MINIMUM_DONATION.toLocaleString("en-IN")}.` }, { status: 400 });
     if (adultCount === null || childCount === null) return Response.json({ error: "Mahaprasadam attendance counts must be between 0 and 7." }, { status: 400 });
-    if (!paymentReference) return Response.json({ error: "UPI payment reference is required." }, { status: 400 });
     if (!(proof instanceof File) || proof.size === 0) return Response.json({ error: "Payment confirmation image is required." }, { status: 400 });
     if (!IMAGE_TYPES.has(proof.type) || proof.size > MAX_PROOF_BYTES)
       return Response.json({ error: "Upload a JPG, PNG or WebP payment image up to 1 MB." }, { status: 400 });
