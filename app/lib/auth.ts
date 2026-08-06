@@ -14,6 +14,10 @@ export type AppUser = {
   blockNo: string | null;
 };
 
+export function isPortalOwner(user: AppUser | null | undefined) {
+  return user?.id === "initial-admin" && user.role === "admin";
+}
+
 export function cookieValue(request: Request, name: string) {
   const cookies = request.headers.get("cookie") ?? "";
   for (const item of cookies.split(";")) {

@@ -58,7 +58,32 @@ test("committee APIs enforce administrator access", async () => {
     source("app/api/admin/donations/route.ts"),
     source("app/api/admin/expenses/route.ts"),
   ]);
-  for (const file of files) assert.match(file, /isAdminRequest\(request\)/);
+  for (const file of files) assert.match(file, /isAdminRequest\(request\)|user\?\.role !== "admin"/);
+});
+
+test("portal owner can safely clear test data without removing access configuration", async () => {
+  const [resetRoute, auth, dashboard, usersRoute, usersScreen] = await Promise.all([
+    source("app/api/admin/reset/route.ts"), source("app/lib/auth.ts"),
+    source("app/admin/AdminDashboard.tsx"), source("app/api/admin/users/route.ts"),
+    source("app/admin/users/UserManagement.tsx"),
+  ]);
+  assert.match(auth, /user\?\.id === "initial-admin"/);
+  assert.match(resetRoute, /isPortalOwner\(auth\.user\)/);
+  assert.match(resetRoute, /RESET FESTIVAL DATA/);
+  assert.match(resetRoute, /DELETE FROM donations/);
+  assert.match(resetRoute, /DELETE FROM registrations/);
+  assert.match(resetRoute, /DELETE FROM expenses/);
+  assert.match(resetRoute, /DELETE FROM cultural_programmes/);
+  assert.match(resetRoute, /DELETE FROM meeting_minutes/);
+  assert.match(resetRoute, /expenses\/\$\{EVENT_ID\}\//);
+  assert.match(resetRoute, /removeFlatMaster/);
+  assert.doesNotMatch(resetRoute, /DELETE FROM app_users|DELETE FROM app_sessions/);
+  assert.match(dashboard, /Clear Test Data/);
+  assert.match(dashboard, /Also remove the occupied-flat master/);
+  assert.match(usersRoute, /Only the Portal Owner can create or modify administrator accounts/);
+  assert.match(usersRoute, /The Portal Owner account cannot be disabled/);
+  assert.match(usersScreen, /Portal Owner/);
+  assert.match(usersScreen, /Protected/);
 });
 
 test("expense register supports private receipt images and full administration", async () => {

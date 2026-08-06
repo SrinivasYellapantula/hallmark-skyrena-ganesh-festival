@@ -1,10 +1,11 @@
 import { getD1 } from "../../../../db";
 import { ensureDatabase } from "../../../../db/initialize";
 import { EVENT_ID } from "../../../lib/constants";
-import { isAdminRequest } from "../../../lib/server";
+import { getAppUser, isPortalOwner } from "../../../lib/auth";
 
 export async function GET(request: Request) {
-  if (!(await isAdminRequest(request))) return Response.json({ error: "Administrator access required." }, { status: 401 });
+  const user = await getAppUser(request);
+  if (user?.role !== "admin") return Response.json({ error: "Administrator access required." }, { status: 401 });
   await ensureDatabase();
   const d1 = getD1();
   const [registrations, expenses, totals] = await Promise.all([
@@ -44,5 +45,5 @@ export async function GET(request: Request) {
       .bind(EVENT_ID)
       .first(),
   ]);
-  return Response.json({ registrations: registrations.results, expenses: expenses.results, totals });
+  return Response.json({ registrations: registrations.results, expenses: expenses.results, totals, portalOwner: isPortalOwner(user) });
 }

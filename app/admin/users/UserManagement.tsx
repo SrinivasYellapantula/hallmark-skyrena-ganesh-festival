@@ -8,6 +8,7 @@ type User = { id: string; username: string; displayName: string; role: string; b
 export function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [role, setRole] = useState("block");
+  const [portalOwner, setPortalOwner] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -16,6 +17,7 @@ export function UserManagement() {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error);
     setUsers(payload.users);
+    setPortalOwner(Boolean(payload.portalOwner));
   }, []);
 
   useEffect(() => {
@@ -23,7 +25,7 @@ export function UserManagement() {
     fetch("/api/admin/users").then(async (response) => ({ response, payload: await response.json() })).then(({ response, payload }) => {
       if (!active) return;
       if (!response.ok) setError(payload.error);
-      else setUsers(payload.users);
+      else { setUsers(payload.users); setPortalOwner(Boolean(payload.portalOwner)); }
     }).catch(() => active && setError("Unable to load users."));
     return () => { active = false; };
   }, []);
@@ -61,13 +63,13 @@ export function UserManagement() {
         <label>Name<input name="displayName" required /></label>
         <label>Username<input name="username" required minLength={3} autoCapitalize="none" /></label>
         <label>Password<input name="password" type="password" required minLength={8} autoComplete="new-password" /></label>
-        <label>Role<select name="role" value={role} onChange={(event) => setRole(event.target.value)}><option value="block">Block Coordinator</option><option value="cultural">Cultural Committee</option><option value="admin">Portal Administrator</option></select></label>
+        <label>Role<select name="role" value={role} onChange={(event) => setRole(event.target.value)}><option value="block">Block Coordinator</option><option value="cultural">Cultural Committee</option>{portalOwner&&<option value="admin">Portal Administrator</option>}</select></label>
         {role === "block" && <label>Assigned block<select name="blockNo" required>{BLOCKS.map((block) => <option key={block}>{block}</option>)}</select></label>}
         <button className="button primary user-submit">Save User Access</button>
       </form>
       <p className="user-help">Submitting an existing username resets its password, role and block assignment.</p>
       <div className="table-wrap"><table><thead><tr><th>User</th><th>Role</th><th>Block</th><th>Status</th><th>Action</th></tr></thead><tbody>
-        {users.map((user) => <tr key={user.id}><td><strong>{user.displayName}</strong><small>{user.username}</small></td><td>{user.role === "block" ? "Block Coordinator" : user.role === "cultural" ? "Cultural Committee" : "Portal Administrator"}</td><td>{user.blockNo ?? (user.role === "block" ? "—" : "All")}</td><td>{user.active ? "Active" : "Disabled"}</td><td><button className="button quiet" onClick={() => void toggle(user)}>{user.active ? "Disable" : "Reactivate"}</button></td></tr>)}
+        {users.map((user) => {const protectedAccount=user.id==="initial-admin"||(!portalOwner&&user.role==="admin");return <tr key={user.id}><td><strong>{user.displayName}</strong><small>{user.username}</small></td><td>{user.id==="initial-admin"?"Portal Owner":user.role === "block" ? "Block Coordinator" : user.role === "cultural" ? "Cultural Committee" : "Portal Administrator"}</td><td>{user.blockNo ?? (user.role === "block" ? "—" : "All")}</td><td>{user.active ? "Active" : "Disabled"}</td><td>{protectedAccount?<span className="done">Protected</span>:<button className="button quiet" onClick={() => void toggle(user)}>{user.active ? "Disable" : "Reactivate"}</button>}</td></tr>;})}
       </tbody></table></div>
     </div>
   </section>;

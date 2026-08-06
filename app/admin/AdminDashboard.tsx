@@ -14,8 +14,8 @@ type Expense = {
   id: string; category: string; vendor: string; description: string; amount: number; expenseDate: string;
   receiptUrl: string; hasReceipt: number; receiptName: string | null; status: string; createdBy: string; createdAt: string;
 };
-type Dashboard = { registrations: Registration[]; expenses: Expense[]; totals: { verified: number; pending: number; submissions: number } };
-const blank: Dashboard = { registrations: [], expenses: [], totals: { verified: 0, pending: 0, submissions: 0 } };
+type Dashboard = { registrations: Registration[]; expenses: Expense[]; totals: { verified: number; pending: number; submissions: number }; portalOwner: boolean };
+const blank: Dashboard = { registrations: [], expenses: [], totals: { verified: 0, pending: 0, submissions: 0 }, portalOwner: false };
 
 export function AdminDashboard() {
   const [data, setData] = useState<Dashboard>(blank);
@@ -25,6 +25,7 @@ export function AdminDashboard() {
   const [busy, setBusy] = useState("");
   const [expenseDialog, setExpenseDialog] = useState<Expense | "new" | null>(null);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  const [resetDialog, setResetDialog] = useState(false);
 
   const load = useCallback(async () => {
     const response = await fetch("/api/admin/dashboard");
@@ -150,9 +151,37 @@ export function AdminDashboard() {
       </div>
 
       <div className="security-note"><strong>Security checkpoint</strong><p>Change the initial administrator password before sharing the portal. New passwords are salted and hashed, and all active sessions are revoked when a password is reset.</p></div>
+      {data.portalOwner && <section className="portal-danger-zone"><div><span className="card-kicker">Portal Owner only</span><h2>Test-data reset</h2><p>Clear trial activity before the committee starts entering live festival records. Login accounts and portal configuration are always preserved.</p></div><button className="button danger-button" onClick={() => setResetDialog(true)}>Clear Test Data</button></section>}
       {expenseDialog && <ExpenseDialog expense={expenseDialog === "new" ? null : expenseDialog} close={() => setExpenseDialog(null)} saved={async () => { setExpenseDialog(null); await load(); }} />}
+      {resetDialog && <ResetPortalDialog close={() => setResetDialog(false)} />}
     </section>
   );
+}
+
+function ResetPortalDialog({ close }: { close: () => void }) {
+  const [confirmation, setConfirmation] = useState("");
+  const [removeFlatMaster, setRemoveFlatMaster] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const phrase = "RESET FESTIVAL DATA";
+
+  async function reset() {
+    setBusy(true); setError("");
+    try {
+      const response = await fetch("/api/admin/reset", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ confirmation, removeFlatMaster }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error ?? "Could not clear test data.");
+      window.location.reload();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not clear test data.");
+      setBusy(false);
+    }
+  }
+
+  return <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (!busy && event.target === event.currentTarget) close(); }}><div className="dialog reset-dialog" role="dialog" aria-modal="true" aria-labelledby="reset-title"><button className="dialog-close" disabled={busy} onClick={close} aria-label="Close">×</button><span className="card-kicker">Portal Owner only</span><h2 id="reset-title">Clear all test data?</h2><p className="reset-warning">This cannot be undone. Donations, payment proofs, expenses, receipt photos, meeting minutes, cultural programmes and visit activity will be permanently removed.</p><div className="reset-preserved"><strong>Preserved</strong><span>User accounts, passwords and portal configuration</span><span>Occupied-flat master and resident names, unless selected below</span></div><label className="reset-checkbox"><input type="checkbox" checked={removeFlatMaster} onChange={(event) => setRemoveFlatMaster(event.target.checked)}/><span><strong>Also remove the occupied-flat master</strong><small>Select this only if the uploaded flat list itself is test data.</small></span></label><label>Type <strong>{phrase}</strong> to confirm<input autoComplete="off" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} placeholder={phrase}/></label>{error&&<p className="form-error" role="alert">{error}</p>}<div className="dialog-actions"><button type="button" className="button quiet" disabled={busy} onClick={close}>Cancel</button><button type="button" className="button danger-action" disabled={busy||confirmation.trim().toUpperCase()!==phrase} onClick={()=>void reset()}>{busy?"Clearing…":"Permanently Clear Test Data"}</button></div></div></div>;
 }
 
 function ExpenseDialog({ expense, close, saved }: { expense: Expense | null; close: () => void; saved: () => Promise<void> }) {
