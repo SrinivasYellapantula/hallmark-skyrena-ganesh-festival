@@ -6,10 +6,12 @@ import { optimizeImageUpload } from "../lib/client-image";
 
 type User = { role: "admin" | "block"; blockNo: string | null };
 type Success = { referenceNo: string };
+type MasterFlat = { flatNo: string; residentName: string; donated: number };
 
 const blank = {
   residentName: "",
   blockNo: "",
+  floorNo: "",
   flatNo: "",
   gotram: "",
   occupancy: "",
@@ -21,6 +23,7 @@ const blank = {
   paymentReference: "",
 };
 const ATTENDANCE_OPTIONS = Array.from({ length: 8 }, (_, index) => String(index));
+const FLOOR_OPTIONS = ["G", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "14", "15"];
 export function ContributionForm() {
   const [form, setForm] = useState(blank);
   const [user, setUser] = useState<User | null>(null);
@@ -29,16 +32,36 @@ export function ContributionForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState<Success | null>(null);
+  const [masterFlats, setMasterFlats] = useState<MasterFlat[]>([]);
+  const [flatsLoading, setFlatsLoading] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/me")
       .then((response) => response.json())
       .then((profile: User) => {
         setUser(profile);
-        if (profile.role === "block") setForm((current) => ({ ...current, blockNo: profile.blockNo ?? "" }));
+        if (profile.role === "block") {
+          setFlatsLoading(Boolean(profile.blockNo));
+          setForm((current) => ({ ...current, blockNo: profile.blockNo ?? "" }));
+        }
       })
       .catch(() => setError("Unable to load your access profile."));
   }, []);
+
+  useEffect(() => {
+    if (!form.blockNo) return;
+    let active = true;
+    fetch(`/api/flats/map?block=${form.blockNo}`, { cache: "no-store" })
+      .then(async (response) => ({ response, payload: await response.json() }))
+      .then(({ response, payload }) => {
+        if (!active) return;
+        if (!response.ok) throw new Error(payload.error ?? "Unable to load occupied flats.");
+        setMasterFlats(payload.flats ?? []);
+      })
+      .catch((caught) => active && setError(caught instanceof Error ? caught.message : "Unable to load occupied flats."))
+      .finally(() => active && setFlatsLoading(false));
+    return () => { active = false; };
+  }, [form.blockNo]);
 
   const total = useMemo(
     () => Number(form.mainDonation || 0) + Number(form.annadaanamDonation || 0),
@@ -46,8 +69,19 @@ export function ContributionForm() {
   );
 
   function update(name: string, value: string) {
-    setForm((current) => ({ ...current, [name]: value }));
+    if (name === "blockNo") { setMasterFlats([]); setFlatsLoading(Boolean(value)); }
+    setForm((current) => {
+      if (name === "blockNo") return { ...current, blockNo: value, floorNo: "", flatNo: "", residentName: "" };
+      if (name === "floorNo") return { ...current, floorNo: value, flatNo: "", residentName: "" };
+      if (name === "flatNo") {
+        const selectedFlat = masterFlats.find((flat) => flat.flatNo === value);
+        return { ...current, flatNo: value, residentName: selectedFlat?.residentName || "" };
+      }
+      return { ...current, [name]: value };
+    });
   }
+
+  const floorFlats = useMemo(() => masterFlats.filter((flat) => flatFloor(flat.flatNo) === form.floorNo), [masterFlats, form.floorNo]);
 
   async function selectProof(file: File | null) {
     setProof(null);
@@ -78,6 +112,7 @@ export function ContributionForm() {
       const response = await fetch("/api/registrations", { method: "POST", body: data });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "Submission failed.");
+      setMasterFlats((current) => current.map((flat) => flat.flatNo === form.flatNo ? { ...flat, residentName: form.residentName, donated: 1 } : flat));
       setSuccess(payload);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (caught) {
@@ -108,9 +143,6 @@ export function ContributionForm() {
           <div className="form-section-heading" id="household-section-title"><span>1</span><h2>Household Details</h2></div>
           <p className="fieldset-help">All household details are mandatory.</p>
           <div className="field-grid">
-            <label className="wide">Resident Name
-              <input required name="residentName" autoComplete="name" value={form.residentName} onChange={(event) => update(event.target.name, event.target.value)} />
-            </label>
             <label>Block
               <select required name="blockNo" disabled={user?.role === "block"} value={form.blockNo} onChange={(event) => update(event.target.name, event.target.value)}>
                 <option value="">Select block</option>
@@ -118,8 +150,22 @@ export function ContributionForm() {
               </select>
               {user?.role === "block" && <small>Locked to Block {user.blockNo}</small>}
             </label>
-            <label>Flat Number
-              <input required name="flatNo" value={form.flatNo} onChange={(event) => update(event.target.name, event.target.value)} />
+            <label>Floor
+              <select required name="floorNo" value={form.floorNo} disabled={!form.blockNo || flatsLoading} onChange={(event) => update(event.target.name, event.target.value)}>
+                <option value="">{flatsLoading ? "Loading floors…" : "Select floor"}</option>
+                {FLOOR_OPTIONS.map((floor) => <option key={floor} value={floor}>Floor {floor}</option>)}
+              </select>
+            </label>
+            <label className="wide">Flat Number
+              <select required name="flatNo" value={form.flatNo} disabled={!form.floorNo || flatsLoading} onChange={(event) => update(event.target.name, event.target.value)}>
+                <option value="">{!form.floorNo ? "Select block and floor first" : floorFlats.length ? "Select occupied flat" : "No occupied flats on this floor"}</option>
+                {floorFlats.map((flat) => <option key={flat.flatNo} value={flat.flatNo}>{flat.flatNo}{flat.residentName ? ` — ${flat.residentName}` : ""}{flat.donated ? " — donation recorded" : ""}</option>)}
+              </select>
+              <small>The list comes from the occupied-flat master. The resident name entered below updates the master when this donation is saved.</small>
+            </label>
+            <label className="wide">Resident Name
+              <input required name="residentName" autoComplete="name" value={form.residentName} onChange={(event) => update(event.target.name, event.target.value)} />
+              <small>Prefilled from the flat master when available. Correcting it here updates the master after saving.</small>
             </label>
             <label>Gotram
               <input required name="gotram" value={form.gotram} onChange={(event) => update(event.target.name, event.target.value)} />
@@ -188,4 +234,11 @@ export function ContributionForm() {
       </aside>
     </form>
   );
+}
+
+function flatFloor(flatNo: string) {
+  const normalized = flatNo.trim().toUpperCase();
+  if (normalized.startsWith("G")) return "G";
+  const match = normalized.match(/(\d{3,4})$/);
+  return match ? String(Number(match[1].slice(0, -2))) : "";
 }

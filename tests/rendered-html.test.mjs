@@ -32,6 +32,10 @@ test("registration validation enforces the donation minimum", async () => {
   assert.match(route, /!phone/);
   assert.match(route, /PAYMENT_PROOFS/);
   assert.match(route, /KVNamespace/);
+  assert.match(route, /occupied=1 LIMIT 1/);
+  assert.match(form, /FLOOR_OPTIONS/);
+  assert.match(form, /Select occupied flat/);
+  assert.match(form, /flatFloor/);
   assert.doesNotMatch(route, /R2Bucket/);
   assert.match(form, /Lunch Mahaprasadam Attendance/);
   assert.match(form, /Other Donations Amount/);
@@ -168,9 +172,9 @@ test("mobile app metadata and compact controls are present", async () => {
 });
 
 test("occupied-flat map and block-wise CSV import preserve collection history", async () => {
-  const [mapRoute, importRoute, screen, chrome, migration] = await Promise.all([
-    source("app/api/flats/map/route.ts"), source("app/api/admin/flats/import/route.ts"),
-    source("app/flat-status/FlatStatusMap.tsx"), source("app/components/SiteChrome.tsx"),
+  const [mapRoute, flatsRoute, importRoute, screen, chrome, migration] = await Promise.all([
+    source("app/api/flats/map/route.ts"), source("app/api/flats/route.ts"),
+    source("app/api/admin/flats/import/route.ts"), source("app/flat-status/FlatStatusMap.tsx"), source("app/components/SiteChrome.tsx"),
     source("drizzle/0007_occupied_flat_map.sql"),
   ]);
   assert.match(mapRoute, /f\.occupied=1/);
@@ -180,10 +184,16 @@ test("occupied-flat map and block-wise CSV import preserve collection history", 
   assert.match(importRoute, /visit history are preserved|ON CONFLICT/);
   assert.match(screen, /Upload Block/);
   assert.match(screen, /Download Template/);
+  assert.match(screen, /Manage occupied-flat master/);
+  assert.match(screen, /Add \/ Update Flat/);
+  assert.match(screen, /Remove Flat/);
   assert.match(screen, /groupFloors/);
-  assert.match(screen, /startsWith\("G"\)\?"Ground"/);
+  assert.match(screen, /startsWith\("G"\)\?"G"/);
   assert.match(screen, /floorOrder\(a\)-floorOrder\(b\)/);
   assert.match(screen, /Donation recorded/);
+  assert.match(flatsRoute, /export async function DELETE/);
+  assert.match(flatsRoute, /occupied=0/);
+  assert.match(flatsRoute, /scopedBlock\(auth\.user/);
   assert.match(chrome, /\/flat-status/);
   assert.match(migration, /ADD `occupied`/);
 });

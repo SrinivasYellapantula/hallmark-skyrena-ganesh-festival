@@ -42,6 +42,8 @@ export async function POST(request: Request) {
     if (!proofStore) throw new Error("Workers KV binding `PAYMENT_PROOFS` is unavailable.");
     await ensureDatabase();
     const d1 = getD1();
+    const masterFlat = await d1.prepare(`SELECT id FROM flats WHERE event_id=? AND block_no=? AND flat_no=? AND occupied=1 LIMIT 1`).bind(EVENT_ID, blockNo, flatNo).first();
+    if (!masterFlat) return Response.json({ error: "Choose an occupied flat from the flat master." }, { status: 400 });
     const registrationId = crypto.randomUUID();
     const donationId = crypto.randomUUID();
     const referenceNo = `GF26-${crypto.randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase()}`;
@@ -62,10 +64,10 @@ export async function POST(request: Request) {
            payment_proof_key, payment_proof_name, payment_proof_type)
           VALUES (?, ?, 'festival', ?, 'upi', ?, 'pending', ?, ?, ?)`)
           .bind(donationId, registrationId, mainDonation, paymentReference, proofKey, proof.name, proof.type),
-        d1.prepare(`INSERT INTO flats (id, event_id, block_no, flat_no, resident_name, visit_status, updated_by)
-          VALUES (?, ?, ?, ?, ?, 'donated', ?)
+        d1.prepare(`INSERT INTO flats (id, event_id, block_no, flat_no, resident_name, occupied, visit_status, updated_by)
+          VALUES (?, ?, ?, ?, ?, 1, 'donated', ?)
           ON CONFLICT(event_id, block_no, flat_no) DO UPDATE SET resident_name=excluded.resident_name,
-          visit_status='donated', updated_by=excluded.updated_by, updated_at=CURRENT_TIMESTAMP`)
+          occupied=1, visit_status='donated', updated_by=excluded.updated_by, updated_at=CURRENT_TIMESTAMP`)
           .bind(crypto.randomUUID(), EVENT_ID, blockNo, flatNo, residentName, auth.user.username),
         d1.prepare(`INSERT INTO audit_log (id, entity_type, entity_id, action, actor, details)
           VALUES (?, 'registration', ?, 'submitted', ?, ?)`)

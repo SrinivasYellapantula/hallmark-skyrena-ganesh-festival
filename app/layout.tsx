@@ -26,12 +26,9 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     manifest: "/manifest.webmanifest",
     icons: {
-      icon: [
-        { url: "/favicon.ico?v=2", sizes: "32x32", type: "image/x-icon" },
-        { url: "/skyrena-favicon-32.png?v=2", sizes: "32x32", type: "image/png" },
-      ],
-      shortcut: [{ url: "/favicon.ico?v=2", type: "image/x-icon" }],
-      apple: [{ url: "/apple-touch-icon.png?v=2", sizes: "180x180", type: "image/png" }],
+      icon: "/skyrena-favicon-32.png?v=3",
+      shortcut: "/favicon.ico?v=3",
+      apple: "/apple-touch-icon.png?v=3",
     },
     appleWebApp: { capable: true, statusBarStyle: "default", title: "Skyrena Ganesh 2026" },
     formatDetection: { telephone: false },
