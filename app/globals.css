@@ -103,7 +103,7 @@ fieldset { margin: 0; padding: 35px 0; border: 0; }
 .form-main fieldset > .field-grid { margin-top: 20px; }
 .form-main .fieldset-help { margin: 10px 0 0 42px; }
 label { display: grid; align-content: start; align-self: start; gap: 8px; color: #4b4339; font-size: 12px; font-weight: 800; }
-label.wide { grid-column: 1 / -1; }
+label.wide, .field-grid > .wide { grid-column: 1 / -1; }
 .optional { color: #9b9286; font-weight: 500; }
 input, select, textarea { width: 100%; border: 1px solid #d9cfc0; border-radius: 4px; outline: none; background: #fffdfa; color: var(--ink); }
 input, select { height: 46px; padding: 0 13px; }

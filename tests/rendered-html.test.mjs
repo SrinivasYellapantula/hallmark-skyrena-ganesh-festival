@@ -53,6 +53,7 @@ test("donation form shows the official payment QR and Visarjan Mahaprasadam note
   assert.match(form, /Lunch Mahaprasadam will be served on the day of Visarjan/);
   assert.match(form, /Tap to view full size/);
   assert.match(styles, /\.payment-qr-card/);
+  assert.match(styles, /\.field-grid > \.wide \{ grid-column: 1 \/ -1; \}/);
   assert.match(styles, /max-width:360px/);
 });
 
