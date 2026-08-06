@@ -44,6 +44,18 @@ test("registration validation enforces the donation minimum", async () => {
   assert.doesNotMatch(form, /publicNameConsent|Show resident name/);
 });
 
+test("donation form shows the official payment QR and Visarjan Mahaprasadam note", async () => {
+  const [form, styles] = await Promise.all([
+    source("app/contribute/ContributionForm.tsx"),
+    source("app/globals.css"),
+  ]);
+  assert.match(form, /hallmark-skyrena-upi-qr\.png/);
+  assert.match(form, /Lunch Mahaprasadam will be served on the day of Visarjan/);
+  assert.match(form, /Tap to view full size/);
+  assert.match(styles, /\.payment-qr-card/);
+  assert.match(styles, /max-width:360px/);
+});
+
 test("block users are scoped by the authenticated server identity", async () => {
   const [registration, flats] = await Promise.all([
     source("app/api/registrations/route.ts"),

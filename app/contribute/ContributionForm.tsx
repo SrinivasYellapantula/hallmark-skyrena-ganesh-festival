@@ -195,6 +195,20 @@ export function ContributionForm() {
               <input name="annadaanamDonation" type="number" inputMode="numeric" min="0" step="100" value={form.annadaanamDonation} onChange={(event) => update(event.target.name, event.target.value)} />
               <small>Enter 0 when there is no additional contribution.</small>
             </label>
+            <section className="wide payment-qr-card" aria-labelledby="payment-qr-title">
+              <div className="payment-qr-copy">
+                <span className="card-kicker">Official festival UPI</span>
+                <h3 id="payment-qr-title">Scan to make the resident’s payment</h3>
+                <p>Use this QR code only for Hallmark Skyrena Ganesh Chaturthi 2026 contributions.</p>
+                <small>On mobile, tap the payment poster to open it at full size. You can then share or save it if needed.</small>
+              </div>
+              <a href="/hallmark-skyrena-upi-qr.png" target="_blank" rel="noreferrer" aria-label="Open the official UPI payment QR code at full size">
+                {/* Keep the original bank-issued QR pixels intact instead of routing it through an image optimizer. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/hallmark-skyrena-upi-qr.png" alt="Official Hallmark Skyrena cultural account UPI payment QR code" />
+                <strong>Tap to view full size</strong>
+              </a>
+            </section>
             <label className="wide">UPI Transaction Reference No. <span className="optional">optional</span>
               <input name="paymentReference" value={form.paymentReference} onChange={(event) => update(event.target.name, event.target.value)} placeholder="UPI / UTR reference" />
             </label>
@@ -209,6 +223,7 @@ export function ContributionForm() {
 
         <fieldset aria-labelledby="attendance-section-title">
           <div className="form-section-heading" id="attendance-section-title"><span>3</span><h2>Lunch Mahaprasadam Attendance</h2></div>
+          <p className="mahaprasadam-note"><strong>Please note:</strong> Lunch Mahaprasadam will be served on the day of Visarjan.</p>
           <div className="field-grid">
             <label>No. of Adults
               <select required name="adultCount" value={form.adultCount} onChange={(event) => update(event.target.name, event.target.value)}>
