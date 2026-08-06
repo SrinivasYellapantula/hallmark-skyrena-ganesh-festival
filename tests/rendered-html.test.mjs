@@ -123,6 +123,9 @@ test("role-specific workspaces are enforced and clearly named", async () => {
   assert.match(chrome, /Cultural Programme/);
   assert.match(chrome, /Festival Accounts/);
   assert.match(chrome, /Meeting Minutes/);
+  assert.match(chrome, /Administration/);
+  assert.match(chrome, /nav-toggle/);
+  assert.match(chrome, /aria-expanded/);
   assert.match(users, /Block Coordinator/);
   assert.match(users, /Cultural Committee/);
   assert.match(userRoute, /"admin", "block", "cultural"/);
