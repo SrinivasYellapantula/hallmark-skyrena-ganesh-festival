@@ -185,6 +185,7 @@ test("occupied-flat map and block-wise CSV import preserve collection history", 
   assert.match(screen, /Upload Block/);
   assert.match(screen, /Download Template/);
   assert.match(screen, /Manage occupied-flat master/);
+  assert.match(screen, /className="field-label">Resident Name/);
   assert.match(screen, /Add \/ Update Flat/);
   assert.match(screen, /Remove Flat/);
   assert.match(screen, /groupFloors/);
