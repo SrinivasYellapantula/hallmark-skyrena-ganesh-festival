@@ -181,6 +181,8 @@ test("occupied-flat map and block-wise CSV import preserve collection history", 
   assert.match(screen, /Upload Block/);
   assert.match(screen, /Download Template/);
   assert.match(screen, /groupFloors/);
+  assert.match(screen, /startsWith\("G"\)\?"Ground"/);
+  assert.match(screen, /floorOrder\(a\)-floorOrder\(b\)/);
   assert.match(screen, /Donation recorded/);
   assert.match(chrome, /\/flat-status/);
   assert.match(migration, /ADD `occupied`/);
