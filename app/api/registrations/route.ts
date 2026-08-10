@@ -20,6 +20,7 @@ export async function POST(request: Request) {
     const occupancy = cleanText(body.get("occupancy"), 10);
     const phone = cleanText(body.get("phone"), 15).replace(/[^0-9+]/g, "");
     const mainDonation = wholeNumber(body.get("mainDonation"), MINIMUM_DONATION);
+    const idolDonation = wholeNumber(body.get("idolDonation"), 0);
     const annadaanamDonation = wholeNumber(body.get("annadaanamDonation"), 0);
     const adultCount = wholeNumber(body.get("adultCount"), 0, 7);
     const childCount = wholeNumber(body.get("childCount"), 0, 7);
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
     if (!residentName || !flatNo || !gotram || !phone || !BLOCKS.includes(blockNo as (typeof BLOCKS)[number]))
       return Response.json({ error: "Resident name, block, flat, gotram and phone number are required." }, { status: 400 });
     if (!['owner', 'tenant'].includes(occupancy)) return Response.json({ error: "Choose owner or tenant." }, { status: 400 });
-    if (mainDonation === null || annadaanamDonation === null)
+    if (mainDonation === null || idolDonation === null || annadaanamDonation === null)
       return Response.json({ error: `Festival donation must be at least ₹${MINIMUM_DONATION.toLocaleString("en-IN")}.` }, { status: 400 });
     if (adultCount === null || childCount === null) return Response.json({ error: "Mahaprasadam attendance counts must be between 0 and 7." }, { status: 400 });
     if (!(proof instanceof File) || proof.size === 0) return Response.json({ error: "Payment confirmation image is required." }, { status: 400 });
@@ -76,6 +77,10 @@ export async function POST(request: Request) {
         (id, registration_id, category, amount, payment_method, payment_reference, status)
         VALUES (?, ?, 'annadaanam', ?, 'upi', ?, 'pending')`)
         .bind(crypto.randomUUID(), registrationId, annadaanamDonation, paymentReference));
+      if (idolDonation > 0) statements.push(d1.prepare(`INSERT INTO donations
+        (id, registration_id, category, amount, payment_method, payment_reference, status)
+        VALUES (?, ?, 'idol', ?, 'upi', ?, 'pending')`)
+        .bind(crypto.randomUUID(), registrationId, idolDonation, paymentReference));
       await d1.batch(statements);
       return Response.json({ referenceNo }, { status: 201 });
     } catch (error) {

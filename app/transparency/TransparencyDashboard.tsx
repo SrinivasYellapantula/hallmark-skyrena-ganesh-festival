@@ -4,13 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { currency } from "../lib/constants";
 
 type Summary = {
-  totals: { festival: number; annadaanam: number; households: number; adults: number; children: number; expenses: number };
+  totals: { festival: number; idol: number; annadaanam: number; households: number; adults: number; children: number; expenses: number };
   blocks: { block: string; amount: number; households: number }[];
   donors: { name: string; block: string; amount: number; verifiedAt: string }[];
   expenses: { category: string; vendor: string; description: string; amount: number; expenseDate: string; receiptUrl: string }[];
 };
 
-const empty: Summary = { totals: { festival: 0, annadaanam: 0, households: 0, adults: 0, children: 0, expenses: 0 }, blocks: [], donors: [], expenses: [] };
+const empty: Summary = { totals: { festival: 0, idol: 0, annadaanam: 0, households: 0, adults: 0, children: 0, expenses: 0 }, blocks: [], donors: [], expenses: [] };
 
 export function TransparencyDashboard() {
   const [data, setData] = useState<Summary>(empty);
@@ -28,7 +28,7 @@ export function TransparencyDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  const collected = Number(data.totals.festival) + Number(data.totals.annadaanam);
+  const collected = Number(data.totals.festival) + Number(data.totals.idol) + Number(data.totals.annadaanam);
   const balance = collected - Number(data.totals.expenses);
   const maxBlock = useMemo(() => Math.max(1, ...data.blocks.map((block) => Number(block.amount))), [data.blocks]);
 
@@ -42,6 +42,7 @@ export function TransparencyDashboard() {
       <section className={`wrap metrics-grid ${loading ? "is-loading" : ""}`} aria-busy={loading}>
         <article className="metric primary-metric"><span>Total collected</span><strong>{currency(collected)}</strong><small>{data.totals.households} verified households</small></article>
         <article className="metric"><span>Festival fund</span><strong>{currency(Number(data.totals.festival))}</strong><small>General celebrations</small></article>
+        <article className="metric"><span>Idol fund</span><strong>{currency(Number(data.totals.idol))}</strong><small>Separate idol contributions</small></article>
         <article className="metric"><span>Mahaprasadam fund</span><strong>{currency(Number(data.totals.annadaanam))}</strong><small>{Number(data.totals.adults) + Number(data.totals.children)} attendees planned</small></article>
         <article className="metric"><span>Available balance</span><strong>{currency(balance)}</strong><small>After approved expenses</small></article>
       </section>

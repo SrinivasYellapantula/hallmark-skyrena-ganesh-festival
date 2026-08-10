@@ -39,9 +39,34 @@ test("registration validation enforces the donation minimum", async () => {
   assert.match(form, /flatFloor/);
   assert.doesNotMatch(route, /R2Bucket/);
   assert.match(form, /Lunch Mahaprasadam Attendance/);
-  assert.match(form, /Other Donations Amount/);
+  assert.match(form, /Mahaprasadam Donation Amount/);
   assert.match(form, /ATTENDANCE_OPTIONS/);
   assert.doesNotMatch(form, /publicNameConsent|Show resident name/);
+});
+
+test("idol donation is captured, editable, and included in every collection total", async () => {
+  const [schema, form, createRoute, listRoute, detailRoute, donationScreen, publicRoute, publicScreen, summaryRoute, summaryScreen] = await Promise.all([
+    source("db/schema.ts"), source("app/contribute/ContributionForm.tsx"),
+    source("app/api/registrations/route.ts"), source("app/api/donations/route.ts"),
+    source("app/api/donations/[id]/route.ts"), source("app/donations/DonationsDashboard.tsx"),
+    source("app/api/public/summary/route.ts"), source("app/transparency/TransparencyDashboard.tsx"),
+    source("app/api/collection-summary/route.ts"), source("app/collection-summary/CollectionSummary.tsx"),
+  ]);
+  assert.match(schema, /\["festival", "idol", "annadaanam"\]/);
+  assert.match(form, /Idol Donation Amount/);
+  assert.match(form, /idolDonation: "0"/);
+  assert.match(form, /Number\(form\.idolDonation/);
+  assert.match(createRoute, /wholeNumber\(body\.get\("idolDonation"\), 0\)/);
+  assert.match(createRoute, /VALUES \(\?, \?, 'idol'/);
+  assert.match(listRoute, /d\.category = 'idol'.*idolAmount/);
+  assert.match(detailRoute, /body\.get\("idolDonation"\)/);
+  assert.match(detailRoute, /category:"idol"/);
+  assert.match(donationScreen, /<dt>Idol donation<\/dt>/);
+  assert.match(donationScreen, /name="idolDonation"/);
+  assert.match(publicRoute, /category = 'idol'.*idol/);
+  assert.match(publicScreen, /Idol fund/);
+  assert.match(summaryRoute, /idolCollection/);
+  assert.match(summaryScreen, /<dt>Idol donation<\/dt>/);
 });
 
 test("donation form shows the official payment QR and Visarjan Mahaprasadam note", async () => {

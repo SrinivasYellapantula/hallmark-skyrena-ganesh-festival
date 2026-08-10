@@ -11,6 +11,7 @@ type Summary = {
   totalCollection: number;
   verifiedCollection: number;
   festivalCollection: number;
+  idolCollection: number;
   mahaprasadamCollection: number;
   maximumDonation: number;
   averageDonation: number;
@@ -60,6 +61,7 @@ function SummaryCard({ summary, featured = false }: { summary: Summary; featured
       <div><dt>Maximum flat donation</dt><dd>{currency(summary.maximumDonation)}</dd></div>
       <div><dt>Average per donated flat</dt><dd>{currency(summary.averageDonation)}</dd></div>
       <div><dt>Main festival donation</dt><dd>{currency(summary.festivalCollection)}</dd></div>
+      <div><dt>Idol donation</dt><dd>{currency(summary.idolCollection)}</dd></div>
       <div><dt>Additional Mahaprasadam support</dt><dd>{currency(summary.mahaprasadamCollection)}</dd></div>
     </dl>
   </article>;

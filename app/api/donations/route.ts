@@ -11,6 +11,7 @@ export async function GET(request: Request) {
     r.child_count childCount, r.notes, r.status, r.created_at createdAt,
     SUM(d.amount) amount,
     SUM(CASE WHEN d.category = 'festival' THEN d.amount ELSE 0 END) festivalAmount,
+    SUM(CASE WHEN d.category = 'idol' THEN d.amount ELSE 0 END) idolAmount,
     SUM(CASE WHEN d.category = 'annadaanam' THEN d.amount ELSE 0 END) annadaanamAmount,
     MAX(d.payment_reference) paymentReference,
     MAX(CASE WHEN d.payment_proof_key IS NOT NULL THEN 1 ELSE 0 END) hasProof,

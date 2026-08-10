@@ -17,6 +17,7 @@ const blank = {
   occupancy: "",
   phone: "",
   mainDonation: "2000",
+  idolDonation: "0",
   annadaanamDonation: "0",
   adultCount: "0",
   childCount: "0",
@@ -64,8 +65,8 @@ export function ContributionForm() {
   }, [form.blockNo]);
 
   const total = useMemo(
-    () => Number(form.mainDonation || 0) + Number(form.annadaanamDonation || 0),
-    [form.mainDonation, form.annadaanamDonation],
+    () => Number(form.mainDonation || 0) + Number(form.idolDonation || 0) + Number(form.annadaanamDonation || 0),
+    [form.mainDonation, form.idolDonation, form.annadaanamDonation],
   );
 
   function update(name: string, value: string) {
@@ -191,9 +192,13 @@ export function ContributionForm() {
               <input required name="mainDonation" type="number" inputMode="numeric" min={MINIMUM_DONATION} step="100" value={form.mainDonation} onChange={(event) => update(event.target.name, event.target.value)} />
               <small>Minimum and default ₹2,000</small>
             </label>
-            <label>Other Donations Amount
+            <label>Idol Donation Amount
+              <input name="idolDonation" type="number" inputMode="numeric" min="0" step="100" value={form.idolDonation} onChange={(event) => update(event.target.name, event.target.value)} />
+              <small>Enter 0 when there is no separate idol contribution.</small>
+            </label>
+            <label className="wide">Mahaprasadam Donation Amount
               <input name="annadaanamDonation" type="number" inputMode="numeric" min="0" step="100" value={form.annadaanamDonation} onChange={(event) => update(event.target.name, event.target.value)} />
-              <small>Enter 0 when there is no additional contribution.</small>
+              <small>Enter 0 when there is no additional Mahaprasadam support.</small>
             </label>
             <section className="wide payment-qr-card" aria-labelledby="payment-qr-title">
               <div className="payment-qr-copy">
@@ -243,6 +248,7 @@ export function ContributionForm() {
       <aside className="form-summary">
         <span className="summary-label">Donation Summary</span>
         <div><span>Donation</span><strong>{currency(Number(form.mainDonation) || 0)}</strong></div>
+        <div><span>Idol donation</span><strong>{currency(Number(form.idolDonation) || 0)}</strong></div>
         <div><span>Mahaprasadam</span><strong>{currency(Number(form.annadaanamDonation) || 0)}</strong></div>
         <div className="summary-total"><span>Total</span><strong>{currency(total)}</strong></div>
         <button className="button primary full" disabled={busy || optimizing}>{optimizing ? "Optimizing image…" : busy ? "Saving…" : "Save Donation"}</button>

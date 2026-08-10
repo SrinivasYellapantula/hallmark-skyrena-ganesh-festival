@@ -27,12 +27,14 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
   const current=await scopedRegistration(id,auth.user); if(!current)return Response.json({error:"Donation not found."},{status:404});
   if(auth.user.role === "block" && !["submitted","correction_requested"].includes(current.status)) return Response.json({error:"Verified donations can only be changed by an admin."},{status:403});
   const body=await request.formData(); const amount=wholeNumber(body.get("mainDonation"),MINIMUM_DONATION);
+  const idolDonation=wholeNumber(body.get("idolDonation"),0); const annadaanamDonation=wholeNumber(body.get("annadaanamDonation"),0);
   const paymentReference=cleanText(body.get("paymentReference"),80); const adults=wholeNumber(body.get("adultCount"),0,7); const children=wholeNumber(body.get("childCount"),0,7); const notes=cleanText(body.get("notes"),500);
   const proofEntry=body.get("paymentProof"); const proof=proofEntry instanceof File&&proofEntry.size>0?proofEntry:null;
-  if(amount===null||adults===null||children===null)return Response.json({error:"Complete all required update fields."},{status:400});
+  if(amount===null||idolDonation===null||annadaanamDonation===null||adults===null||children===null)return Response.json({error:"Complete all required update fields."},{status:400});
   if(proof&&(!IMAGE_TYPES.has(proof.type)||proof.size>MAX_PROOF_BYTES))return Response.json({error:"Upload a JPG, PNG or WebP payment image up to 1 MB."},{status:400});
   const d1=getD1();
-  const existing=await d1.prepare(`SELECT payment_proof_key proofKey FROM donations WHERE registration_id=? AND category='festival' LIMIT 1`).bind(id).first<{proofKey:string|null}>();
+  const existingRows=await d1.prepare(`SELECT id,category,payment_proof_key proofKey FROM donations WHERE registration_id=?`).bind(id).all<{id:string;category:string;proofKey:string|null}>();
+  const existing=existingRows.results.find((donation)=>donation.category==="festival");
   if(!existing)return Response.json({error:"Donation not found."},{status:404});
   const proofStore=(env as unknown as {PAYMENT_PROOFS?:KVNamespace}).PAYMENT_PROOFS;
   if(proof&&!proofStore)return Response.json({error:"Private proof storage is unavailable."},{status:503});
@@ -46,8 +48,19 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
         ? d1.prepare(`UPDATE donations SET amount=?,payment_proof_key=?,payment_proof_name=?,payment_proof_type=? WHERE registration_id=? AND category='festival'`).bind(amount,newProofKey,proof.name,proof.type,id)
         : d1.prepare(`UPDATE donations SET amount=? WHERE registration_id=? AND category='festival'`).bind(amount,id),
       d1.prepare(`UPDATE donations SET payment_reference=?,status=CASE WHEN status='verified' THEN status ELSE 'pending' END WHERE registration_id=?`).bind(paymentReference,id),
-      d1.prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor,details) VALUES (?,'registration',?,?,?,?)`).bind(crypto.randomUUID(),id,resubmitted?"resubmitted":"updated",auth.user.username,JSON.stringify({amount,replacedProof:Boolean(proof)})),
+      d1.prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor,details) VALUES (?,'registration',?,?,?,?)`).bind(crypto.randomUUID(),id,resubmitted?"resubmitted":"updated",auth.user.username,JSON.stringify({amount,idolDonation,annadaanamDonation,replacedProof:Boolean(proof)})),
     ];
+    const additionalDonations=[{category:"idol",amount:idolDonation},{category:"annadaanam",amount:annadaanamDonation}];
+    for(const additional of additionalDonations){
+      const row=existingRows.results.find((donation)=>donation.category===additional.category);
+      if(row)statements.push(d1.prepare(`UPDATE donations SET amount=? WHERE id=? AND registration_id=?`).bind(additional.amount,row.id,id));
+      else if(additional.amount>0){
+        const status=current.status==="verified"?"verified":"pending";
+        statements.push(d1.prepare(`INSERT INTO donations(id,registration_id,category,amount,payment_method,payment_reference,status,verified_at,verified_by)
+          VALUES(?,?,?,?,'upi',?,?,CASE WHEN ?='verified' THEN CURRENT_TIMESTAMP ELSE NULL END,?)`)
+          .bind(crypto.randomUUID(),id,additional.category,additional.amount,paymentReference,status,status,status==="verified"?auth.user.username:null));
+      }
+    }
     await d1.batch(statements);
   } catch(error) {
     if(newProofKey)await proofStore?.delete(newProofKey);

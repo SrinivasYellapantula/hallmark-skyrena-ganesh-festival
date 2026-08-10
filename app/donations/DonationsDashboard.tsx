@@ -7,7 +7,7 @@ import { optimizeImageUpload } from "../lib/client-image";
 type Row = {
   id: string; referenceNo: string; residentName: string; blockNo: string; flatNo: string;
   gotram: string; occupancy: string; phone: string | null; amount: number;
-  festivalAmount: number; annadaanamAmount: number; status: string; paymentReference: string;
+  festivalAmount: number; idolAmount: number; annadaanamAmount: number; status: string; paymentReference: string;
   createdAt: string; hasProof: number; adultCount: number; childCount: number; notes: string;
   correctionReason: string;
 };
@@ -114,6 +114,7 @@ export function DonationsDashboard() {
           <dl>
             <div><dt>Status</dt><dd>{selected.status}</dd></div>
             <div><dt>Festival donation</dt><dd>{currency(Number(selected.festivalAmount))}</dd></div>
+            <div><dt>Idol donation</dt><dd>{currency(Number(selected.idolAmount))}</dd></div>
             <div><dt>Mahaprasadam donation</dt><dd>{currency(Number(selected.annadaanamAmount))}</dd></div>
             <div><dt>Total</dt><dd>{currency(Number(selected.amount))}</dd></div>
             <div><dt>Gotram</dt><dd>{selected.gotram}</dd></div>
@@ -127,6 +128,8 @@ export function DonationsDashboard() {
           ) : <p className="notice">No proof attached.</p>}
           <form onSubmit={save}>
             <label>Festival amount<input name="mainDonation" type="number" min="2000" defaultValue={selected.festivalAmount} /></label>
+            <label>Idol donation amount<input name="idolDonation" type="number" min="0" defaultValue={selected.idolAmount} /></label>
+            <label>Mahaprasadam donation amount<input name="annadaanamDonation" type="number" min="0" defaultValue={selected.annadaanamAmount} /></label>
             <label>UPI reference<input name="paymentReference" defaultValue={selected.paymentReference} /></label>
             <label className="proof-picker">Replace Payment Proof <span className="optional">optional</span><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event)=>void selectReplacementProof(event.target.files?.[0]??null)}/><small>{optimizingProof?"Preparing image…":replacementProof?`Ready: ${replacementProof.name}`:"Leave empty to keep the current payment proof."}</small></label>
             <div className="field-grid">
