@@ -127,7 +127,7 @@ export function DonationsDashboard() {
             <a className="button quiet full" target="_blank" rel="noreferrer" href={`/api/payment-proofs/${selected.id}`}>View payment proof</a>
           ) : <p className="notice">No proof attached.</p>}
           <form onSubmit={save}>
-            <label>Festival amount<input name="mainDonation" type="number" min="2000" defaultValue={selected.festivalAmount} /></label>
+            <label>Festival amount<input name="mainDonation" type="number" min="0" defaultValue={selected.festivalAmount} /></label>
             <label>Idol donation amount<input name="idolDonation" type="number" min="0" defaultValue={selected.idolAmount} /></label>
             <label>Mahaprasadam donation amount<input name="annadaanamDonation" type="number" min="0" defaultValue={selected.annadaanamAmount} /></label>
             <label>UPI reference<input name="paymentReference" defaultValue={selected.paymentReference} /></label>

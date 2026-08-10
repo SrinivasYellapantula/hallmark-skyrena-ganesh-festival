@@ -31,6 +31,7 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
   const paymentReference=cleanText(body.get("paymentReference"),80); const adults=wholeNumber(body.get("adultCount"),0,7); const children=wholeNumber(body.get("childCount"),0,7); const notes=cleanText(body.get("notes"),500);
   const proofEntry=body.get("paymentProof"); const proof=proofEntry instanceof File&&proofEntry.size>0?proofEntry:null;
   if(amount===null||idolDonation===null||annadaanamDonation===null||adults===null||children===null)return Response.json({error:"Complete all required update fields."},{status:400});
+  if(amount+idolDonation+annadaanamDonation<=0)return Response.json({error:"Enter at least one donation amount greater than ₹0."},{status:400});
   if(proof&&(!IMAGE_TYPES.has(proof.type)||proof.size>MAX_PROOF_BYTES))return Response.json({error:"Upload a JPG, PNG or WebP payment image up to 1 MB."},{status:400});
   const d1=getD1();
   const existingRows=await d1.prepare(`SELECT id,category,payment_proof_key proofKey FROM donations WHERE registration_id=?`).bind(id).all<{id:string;category:string;proofKey:string|null}>();

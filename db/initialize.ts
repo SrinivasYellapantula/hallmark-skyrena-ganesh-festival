@@ -14,7 +14,7 @@ async function initialize() {
       id TEXT PRIMARY KEY NOT NULL,
       name TEXT NOT NULL,
       year INTEGER NOT NULL,
-      donation_minimum INTEGER NOT NULL DEFAULT 2000,
+      donation_minimum INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'open',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`,
@@ -213,7 +213,7 @@ async function initialize() {
          year = excluded.year,
          donation_minimum = excluded.donation_minimum`,
     )
-    .bind("ganesh-2026", "Hallmark Skyrena, Ganesh Chaturthi 2026", 2026, 2000)
+    .bind("ganesh-2026", "Hallmark Skyrena, Ganesh Chaturthi 2026", 2026, 0)
     .run();
 
   const initialUsers = [

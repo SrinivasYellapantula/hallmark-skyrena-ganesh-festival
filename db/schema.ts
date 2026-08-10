@@ -5,7 +5,7 @@ export const events = sqliteTable("events", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   year: integer("year").notNull(),
-  donationMinimum: integer("donation_minimum").notNull().default(2000),
+  donationMinimum: integer("donation_minimum").notNull().default(0),
   status: text("status", { enum: ["draft", "open", "closed"] })
     .notNull()
     .default("open"),

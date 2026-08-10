@@ -32,7 +32,9 @@ export async function POST(request: Request) {
       return Response.json({ error: "Resident name, block, flat, gotram and phone number are required." }, { status: 400 });
     if (!['owner', 'tenant'].includes(occupancy)) return Response.json({ error: "Choose owner or tenant." }, { status: 400 });
     if (mainDonation === null || idolDonation === null || annadaanamDonation === null)
-      return Response.json({ error: `Festival donation must be at least ₹${MINIMUM_DONATION.toLocaleString("en-IN")}.` }, { status: 400 });
+      return Response.json({ error: "Donation amounts must be valid non-negative whole numbers." }, { status: 400 });
+    if (mainDonation + idolDonation + annadaanamDonation <= 0)
+      return Response.json({ error: "Enter at least one donation amount greater than ₹0." }, { status: 400 });
     if (adultCount === null || childCount === null) return Response.json({ error: "Mahaprasadam attendance counts must be between 0 and 7." }, { status: 400 });
     if (!(proof instanceof File) || proof.size === 0) return Response.json({ error: "Payment confirmation image is required." }, { status: 400 });
     if (!IMAGE_TYPES.has(proof.type) || proof.size > MAX_PROOF_BYTES)

@@ -16,7 +16,7 @@ const blank = {
   gotram: "",
   occupancy: "",
   phone: "",
-  mainDonation: "2000",
+  mainDonation: "0",
   idolDonation: "0",
   annadaanamDonation: "0",
   adultCount: "0",
@@ -189,15 +189,15 @@ export function ContributionForm() {
           <div className="form-section-heading" id="contributions-section-title"><span>2</span><h2>Contributions</h2></div>
           <div className="field-grid">
             <label>Donation Amount
-              <input required name="mainDonation" type="number" inputMode="numeric" min={MINIMUM_DONATION} step="100" value={form.mainDonation} onChange={(event) => update(event.target.name, event.target.value)} />
-              <small>Minimum and default ₹2,000</small>
+              <input required name="mainDonation" type="number" inputMode="numeric" min={MINIMUM_DONATION} step="1" value={form.mainDonation} onChange={(event) => update(event.target.name, event.target.value)} />
+              <small>Voluntary contribution — enter any amount.</small>
             </label>
             <label>Idol Donation Amount
-              <input name="idolDonation" type="number" inputMode="numeric" min="0" step="100" value={form.idolDonation} onChange={(event) => update(event.target.name, event.target.value)} />
+              <input name="idolDonation" type="number" inputMode="numeric" min="0" step="1" value={form.idolDonation} onChange={(event) => update(event.target.name, event.target.value)} />
               <small>Enter 0 when there is no separate idol contribution.</small>
             </label>
             <label className="wide">Mahaprasadam Donation Amount
-              <input name="annadaanamDonation" type="number" inputMode="numeric" min="0" step="100" value={form.annadaanamDonation} onChange={(event) => update(event.target.name, event.target.value)} />
+              <input name="annadaanamDonation" type="number" inputMode="numeric" min="0" step="1" value={form.annadaanamDonation} onChange={(event) => update(event.target.name, event.target.value)} />
               <small>Enter 0 when there is no additional Mahaprasadam support.</small>
             </label>
             <section className="wide payment-qr-card" aria-labelledby="payment-qr-title">

@@ -21,12 +21,23 @@ test("private data is not queried by the public summary endpoint", async () => {
   assert.doesNotMatch(route, /gotram|phone|flat_no|occupancy/);
 });
 
-test("registration validation enforces the donation minimum", async () => {
-  const [route, form] = await Promise.all([
+test("registration validation supports voluntary donations while rejecting a zero-total record", async () => {
+  const [route, form, constants, home, initialize, schema] = await Promise.all([
     source("app/api/registrations/route.ts"),
     source("app/contribute/ContributionForm.tsx"),
+    source("app/lib/constants.ts"), source("app/page.tsx"),
+    source("db/initialize.ts"), source("db/schema.ts"),
   ]);
   assert.match(route, /wholeNumber\(body\.get\("mainDonation"\), MINIMUM_DONATION\)/);
+  assert.match(constants, /MINIMUM_DONATION = 0/);
+  assert.match(form, /mainDonation: "0"/);
+  assert.match(form, /Voluntary contribution/);
+  assert.match(route, /mainDonation \+ idolDonation \+ annadaanamDonation <= 0/);
+  assert.match(route, /at least one donation amount greater than ₹0/);
+  assert.match(home, /Voluntary contribution · UPI only/);
+  assert.doesNotMatch(home, /Minimum festival contribution/);
+  assert.match(initialize, /donation_minimum INTEGER NOT NULL DEFAULT 0/);
+  assert.match(schema, /donationMinimum: integer\("donation_minimum"\)\.notNull\(\)\.default\(0\)/);
   assert.doesNotMatch(route, /payment reference is required/i);
   assert.match(form, /UPI Transaction Reference No\. <span className="optional">optional<\/span>/);
   assert.match(route, /wholeNumber\(body\.get\("adultCount"\), 0, 7\)/);
