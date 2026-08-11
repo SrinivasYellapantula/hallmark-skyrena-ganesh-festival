@@ -243,6 +243,7 @@ export function ContributionForm() {
         <fieldset aria-labelledby="attendance-section-title">
           <div className="form-section-heading" id="attendance-section-title"><span>3</span><h2>Lunch Mahaprasadam Attendance</h2></div>
           <p className="mahaprasadam-note"><strong>Please note:</strong> Lunch Mahaprasadam will be served on the day of Visarjan.</p>
+          {isResident && <p className="mahaprasadam-note"><strong>Daily prasadam:</strong> Daily prasadam will be served in the evening after pooja. We will prepare it in suitable quantities and request everyone’s understanding that distribution will be subject to availability.</p>}
           <div className="field-grid">
             <label>{isResident ? <span className="field-label">No. of Adults<span className="required-mark">*</span></span> : "No. of Adults"}
               <select required name="adultCount" value={form.adultCount} onChange={(event) => update(event.target.name, event.target.value)}>

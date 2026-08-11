@@ -87,6 +87,8 @@ test("donation form shows the official payment QR and Visarjan Mahaprasadam note
   ]);
   assert.match(form, /hallmark-skyrena-upi-qr\.png/);
   assert.match(form, /Lunch Mahaprasadam will be served on the day of Visarjan/);
+  assert.match(form, /isResident && <p className="mahaprasadam-note"><strong>Daily prasadam:<\/strong> Daily prasadam will be served in the evening after pooja/);
+  assert.match(form, /distribution will be subject to availability/);
   assert.match(form, /Tap to view full size/);
   assert.match(styles, /\.payment-qr-card/);
   assert.match(styles, /\.field-grid > \.wide \{ grid-column: 1 \/ -1; \}/);
