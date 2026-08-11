@@ -94,6 +94,8 @@ h1 em, h2 em { color: var(--red); font-style: italic; }
 .form-main, .form-summary, .success-panel, .dashboard-card, .admin-card { background: rgba(255,250,241,.88); border: 1px solid var(--line); box-shadow: var(--shadow); }
 .form-main { padding: 12px 40px 36px; }
 .resident-form-note { margin: 24px 0 0; padding: 14px 16px; border-left: 4px solid var(--green); background: #edf7e9; color: #315c36; font-size: 12px; line-height: 1.55; }
+.required-mark { color: var(--red); font-weight: 900; }
+.donation-form-loading { min-height: 280px; }
 fieldset { margin: 0; padding: 35px 0; border: 0; }
 .form-section-heading { display: flex; align-items: center; gap: 12px; }
 .form-section-heading h2 { margin: 0; font: 700 23px Georgia, serif; }

@@ -31,7 +31,8 @@ export async function POST(request: Request) {
 
     if (!residentName || !flatNo || !gotram || !phone || !BLOCKS.includes(blockNo as (typeof BLOCKS)[number]))
       return Response.json({ error: "Resident name, block, flat, gotram and phone number are required." }, { status: 400 });
-    if (!['owner', 'tenant'].includes(occupancy)) return Response.json({ error: "Choose owner or tenant." }, { status: 400 });
+    if ((user && !['owner', 'tenant'].includes(occupancy)) || (!user && occupancy && !['owner', 'tenant'].includes(occupancy)))
+      return Response.json({ error: "Choose owner or tenant." }, { status: 400 });
     if (mainDonation === null || idolDonation === null || annadaanamDonation === null)
       return Response.json({ error: "Donation amounts must be valid non-negative whole numbers." }, { status: 400 });
     if (mainDonation + idolDonation + annadaanamDonation <= 0)
@@ -45,8 +46,10 @@ export async function POST(request: Request) {
     if (!proofStore) throw new Error("Workers KV binding `PAYMENT_PROOFS` is unavailable.");
     await ensureDatabase();
     const d1 = getD1();
-    const masterFlat = await d1.prepare(`SELECT id FROM flats WHERE event_id=? AND block_no=? AND flat_no=? AND occupied=1 LIMIT 1`).bind(EVENT_ID, blockNo, flatNo).first();
-    if (!masterFlat) return Response.json({ error: "Choose an occupied flat from the flat master." }, { status: 400 });
+    if (user) {
+      const masterFlat = await d1.prepare(`SELECT id FROM flats WHERE event_id=? AND block_no=? AND flat_no=? AND occupied=1 LIMIT 1`).bind(EVENT_ID, blockNo, flatNo).first();
+      if (!masterFlat) return Response.json({ error: "Choose an occupied flat from the flat master." }, { status: 400 });
+    }
     const registrationId = crypto.randomUUID();
     const donationId = crypto.randomUUID();
     const referenceNo = `GF26-${crypto.randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase()}`;
@@ -70,7 +73,8 @@ export async function POST(request: Request) {
         d1.prepare(`INSERT INTO flats (id, event_id, block_no, flat_no, resident_name, occupancy, occupied, visit_status, updated_by)
           VALUES (?, ?, ?, ?, ?, ?, 1, 'donated', ?)
           ON CONFLICT(event_id, block_no, flat_no) DO UPDATE SET resident_name=excluded.resident_name,
-          occupancy=excluded.occupancy, occupied=1, visit_status='donated', updated_by=excluded.updated_by, updated_at=CURRENT_TIMESTAMP`)
+          occupancy=CASE WHEN excluded.occupancy<>'' THEN excluded.occupancy ELSE flats.occupancy END,
+          occupied=1, visit_status='donated', updated_by=excluded.updated_by, updated_at=CURRENT_TIMESTAMP`)
           .bind(crypto.randomUUID(), EVENT_ID, blockNo, flatNo, residentName, occupancy, actor),
         d1.prepare(`INSERT INTO audit_log (id, entity_type, entity_id, action, actor, details)
           VALUES (?, 'registration', ?, 'submitted', ?, ?)`)

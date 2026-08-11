@@ -104,21 +104,25 @@ test("block users are scoped by the authenticated server identity", async () => 
   assert.match(flats, /scopedBlock\(auth\.user/);
 });
 
-test("residents can use the donation form without exposing private flat-master details", async () => {
-  const [gate, form, publicFlats, registration, page] = await Promise.all([
+test("residents can use an unrestricted flat field without changing the volunteer form", async () => {
+  const [gate, form, registration, page] = await Promise.all([
     source("app/components/AuthGate.tsx"), source("app/contribute/ContributionForm.tsx"),
-    source("app/api/public/flats/route.ts"), source("app/api/registrations/route.ts"),
-    source("app/contribute/page.tsx"),
+    source("app/api/registrations/route.ts"), source("app/contribute/page.tsx"),
   ]);
   assert.match(gate, /publicDonationForm/);
   assert.match(gate, /Submit a donation without signing in/);
-  assert.match(form, /api\/public\/flats/);
-  assert.match(form, /Existing household and donation details are never displayed publicly/);
-  assert.match(publicFlats, /SELECT flat_no flatNo/);
-  assert.doesNotMatch(publicFlats, /resident_name|occupancy|donat|visit_status|reference/i);
-  assert.doesNotMatch(publicFlats, /authorize\(/);
+  assert.doesNotMatch(form, /api\/public\/flats/);
+  assert.match(form, /Flat Number<span className="required-mark">\*<\/span>/);
+  assert.match(form, /input required name="flatNo"/);
+  assert.match(form, /required=\{!isResident\}/);
+  assert.match(form, /isResident \? "UPI payments only\."/);
+  assert.match(form, /api\/flats\/map/);
+  assert.match(form, /Select occupied flat/);
   assert.match(registration, /getAppUser\(request\)/);
   assert.match(registration, /resident-self-service/);
+  assert.match(registration, /if \(user\) \{/);
+  assert.match(registration, /!user && occupancy/);
+  assert.match(registration, /excluded\.occupancy<>'' THEN excluded\.occupancy ELSE flats\.occupancy/);
   assert.doesNotMatch(registration, /const auth = await authorize\(request\)/);
   assert.match(page, /No login is required for residents/);
 });
@@ -385,7 +389,7 @@ test("occupied-flat map and block-wise CSV import preserve collection history", 
   assert.match(flatsRoute, /occupancy/);
   assert.match(importRoute, /flat\.occupancy/);
   assert.match(contribution, /occupancy: selectedFlat\?\.occupancy/);
-  assert.match(registration, /occupancy=excluded\.occupancy/);
+  assert.match(registration, /occupancy=CASE WHEN excluded\.occupancy<>'' THEN excluded\.occupancy ELSE flats\.occupancy END/);
   assert.match(chrome, /\/flat-status/);
   assert.match(migration, /ADD `occupied`/);
   assert.match(occupancyMigration, /ADD `occupancy` text NOT NULL DEFAULT ''/);
