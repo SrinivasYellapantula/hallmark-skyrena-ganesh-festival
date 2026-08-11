@@ -18,6 +18,7 @@ A mobile-first community festival application designed for Cloudflare's no-card 
 - Approved expense register with external receipt links
 - Authorized block totals, attendee counts, consenting donor wall and available balance
 - D1 audit records for submissions, verification and expenses
+- Optional Telegram notification to the Portal Admin after each successful donation
 - Optional Cloudflare Turnstile spam protection
 
 ## Local development
@@ -49,6 +50,18 @@ Generated D1 migrations live in `drizzle/`.
 6. Confirm each block account has its A–E assignment. An E-block user is locked to Block E by the server, even if a browser request is modified.
 7. Add the official flat master list for blocks A–E as it becomes available. Until then, authorized users can add flats to each visit queue manually.
 8. Test a real mobile camera upload, proof retrieval, block restriction, donation verification and UPI reconciliation before operational use.
+
+### Telegram donation notifications
+
+Create a bot with Telegram's `@BotFather`, send the new bot `/start`, and use the Bot API `getUpdates` response to find your numeric chat ID. Store both values as encrypted Cloudflare secrets—never commit the bot token:
+
+```bash
+npx wrangler secret put TELEGRAM_BOT_TOKEN
+npx wrangler secret put TELEGRAM_CHAT_ID
+npm run deploy
+```
+
+If either secret is absent, notifications are disabled. If Telegram is unavailable, the donation is still saved and the failure is written only to the Worker logs.
 
 The production Worker and D1 binding are defined in `wrangler.jsonc`. Dashboard-managed runtime variables are preserved across Wrangler deployments.
 

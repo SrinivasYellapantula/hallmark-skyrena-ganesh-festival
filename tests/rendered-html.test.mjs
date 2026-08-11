@@ -129,6 +129,20 @@ test("residents can use an unrestricted flat field without changing the voluntee
   assert.match(page, /No login is required for residents/);
 });
 
+test("successful donations notify the portal admin through optional failure-safe Telegram secrets", async () => {
+  const [route, telegram] = await Promise.all([
+    source("app/api/registrations/route.ts"), source("app/lib/telegram.ts"),
+  ]);
+  assert.match(route, /await d1\.batch\(statements\);/);
+  assert.match(route, /await notifyPortalAdminOfDonation/);
+  assert.match(route, /Telegram donation notification failed/);
+  assert.match(telegram, /TELEGRAM_BOT_TOKEN/);
+  assert.match(telegram, /TELEGRAM_CHAT_ID/);
+  assert.match(telegram, /api\.telegram\.org\/bot\$\{token\}\/sendMessage/);
+  assert.match(telegram, /AbortSignal\.timeout\(5000\)/);
+  assert.doesNotMatch(telegram, /residentName|phone|paymentReference|paymentProof/);
+});
+
 test("committee APIs enforce administrator access", async () => {
   const files = await Promise.all([
     source("app/api/admin/dashboard/route.ts"),

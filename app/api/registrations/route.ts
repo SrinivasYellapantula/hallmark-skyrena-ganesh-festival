@@ -4,6 +4,7 @@ import { getD1 } from "../../../db";
 import { BLOCKS, EVENT_ID, MINIMUM_DONATION } from "../../lib/constants";
 import { getAppUser, scopedBlock } from "../../lib/auth";
 import { cleanText, wholeNumber } from "../../lib/server";
+import { notifyPortalAdminOfDonation } from "../../lib/telegram";
 
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_PROOF_BYTES = 1024 * 1024;
@@ -89,6 +90,17 @@ export async function POST(request: Request) {
         VALUES (?, ?, 'idol', ?, 'upi', ?, 'pending')`)
         .bind(crypto.randomUUID(), registrationId, idolDonation, paymentReference));
       await d1.batch(statements);
+      try {
+        await notifyPortalAdminOfDonation({
+          blockNo,
+          flatNo,
+          amount: mainDonation + idolDonation + annadaanamDonation,
+          referenceNo,
+          source: user ? "committee" : "resident",
+        });
+      } catch (notificationError) {
+        console.error("Telegram donation notification failed", notificationError);
+      }
       return Response.json({ referenceNo }, { status: 201 });
     } catch (error) {
       await proofStore.delete(proofKey);
