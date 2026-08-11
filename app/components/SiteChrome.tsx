@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 type User = { displayName: string; username: string; role: "admin" | "block" | "cultural"; blockNo: string | null; portalOwner?: boolean };
 
 export function SiteHeader() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null | undefined>(undefined);
   const [navOpen, setNavOpen] = useState(false);
   const adminMenuRef = useRef<HTMLDetailsElement>(null);
   useEffect(() => { fetch("/api/auth/me").then((response) => response.ok ? response.json() : null).then(setUser); }, []);
@@ -22,6 +22,7 @@ export function SiteHeader() {
   async function logout() { await fetch("/api/auth/logout", { method: "POST" }); window.location.reload(); }
   return <header className="site-header"><div className="wrap nav-wrap">
     <Link className="brand" href="/"><img className="brand-logo" src="/skyrena-logo.png" alt="Hallmark Skyrena" width="318" height="225"/><span className="brand-copy"><small>Ganesh Chaturthi 2026</small></span></Link>
+    {user === null && <Link className="committee-signin" href="/">Committee sign in</Link>}
     {user && <>
       <button className="nav-toggle" aria-expanded={navOpen} aria-controls="primary-navigation" onClick={() => setNavOpen((open) => !open)}><span aria-hidden="true">{navOpen ? "×" : "☰"}</span>{navOpen ? "Close" : "Menu"}</button>
       <nav id="primary-navigation" className={`site-nav ${navOpen ? "open" : ""}`} aria-label="Primary navigation">
@@ -37,5 +38,5 @@ export function SiteHeader() {
 }
 
 export function SiteFooter() {
-  return <footer className="site-footer"><div className="wrap footer-grid"><div><strong>Hallmark Skyrena</strong><p>Ganesh Chaturthi 2026 · Restricted committee workspace.</p></div><div><p>Role-scoped access</p><span>Each coordinator sees only the workspace assigned to their role.</span></div><div><p>Private committee records</p><span>Payment proofs and internal records are available only to authorized users.</span></div></div></footer>;
+  return <footer className="site-footer"><div className="wrap footer-grid"><div><strong>Hallmark Skyrena</strong><p>Ganesh Chaturthi 2026 · Community festival portal.</p></div><div><p>Secure committee access</p><span>Internal workspaces remain restricted to assigned committee members.</span></div><div><p>Private records</p><span>Payment proofs and detailed records are available only to authorized users.</span></div></div></footer>;
 }

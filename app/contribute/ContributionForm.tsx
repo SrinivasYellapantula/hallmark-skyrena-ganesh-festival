@@ -6,7 +6,7 @@ import { optimizeImageUpload } from "../lib/client-image";
 
 type User = { role: "admin" | "block"; blockNo: string | null };
 type Success = { referenceNo: string };
-type MasterFlat = { flatNo: string; residentName: string; occupancy: string; donated: number };
+type MasterFlat = { flatNo: string; residentName?: string; occupancy?: string; donated?: number };
 
 const blank = {
   residentName: "",
@@ -28,6 +28,7 @@ const FLOOR_OPTIONS = ["G", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "
 export function ContributionForm() {
   const [form, setForm] = useState(blank);
   const [user, setUser] = useState<User | null>(null);
+  const [accessChecked, setAccessChecked] = useState(false);
   const [proof, setProof] = useState<File | null>(null);
   const [optimizing, setOptimizing] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -37,22 +38,29 @@ export function ContributionForm() {
   const [flatsLoading, setFlatsLoading] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((response) => response.json())
-      .then((profile: User) => {
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then(async (response) => {
+        if (response.status === 401) return null;
+        if (!response.ok) throw new Error("Unable to check committee access.");
+        return response.json() as Promise<User>;
+      })
+      .then((profile) => {
+        if (!profile) return;
         setUser(profile);
         if (profile.role === "block") {
           setFlatsLoading(Boolean(profile.blockNo));
           setForm((current) => ({ ...current, blockNo: profile.blockNo ?? "" }));
         }
       })
-      .catch(() => setError("Unable to load your access profile."));
+      .catch(() => setError("Unable to check committee access. You can still complete the resident donation form."))
+      .finally(() => setAccessChecked(true));
   }, []);
 
   useEffect(() => {
-    if (!form.blockNo) return;
+    if (!accessChecked || !form.blockNo) return;
     let active = true;
-    fetch(`/api/flats/map?block=${form.blockNo}`, { cache: "no-store" })
+    const endpoint = user ? `/api/flats/map?block=${form.blockNo}` : `/api/public/flats?block=${form.blockNo}`;
+    fetch(endpoint, { cache: "no-store" })
       .then(async (response) => ({ response, payload: await response.json() }))
       .then(({ response, payload }) => {
         if (!active) return;
@@ -62,7 +70,7 @@ export function ContributionForm() {
       .catch((caught) => active && setError(caught instanceof Error ? caught.message : "Unable to load occupied flats."))
       .finally(() => active && setFlatsLoading(false));
     return () => { active = false; };
-  }, [form.blockNo]);
+  }, [accessChecked, form.blockNo, user]);
 
   const total = useMemo(
     () => Number(form.mainDonation || 0) + Number(form.idolDonation || 0) + Number(form.annadaanamDonation || 0),
@@ -113,7 +121,7 @@ export function ContributionForm() {
       const response = await fetch("/api/registrations", { method: "POST", body: data });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "Submission failed.");
-      setMasterFlats((current) => current.map((flat) => flat.flatNo === form.flatNo ? { ...flat, residentName: form.residentName, occupancy: form.occupancy, donated: 1 } : flat));
+      setMasterFlats((current) => current.map((flat) => flat.flatNo === form.flatNo ? { ...flat, ...(user ? { residentName: form.residentName, occupancy: form.occupancy, donated: 1 } : {}) } : flat));
       setSuccess(payload);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (caught) {
@@ -140,6 +148,7 @@ export function ContributionForm() {
   return (
     <form className="wrap form-shell" onSubmit={submit}>
       <div className="form-main">
+        {!user && accessChecked && <p className="resident-form-note"><strong>Resident self-entry:</strong> Submit your household and payment details here. Existing resident names, occupancy and donation information remain private.</p>}
         <fieldset aria-labelledby="household-section-title">
           <div className="form-section-heading" id="household-section-title"><span>1</span><h2>Household Details</h2></div>
           <p className="fieldset-help">All household details are mandatory.</p>
@@ -160,13 +169,13 @@ export function ContributionForm() {
             <label className="wide">Flat Number
               <select required name="flatNo" value={form.flatNo} disabled={!form.floorNo || flatsLoading} onChange={(event) => update(event.target.name, event.target.value)}>
                 <option value="">{!form.floorNo ? "Select block and floor first" : floorFlats.length ? "Select occupied flat" : "No occupied flats on this floor"}</option>
-                {floorFlats.map((flat) => <option key={flat.flatNo} value={flat.flatNo}>{flat.flatNo}{flat.residentName ? ` — ${flat.residentName}` : ""}{flat.donated ? " — donation recorded" : ""}</option>)}
+                {floorFlats.map((flat) => <option key={flat.flatNo} value={flat.flatNo}>{flat.flatNo}{user && flat.residentName ? ` — ${flat.residentName}` : ""}{user && flat.donated ? " — donation recorded" : ""}</option>)}
               </select>
-              <small>The list comes from the occupied-flat master. The resident name entered below updates the master when this donation is saved.</small>
+              <small>{user ? "The list comes from the occupied-flat master. The resident name entered below updates the master when this donation is saved." : "Only occupied flat numbers are shown. Existing household and donation details are never displayed publicly."}</small>
             </label>
             <label className="wide">Resident Name
               <input required name="residentName" autoComplete="name" value={form.residentName} onChange={(event) => update(event.target.name, event.target.value)} />
-              <small>Prefilled from the flat master when available. Correcting it here updates the master after saving.</small>
+              {user && <small>Prefilled from the flat master when available. Correcting it here updates the master after saving.</small>}
             </label>
             <label>Gotram
               <input required name="gotram" value={form.gotram} onChange={(event) => update(event.target.name, event.target.value)} />
@@ -177,7 +186,7 @@ export function ContributionForm() {
                 <option value="owner">Owner</option>
                 <option value="tenant">Tenant</option>
               </select>
-              <small>Prefilled from the occupied-flat master when available.</small>
+              {user && <small>Prefilled from the occupied-flat master when available.</small>}
             </label>
             <label className="wide">Phone No.
               <input required name="phone" type="tel" inputMode="tel" autoComplete="tel" minLength={10} maxLength={15} value={form.phone} onChange={(event) => update(event.target.name, event.target.value)} />

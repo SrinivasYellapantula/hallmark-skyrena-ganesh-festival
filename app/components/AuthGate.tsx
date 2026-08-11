@@ -9,18 +9,19 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    const path = window.location.pathname;
+    const publicDonationForm = path === "/contribute" || path === "/contribute/";
     fetch("/api/auth/me", { cache: "no-store" })
       .then(async (response) => {
-        if (!response.ok) { setState("login"); return; }
+        if (!response.ok) { setState(publicDonationForm ? "allowed" : "login"); return; }
         const user = await response.json() as { role: "admin" | "block" | "cultural" };
-        const path = window.location.pathname;
         const adminOnly = path.startsWith("/admin") || path.startsWith("/meetings");
         const culturalOnly = path.startsWith("/cultural");
         if (user.role === "cultural" && !culturalOnly) { window.location.replace("/cultural"); return; }
         if (user.role === "block" && (adminOnly || culturalOnly)) { window.location.replace("/"); return; }
         setState("allowed");
       })
-      .catch(() => setState("login"));
+      .catch(() => setState(publicDonationForm ? "allowed" : "login"));
   }, []);
 
   async function login(event: FormEvent<HTMLFormElement>) {
@@ -59,6 +60,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         {error && <p className="form-error">{error}</p>}
         <button className="button primary full" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
       </form>
+      <a className="button quiet full resident-donation-link" href="/contribute">Submit a donation without signing in</a>
       <small>Forgot your password? Contact the portal administrator.</small>
     </section>
     <aside className="login-art"><div className="login-disc"><strong>Ganesh<br />Chaturthi</strong><span>Hallmark Skyrena · 2026</span></div></aside>

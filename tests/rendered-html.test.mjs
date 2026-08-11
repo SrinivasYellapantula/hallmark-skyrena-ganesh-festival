@@ -100,8 +100,27 @@ test("block users are scoped by the authenticated server identity", async () => 
     source("app/api/registrations/route.ts"),
     source("app/api/flats/route.ts"),
   ]);
-  assert.match(registration, /scopedBlock\(auth\.user/);
+  assert.match(registration, /user \? scopedBlock\(user/);
   assert.match(flats, /scopedBlock\(auth\.user/);
+});
+
+test("residents can use the donation form without exposing private flat-master details", async () => {
+  const [gate, form, publicFlats, registration, page] = await Promise.all([
+    source("app/components/AuthGate.tsx"), source("app/contribute/ContributionForm.tsx"),
+    source("app/api/public/flats/route.ts"), source("app/api/registrations/route.ts"),
+    source("app/contribute/page.tsx"),
+  ]);
+  assert.match(gate, /publicDonationForm/);
+  assert.match(gate, /Submit a donation without signing in/);
+  assert.match(form, /api\/public\/flats/);
+  assert.match(form, /Existing household and donation details are never displayed publicly/);
+  assert.match(publicFlats, /SELECT flat_no flatNo/);
+  assert.doesNotMatch(publicFlats, /resident_name|occupancy|donat|visit_status|reference/i);
+  assert.doesNotMatch(publicFlats, /authorize\(/);
+  assert.match(registration, /getAppUser\(request\)/);
+  assert.match(registration, /resident-self-service/);
+  assert.doesNotMatch(registration, /const auth = await authorize\(request\)/);
+  assert.match(page, /No login is required for residents/);
 });
 
 test("committee APIs enforce administrator access", async () => {

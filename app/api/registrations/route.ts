@@ -2,19 +2,20 @@ import { env } from "cloudflare:workers";
 import { ensureDatabase } from "../../../db/initialize";
 import { getD1 } from "../../../db";
 import { BLOCKS, EVENT_ID, MINIMUM_DONATION } from "../../lib/constants";
-import { authorize, scopedBlock } from "../../lib/auth";
+import { getAppUser, scopedBlock } from "../../lib/auth";
 import { cleanText, wholeNumber } from "../../lib/server";
 
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_PROOF_BYTES = 1024 * 1024;
 
 export async function POST(request: Request) {
-  const auth = await authorize(request);
-  if ("response" in auth) return auth.response;
   try {
+    const user = await getAppUser(request);
+    if (user?.role === "cultural") return Response.json({ error: "You do not have access to donation entry." }, { status: 403 });
+    const actor = user?.username ?? "resident-self-service";
     const body = await request.formData();
     const residentName = cleanText(body.get("residentName"), 100);
-    const blockNo = scopedBlock(auth.user, body.get("blockNo"));
+    const blockNo = user ? scopedBlock(user, body.get("blockNo")) : cleanText(body.get("blockNo"), 2).toUpperCase();
     const flatNo = cleanText(body.get("flatNo"), 20).toUpperCase();
     const gotram = cleanText(body.get("gotram"), 100);
     const occupancy = cleanText(body.get("occupancy"), 10);
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
     const referenceNo = `GF26-${crypto.randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase()}`;
     const proofKey = `${EVENT_ID}/${blockNo}/${registrationId}/${crypto.randomUUID()}`;
     await proofStore.put(proofKey, await proof.arrayBuffer(), {
-      metadata: { originalName: proof.name, contentType: proof.type, uploadedBy: auth.user.username },
+      metadata: { originalName: proof.name, contentType: proof.type, uploadedBy: actor },
     });
     try {
       const statements = [
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
            adult_count, child_count, public_name_consent, notes, created_by)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
           .bind(registrationId, referenceNo, EVENT_ID, residentName, blockNo, flatNo, gotram, occupancy, phone || null,
-            adultCount, childCount, body.get("publicNameConsent") === "true" ? 1 : 0, notes, auth.user.username),
+            adultCount, childCount, body.get("publicNameConsent") === "true" ? 1 : 0, notes, actor),
         d1.prepare(`INSERT INTO donations
           (id, registration_id, category, amount, payment_method, payment_reference, status,
            payment_proof_key, payment_proof_name, payment_proof_type)
@@ -70,10 +71,10 @@ export async function POST(request: Request) {
           VALUES (?, ?, ?, ?, ?, ?, 1, 'donated', ?)
           ON CONFLICT(event_id, block_no, flat_no) DO UPDATE SET resident_name=excluded.resident_name,
           occupancy=excluded.occupancy, occupied=1, visit_status='donated', updated_by=excluded.updated_by, updated_at=CURRENT_TIMESTAMP`)
-          .bind(crypto.randomUUID(), EVENT_ID, blockNo, flatNo, residentName, occupancy, auth.user.username),
+          .bind(crypto.randomUUID(), EVENT_ID, blockNo, flatNo, residentName, occupancy, actor),
         d1.prepare(`INSERT INTO audit_log (id, entity_type, entity_id, action, actor, details)
           VALUES (?, 'registration', ?, 'submitted', ?, ?)`)
-          .bind(crypto.randomUUID(), registrationId, auth.user.username, JSON.stringify({ blockNo, flatNo, proofKey })),
+          .bind(crypto.randomUUID(), registrationId, actor, JSON.stringify({ blockNo, flatNo, proofKey, source: user ? "committee" : "resident" })),
       ];
       if (annadaanamDonation > 0) statements.push(d1.prepare(`INSERT INTO donations
         (id, registration_id, category, amount, payment_method, payment_reference, status)
