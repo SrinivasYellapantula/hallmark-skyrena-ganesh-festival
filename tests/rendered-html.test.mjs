@@ -31,6 +31,11 @@ test("registration validation supports voluntary donations while rejecting a zer
   assert.match(route, /wholeNumber\(body\.get\("mainDonation"\), MINIMUM_DONATION\)/);
   assert.match(constants, /MINIMUM_DONATION = 0/);
   assert.match(form, /mainDonation: "0"/);
+  assert.match(form, /clearDefaultAmount/);
+  assert.match(form, /restoreEmptyAmount/);
+  assert.match(form, /onFocus=\{\(\) => clearDefaultAmount\("mainDonation"\)\}/);
+  assert.match(form, /onFocus=\{\(\) => clearDefaultAmount\("idolDonation"\)\}/);
+  assert.match(form, /onFocus=\{\(\) => clearDefaultAmount\("annadaanamDonation"\)\}/);
   assert.match(form, /Voluntary contribution/);
   assert.match(route, /mainDonation \+ idolDonation \+ annadaanamDonation <= 0/);
   assert.match(route, /at least one donation amount greater than ₹0/);
