@@ -140,6 +140,7 @@ test("residents can use an unrestricted flat field without changing the voluntee
   assert.match(registration, /excluded\.occupancy<>'' THEN excluded\.occupancy ELSE flats\.occupancy/);
   assert.doesNotMatch(registration, /const auth = await authorize\(request\)/);
   assert.match(page, /No login is required for residents/);
+  assert.doesNotMatch(await source("app/components/SiteChrome.tsx"), /Committee sign in|committee-signin/);
 });
 
 test("successful donations notify the portal admin through optional failure-safe Telegram secrets", async () => {

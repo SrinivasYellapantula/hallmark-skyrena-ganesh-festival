@@ -22,7 +22,6 @@ export function SiteHeader() {
   async function logout() { await fetch("/api/auth/logout", { method: "POST" }); window.location.reload(); }
   return <header className="site-header"><div className="wrap nav-wrap">
     <Link className="brand" href="/"><img className="brand-logo" src="/skyrena-logo.png" alt="Hallmark Skyrena" width="318" height="225"/><span className="brand-copy"><small>Ganesh Chaturthi 2026</small></span></Link>
-    {user === null && <Link className="committee-signin" href="/">Committee sign in</Link>}
     {user && <>
       <button className="nav-toggle" aria-expanded={navOpen} aria-controls="primary-navigation" onClick={() => setNavOpen((open) => !open)}><span aria-hidden="true">{navOpen ? "×" : "☰"}</span>{navOpen ? "Close" : "Menu"}</button>
       <nav id="primary-navigation" className={`site-nav ${navOpen ? "open" : ""}`} aria-label="Primary navigation">
