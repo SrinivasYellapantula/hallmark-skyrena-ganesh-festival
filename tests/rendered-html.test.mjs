@@ -110,6 +110,26 @@ test("donation form shows the official payment QR and Visarjan Mahaprasadam note
   assert.doesNotMatch(styles, /\.form-summary \{ position: static; grid-row: 1; \}/);
 });
 
+test("resident donation form can open installed UPI apps without changing manual verification", async () => {
+  const [form, styles] = await Promise.all([
+    source("app/contribute/ContributionForm.tsx"),
+    source("app/globals.css"),
+  ]);
+  assert.match(form, /FESTIVAL_UPI_ID/);
+  assert.match(form, /MSHALLMARKSKYRENAFLATOWNERSMAINTENANCEMACSOCIETYLTDCULTURAL\.eazypay@icici/);
+  assert.match(form, /new URLSearchParams/);
+  assert.match(form, /tr: paymentReference/);
+  assert.match(form, /am: total\.toFixed\(2\)/);
+  assert.match(form, /window\.location\.assign\(`upi:\/\/pay\?/);
+  assert.match(form, /isResident && <div className="upi-intent-panel">/);
+  assert.match(form, /Pay \$\{currency\(total\)\} using any UPI app/);
+  assert.match(form, /confirm that the app shows <strong>Hallmark Skyrena Cultural<\/strong>/);
+  assert.match(form, /Never share your UPI PIN or OTP/);
+  assert.match(styles, /\.upi-intent-panel/);
+  assert.match(styles, /\.upi-intent-button/);
+  assert.match(form, /Payment Confirmation Image/);
+});
+
 test("block users are scoped by the authenticated server identity", async () => {
   const [registration, flats] = await Promise.all([
     source("app/api/registrations/route.ts"),

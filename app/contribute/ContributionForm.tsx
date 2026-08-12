@@ -25,6 +25,8 @@ const blank = {
 };
 const ATTENDANCE_OPTIONS = Array.from({ length: 8 }, (_, index) => String(index));
 const FLOOR_OPTIONS = ["G", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "14", "15"];
+const FESTIVAL_UPI_ID = "MSHALLMARKSKYRENAFLATOWNERSMAINTENANCEMACSOCIETYLTDCULTURAL.eazypay@icici";
+const FESTIVAL_UPI_NAME = "Hallmark Skyrena Cultural";
 export function ContributionForm() {
   const [form, setForm] = useState(blank);
   const [user, setUser] = useState<User | null>(null);
@@ -95,6 +97,29 @@ export function ContributionForm() {
 
   function restoreEmptyAmount(name: "mainDonation" | "idolDonation" | "annadaanamDonation") {
     setForm((current) => current[name] === "" ? { ...current, [name]: "0" } : current);
+  }
+
+  function openUpiApp() {
+    setError("");
+    if (total <= 0) {
+      setError("Enter the contribution amount before opening a UPI app.");
+      return;
+    }
+
+    const paymentReference = `HS26${Date.now().toString(36)}${form.blockNo}${form.flatNo}`
+      .replace(/[^a-zA-Z0-9]/g, "")
+      .slice(0, 35);
+    const paymentNote = `Ganesh Chaturthi 2026${form.blockNo ? ` - Block ${form.blockNo}` : ""}${form.flatNo ? ` Flat ${form.flatNo}` : ""}`;
+    const parameters = new URLSearchParams({
+      pa: FESTIVAL_UPI_ID,
+      pn: FESTIVAL_UPI_NAME,
+      tr: paymentReference,
+      tn: paymentNote,
+      am: total.toFixed(2),
+      cu: "INR",
+    });
+
+    window.location.assign(`upi://pay?${parameters.toString()}`);
   }
 
   const floorFlats = useMemo(() => masterFlats.filter((flat) => flatFloor(flat.flatNo) === form.floorNo), [masterFlats, form.floorNo]);
@@ -231,6 +256,12 @@ export function ContributionForm() {
                 <span className="card-kicker">Official festival UPI</span>
                 <h3 id="payment-qr-title">Scan to make the resident’s payment</h3>
                 <p>Use this QR code only for Hallmark Skyrena Ganesh Chaturthi 2026 contributions.</p>
+                {isResident && <div className="upi-intent-panel">
+                  <button type="button" className="button primary full upi-intent-button" onClick={openUpiApp}>
+                    {total > 0 ? `Pay ${currency(total)} using any UPI app` : "Pay using any UPI app"}
+                  </button>
+                  <small>On a supported mobile phone, this opens the installed UPI apps with the amount filled in. Before paying, confirm that the app shows <strong>Hallmark Skyrena Cultural</strong> as the recipient. Never share your UPI PIN or OTP.</small>
+                </div>}
                 <small>On mobile, tap the payment poster to open it at full size. You can then share or save it if needed.</small>
               </div>
               <a href="/hallmark-skyrena-upi-qr.png" target="_blank" rel="noreferrer" aria-label="Open the official UPI payment QR code at full size">
