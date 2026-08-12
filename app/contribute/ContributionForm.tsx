@@ -194,7 +194,11 @@ export function ContributionForm() {
               {user && <small>Prefilled from the occupied-flat master when available.</small>}
             </label>
             <label className="wide">{isResident ? <span className="field-label">Phone No.<span className="required-mark">*</span></span> : "Phone No."}
-              <input required name="phone" type="tel" inputMode="tel" autoComplete="tel" minLength={10} maxLength={15} value={form.phone} onChange={(event) => update(event.target.name, event.target.value)} />
+              <span className="phone-input-group">
+                <span className="phone-prefix" aria-hidden="true">+91</span>
+                <input aria-label="10-digit Indian mobile number" required name="phone" type="tel" inputMode="numeric" autoComplete="tel-national" minLength={10} maxLength={10} pattern="[0-9]{10}" value={form.phone} onChange={(event) => update(event.target.name, event.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="10-digit mobile number" />
+              </span>
+              <small>Enter exactly 10 digits. The +91 country code is added automatically.</small>
             </label>
           </div>
         </fieldset>

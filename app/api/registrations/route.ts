@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const flatNo = cleanText(body.get("flatNo"), 20).toUpperCase();
     const gotram = cleanText(body.get("gotram"), 100);
     const occupancy = cleanText(body.get("occupancy"), 10);
-    const phone = cleanText(body.get("phone"), 15).replace(/[^0-9+]/g, "");
+    const phone = cleanText(body.get("phone"), 20).replace(/\D/g, "");
     const mainDonation = wholeNumber(body.get("mainDonation"), MINIMUM_DONATION);
     const idolDonation = wholeNumber(body.get("idolDonation"), 0);
     const annadaanamDonation = wholeNumber(body.get("annadaanamDonation"), 0);
@@ -30,8 +30,9 @@ export async function POST(request: Request) {
     const notes = cleanText(body.get("notes"), 500);
     const proof = body.get("paymentProof");
 
-    if (!residentName || !flatNo || !gotram || !phone || !BLOCKS.includes(blockNo as (typeof BLOCKS)[number]))
+    if (!residentName || !flatNo || !gotram || !BLOCKS.includes(blockNo as (typeof BLOCKS)[number]))
       return Response.json({ error: "Resident name, block, flat, gotram and phone number are required." }, { status: 400 });
+    if (!/^\d{10}$/.test(phone)) return Response.json({ error: "Enter a valid 10-digit Indian mobile number." }, { status: 400 });
     if ((user && !['owner', 'tenant'].includes(occupancy)) || (!user && occupancy && !['owner', 'tenant'].includes(occupancy)))
       return Response.json({ error: "Choose owner or tenant." }, { status: 400 });
     if (mainDonation === null || idolDonation === null || annadaanamDonation === null)

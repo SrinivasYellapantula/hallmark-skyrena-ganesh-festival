@@ -41,7 +41,11 @@ test("registration validation supports voluntary donations while rejecting a zer
   assert.doesNotMatch(route, /payment reference is required/i);
   assert.match(form, /UPI Transaction Reference No\. <span className="optional">optional<\/span>/);
   assert.match(route, /wholeNumber\(body\.get\("adultCount"\), 0, 7\)/);
-  assert.match(route, /!phone/);
+  assert.match(route, /\^\\d\{10\}\$\/\.test\(phone\)/);
+  assert.match(form, /className="phone-prefix" aria-hidden="true">\+91/);
+  assert.match(form, /inputMode="numeric"/);
+  assert.match(form, /minLength=\{10\} maxLength=\{10\} pattern="\[0-9\]\{10\}"/);
+  assert.match(form, /replace\(\/\\D\/g, ""\)\.slice\(0, 10\)/);
   assert.match(route, /PAYMENT_PROOFS/);
   assert.match(route, /KVNamespace/);
   assert.match(route, /occupied=1 LIMIT 1/);
