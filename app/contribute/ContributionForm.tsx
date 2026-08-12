@@ -231,12 +231,20 @@ export function ContributionForm() {
             <label className="wide">UPI Transaction Reference No. <span className="optional">optional</span>
               <input name="paymentReference" value={form.paymentReference} onChange={(event) => update(event.target.name, event.target.value)} placeholder="UPI / UTR reference" />
             </label>
-            <label className="wide proof-picker">{isResident ? <span className="field-label">Payment Confirmation Image<span className="required-mark">*</span></span> : "Payment Confirmation Image"}
-              <input required type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => void selectProof(event.target.files?.[0] ?? null)} />
-              <small>On mobile, choose Camera to photograph the confirmation. Large images are automatically compressed for private storage.</small>
+            <div className="wide proof-picker" role="group" aria-labelledby="payment-proof-label">
+              <span className="proof-picker-title" id="payment-proof-label">{isResident ? <span className="field-label">Payment Confirmation Image<span className="required-mark">*</span></span> : "Payment Confirmation Image"}</span>
+              <div className="proof-source-grid">
+                <label>Take Photo
+                  <input aria-label="Take a payment confirmation photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => void selectProof(event.target.files?.[0] ?? null)} />
+                </label>
+                <label>Choose from Gallery
+                  <input aria-label="Choose a payment confirmation image from gallery" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void selectProof(event.target.files?.[0] ?? null)} />
+                </label>
+              </div>
+              <small>Take a new photo or select an existing screenshot from your gallery. Large images are automatically compressed for private storage.</small>
               {optimizing && <strong>Optimizing image…</strong>}
               {proof && <strong>Ready: {proof.name} ({Math.ceil(proof.size / 1024)} KB)</strong>}
-            </label>
+            </div>
           </div>
         </fieldset>
 

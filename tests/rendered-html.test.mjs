@@ -90,6 +90,10 @@ test("donation form shows the official payment QR and Visarjan Mahaprasadam note
   assert.match(form, /isResident && <p className="mahaprasadam-note"><strong>Daily prasadam:<\/strong> Daily prasadam will be served in the evening after pooja/);
   assert.match(form, /distribution will be subject to availability/);
   assert.match(form, /Tap to view full size/);
+  assert.match(form, /Take Photo/);
+  assert.match(form, /Choose from Gallery/);
+  assert.match(form, /capture="environment"/);
+  assert.match(form, /aria-label="Choose a payment confirmation image from gallery" type="file" accept="image\/jpeg,image\/png,image\/webp" onChange/);
   assert.match(styles, /\.payment-qr-card/);
   assert.match(styles, /\.field-grid > \.wide \{ grid-column: 1 \/ -1; \}/);
   assert.match(styles, /max-width:360px/);
