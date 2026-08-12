@@ -38,6 +38,11 @@ export function ContributionForm() {
   const [success, setSuccess] = useState<Success | null>(null);
   const [masterFlats, setMasterFlats] = useState<MasterFlat[]>([]);
   const [flatsLoading, setFlatsLoading] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    setIsIOS(isIOSBrowser());
+  }, []);
 
   useEffect(() => {
     fetch("/api/auth/me", { cache: "no-store" })
@@ -119,7 +124,8 @@ export function ContributionForm() {
       cu: "INR",
     });
 
-    window.location.assign(`upi://pay?${parameters.toString()}`);
+    const scheme = isIOSBrowser() ? "gpay://upi/pay" : "upi://pay";
+    window.location.assign(`${scheme}?${parameters.toString()}`);
   }
 
   const floorFlats = useMemo(() => masterFlats.filter((flat) => flatFloor(flat.flatNo) === form.floorNo), [masterFlats, form.floorNo]);
@@ -258,9 +264,14 @@ export function ContributionForm() {
                 <p>Use this QR code only for Hallmark Skyrena Ganesh Chaturthi 2026 contributions.</p>
                 {isResident && <div className="upi-intent-panel">
                   <button type="button" className="button primary full upi-intent-button" onClick={openUpiApp}>
-                    {total > 0 ? `Pay ${currency(total)} using any UPI app` : "Pay using any UPI app"}
+                    {isIOS
+                      ? total > 0 ? `Pay ${currency(total)} with Google Pay` : "Pay with Google Pay"
+                      : total > 0 ? `Pay ${currency(total)} using any UPI app` : "Pay using any UPI app"}
                   </button>
-                  <small>On a supported mobile phone, this opens the installed UPI apps with the amount filled in. Before paying, confirm that the app shows <strong>Hallmark Skyrena Cultural</strong> as the recipient. Never share your UPI PIN or OTP.</small>
+                  <small>{isIOS
+                    ? <>On iPhone, this button opens Google Pay directly. To pay with PhonePe or another UPI app, use the QR code shown here. </>
+                    : <>On a supported Android phone, this opens the installed UPI apps with the amount filled in. </>}
+                    Before paying, confirm that the app shows <strong>Hallmark Skyrena Cultural</strong> as the recipient. Never share your UPI PIN or OTP.</small>
                 </div>}
                 <small>On mobile, tap the payment poster to open it at full size. You can then share or save it if needed.</small>
               </div>
@@ -329,4 +340,10 @@ function flatFloor(flatNo: string) {
   if (normalized.startsWith("G")) return "G";
   const match = normalized.match(/(\d{3,4})$/);
   return match ? String(Number(match[1].slice(0, -2))) : "";
+}
+
+function isIOSBrowser() {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }

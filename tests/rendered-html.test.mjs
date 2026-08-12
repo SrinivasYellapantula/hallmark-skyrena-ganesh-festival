@@ -110,7 +110,7 @@ test("donation form shows the official payment QR and Visarjan Mahaprasadam note
   assert.doesNotMatch(styles, /\.form-summary \{ position: static; grid-row: 1; \}/);
 });
 
-test("resident donation form can open installed UPI apps without changing manual verification", async () => {
+test("resident donation form uses platform-safe UPI links without changing manual verification", async () => {
   const [form, styles] = await Promise.all([
     source("app/contribute/ContributionForm.tsx"),
     source("app/globals.css"),
@@ -120,9 +120,15 @@ test("resident donation form can open installed UPI apps without changing manual
   assert.match(form, /new URLSearchParams/);
   assert.match(form, /tr: paymentReference/);
   assert.match(form, /am: total\.toFixed\(2\)/);
-  assert.match(form, /window\.location\.assign\(`upi:\/\/pay\?/);
+  assert.match(form, /const scheme = isIOSBrowser\(\) \? "gpay:\/\/upi\/pay" : "upi:\/\/pay"/);
+  assert.match(form, /window\.location\.assign\(`\$\{scheme\}\?/);
+  assert.match(form, /iPad\|iPhone\|iPod/);
+  assert.match(form, /navigator\.platform === "MacIntel" && navigator\.maxTouchPoints > 1/);
   assert.match(form, /isResident && <div className="upi-intent-panel">/);
   assert.match(form, /Pay \$\{currency\(total\)\} using any UPI app/);
+  assert.match(form, /Pay \$\{currency\(total\)\} with Google Pay/);
+  assert.match(form, /On iPhone, this button opens Google Pay directly/);
+  assert.match(form, /To pay with PhonePe or another UPI app, use the QR code shown here/);
   assert.match(form, /confirm that the app shows <strong>Hallmark Skyrena Cultural<\/strong>/);
   assert.match(form, /Never share your UPI PIN or OTP/);
   assert.match(styles, /\.upi-intent-panel/);
