@@ -26,7 +26,6 @@ export function AdminDashboard() {
   const [busy, setBusy] = useState("");
   const [expenseDialog, setExpenseDialog] = useState<Expense | "new" | null>(null);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
-  const [resetDialog, setResetDialog] = useState(false);
   const [correctionTarget, setCorrectionTarget] = useState<Registration | null>(null);
   const [recycleItems,setRecycleItems]=useState<RecycleItem[]>([]);
 
@@ -165,10 +164,8 @@ export function AdminDashboard() {
 
       <div className="security-note"><strong>Security checkpoint</strong><p>Change the initial administrator password before sharing the portal. New passwords are salted and hashed, and all active sessions are revoked when a password is reset.</p></div>
       {data.portalOwner&&<section className="admin-card recycle-bin" id="recycle-bin"><header><div><span className="card-kicker">Portal Admin recovery</span><h2>Recycle Bin</h2><p>Restore accidentally removed records. Permanent deletion is locked for 30 days and requires typed confirmation.</p></div><span className="recycle-count">{recycleItems.length} item{recycleItems.length===1?"":"s"}</span></header>{recycleItems.length?<div className="recycle-list">{recycleItems.map((item)=><article key={item.id}><div><span className="status recycled">{item.entityType}</span><strong>{item.entityLabel}</strong><small>Removed by {item.deletedBy} · {new Date(item.deletedAt+"Z").toLocaleString("en-IN")}</small></div><div className="recycle-actions"><button className="button quiet" disabled={busy===item.id} onClick={()=>void restoreRecycleItem(item)}>Restore</button><button className="button danger-button" disabled={busy===item.id||Number(item.ageDays)<30} title={Number(item.ageDays)<30?`Available in ${30-Number(item.ageDays)} day(s)`:"Permanently delete"} onClick={()=>void permanentlyDeleteRecycleItem(item)}>{Number(item.ageDays)<30?`Delete in ${30-Number(item.ageDays)}d`:"Permanently Delete"}</button></div></article>)}</div>:<div className="empty-state"><p>The Recycle Bin is empty.</p></div>}</section>}
-      {data.portalOwner && <section className="portal-danger-zone"><div><span className="card-kicker">Portal Admin only</span><h2>Test-data reset</h2><p>Clear trial activity before the committee starts entering live festival records. Login accounts and portal configuration are always preserved.</p></div><button className="button danger-button" onClick={() => setResetDialog(true)}>Clear Test Data</button></section>}
       {expenseDialog && <ExpenseDialog expense={expenseDialog === "new" ? null : expenseDialog} close={() => setExpenseDialog(null)} saved={async () => { setExpenseDialog(null); await load(); }} />}
       {correctionTarget && <CorrectionDialog registration={correctionTarget} close={() => setCorrectionTarget(null)} submit={async (reason) => { const saved=await updateRegistration(correctionTarget.id,"request_correction",reason); if(saved)setCorrectionTarget(null); return saved; }} />}
-      {resetDialog && <ResetPortalDialog close={() => setResetDialog(false)} />}
     </section>
   );
 }
@@ -176,32 +173,6 @@ export function AdminDashboard() {
 function CorrectionDialog({registration,close,submit}:{registration:Registration;close:()=>void;submit:(reason:string)=>Promise<boolean>}) {
   const [reason,setReason]=useState(""); const [busy,setBusy]=useState(false);
   return <div className="dialog-backdrop" role="presentation" onMouseDown={(event)=>{if(!busy&&event.target===event.currentTarget)close();}}><div className="dialog correction-dialog" role="dialog" aria-modal="true" aria-labelledby="correction-title"><button className="dialog-close" disabled={busy} onClick={close} aria-label="Close">×</button><span className="card-kicker">Payment verification</span><h2 id="correction-title">Send back for correction</h2><p>Tell the Block {registration.blockNo} Coordinator exactly what needs to be corrected for Flat {registration.flatNo}.</p><label>Correction required<textarea rows={4} maxLength={300} required autoFocus value={reason} onChange={(event)=>setReason(event.target.value)} placeholder="For example: payment screenshot is unclear; please upload a clearer image."/></label><div className="dialog-actions"><button type="button" className="button quiet" disabled={busy} onClick={close}>Cancel</button><button type="button" className="button primary" disabled={busy||!reason.trim()} onClick={()=>{setBusy(true);void submit(reason.trim()).then((saved)=>{if(!saved)setBusy(false);}).catch(()=>setBusy(false));}}>{busy?"Sending…":"Send Back for Correction"}</button></div></div></div>;
-}
-
-function ResetPortalDialog({ close }: { close: () => void }) {
-  const [confirmation, setConfirmation] = useState("");
-  const [removeFlatMaster, setRemoveFlatMaster] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const phrase = "RESET FESTIVAL DATA";
-
-  async function reset() {
-    setBusy(true); setError("");
-    try {
-      const response = await fetch("/api/admin/reset", {
-        method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ confirmation, removeFlatMaster }),
-      });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "Could not clear test data.");
-      window.location.reload();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not clear test data.");
-      setBusy(false);
-    }
-  }
-
-  return <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (!busy && event.target === event.currentTarget) close(); }}><div className="dialog reset-dialog" role="dialog" aria-modal="true" aria-labelledby="reset-title"><button className="dialog-close" disabled={busy} onClick={close} aria-label="Close">×</button><span className="card-kicker">Portal Admin only</span><h2 id="reset-title">Clear all test data?</h2><p className="reset-warning">This cannot be undone. Donations, payment proofs, expenses, receipt photos, meeting minutes, cultural programmes and visit activity will be permanently removed.</p><div className="reset-preserved"><strong>Preserved</strong><span>User accounts, passwords and portal configuration</span><span>Occupied-flat master and resident names, unless selected below</span></div><label className="reset-checkbox"><input type="checkbox" checked={removeFlatMaster} onChange={(event) => setRemoveFlatMaster(event.target.checked)}/><span><strong>Also remove the occupied-flat master</strong><small>Select this only if the uploaded flat list itself is test data.</small></span></label><label>Type <strong>{phrase}</strong> to confirm<input autoComplete="off" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} placeholder={phrase}/></label>{error&&<p className="form-error" role="alert">{error}</p>}<div className="dialog-actions"><button type="button" className="button quiet" disabled={busy} onClick={close}>Cancel</button><button type="button" className="button danger-action" disabled={busy||confirmation.trim().toUpperCase()!==phrase} onClick={()=>void reset()}>{busy?"Clearing…":"Permanently Clear Test Data"}</button></div></div></div>;
 }
 
 function ExpenseDialog({ expense, close, saved }: { expense: Expense | null; close: () => void; saved: () => Promise<void> }) {

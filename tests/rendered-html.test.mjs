@@ -233,12 +233,12 @@ test("payment verification supports proof review and recoverable corrections", a
 });
 
 test("accidental deletions are protected by a Portal Admin recycle bin", async () => {
-  const [recycleRoute, expenseRoute, meetingRoute, donationRoute, proofRoute, dashboard, donationsScreen, meetingsScreen, chrome, migration, resetRoute] = await Promise.all([
+  const [recycleRoute, expenseRoute, meetingRoute, donationRoute, proofRoute, dashboard, donationsScreen, meetingsScreen, chrome, migration] = await Promise.all([
     source("app/api/admin/recycle-bin/route.ts"), source("app/api/admin/expenses/[id]/route.ts"),
     source("app/api/admin/meetings/route.ts"), source("app/api/donations/[id]/route.ts"), source("app/api/payment-proofs/[id]/route.ts"),
     source("app/admin/AdminDashboard.tsx"), source("app/donations/DonationsDashboard.tsx"),
     source("app/meetings/MeetingMinutes.tsx"), source("app/components/SiteChrome.tsx"),
-    source("drizzle/0009_recycle_bin.sql"), source("app/api/admin/reset/route.ts"),
+    source("drizzle/0009_recycle_bin.sql"),
   ]);
   assert.match(recycleRoute, /isPortalOwner\(auth\.user\)/);
   assert.match(recycleRoute, /status='restored'/);
@@ -258,28 +258,15 @@ test("accidental deletions are protected by a Portal Admin recycle bin", async (
   assert.match(meetingsScreen, /Move to Recycle Bin/);
   assert.match(chrome, /Restore removed records/);
   assert.match(migration, /CREATE TABLE `recycle_bin`/);
-  assert.match(resetRoute, /DELETE FROM recycle_bin/);
 });
 
-test("portal owner can safely clear test data without removing access configuration", async () => {
-  const [resetRoute, auth, dashboard, usersRoute, usersScreen] = await Promise.all([
-    source("app/api/admin/reset/route.ts"), source("app/lib/auth.ts"),
-    source("app/admin/AdminDashboard.tsx"), source("app/api/admin/users/route.ts"),
+test("portal-wide test-data clearing is unavailable while Portal Admin access remains protected", async () => {
+  const [auth, dashboard, usersRoute, usersScreen] = await Promise.all([
+    source("app/lib/auth.ts"), source("app/admin/AdminDashboard.tsx"), source("app/api/admin/users/route.ts"),
     source("app/admin/users/UserManagement.tsx"),
   ]);
   assert.match(auth, /user\?\.id === "initial-admin"/);
-  assert.match(resetRoute, /isPortalOwner\(auth\.user\)/);
-  assert.match(resetRoute, /RESET FESTIVAL DATA/);
-  assert.match(resetRoute, /DELETE FROM donations/);
-  assert.match(resetRoute, /DELETE FROM registrations/);
-  assert.match(resetRoute, /DELETE FROM expenses/);
-  assert.match(resetRoute, /DELETE FROM cultural_programmes/);
-  assert.match(resetRoute, /DELETE FROM meeting_minutes/);
-  assert.match(resetRoute, /expenses\/\$\{EVENT_ID\}\//);
-  assert.match(resetRoute, /removeFlatMaster/);
-  assert.doesNotMatch(resetRoute, /DELETE FROM app_users|DELETE FROM app_sessions/);
-  assert.match(dashboard, /Clear Test Data/);
-  assert.match(dashboard, /Also remove the occupied-flat master/);
+  assert.doesNotMatch(dashboard, /Clear Test Data|Test-data reset|api\/admin\/reset|ResetPortalDialog/);
   assert.match(usersRoute, /Only the Portal Admin can create or modify Admin accounts/);
   assert.match(usersRoute, /The Portal Admin account cannot be disabled/);
   assert.match(usersScreen, /initial-admin"\?"Portal Admin"/);
