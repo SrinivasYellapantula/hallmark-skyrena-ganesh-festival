@@ -26,20 +26,43 @@ export async function GET(request: Request) {
   const d1 = getD1();
 
   const occupancyStatement = d1.prepare(
-    `SELECT f.block_no blockNo, COUNT(DISTINCT UPPER(TRIM(f.flat_no))) occupiedFlats,
-      COUNT(DISTINCT CASE WHEN EXISTS (
-        SELECT 1 FROM registrations r JOIN donations d ON d.registration_id=r.id
-        WHERE r.event_id=f.event_id AND UPPER(TRIM(r.block_no))=UPPER(TRIM(f.block_no))
-          AND UPPER(TRIM(r.flat_no))=UPPER(TRIM(f.flat_no))
-          AND r.status!='cancelled' AND d.status!='reversed' AND d.amount>0
-      ) THEN UPPER(TRIM(f.flat_no)) END) donatedOccupiedFlats
-     FROM flats f WHERE f.event_id=? AND f.occupied=1 ${blockFilter}
-     GROUP BY f.block_no ORDER BY f.block_no`,
+    `WITH occupied_flat_keys AS (
+       SELECT UPPER(TRIM(f.block_no)) blockNo,
+         CASE
+           WHEN SUBSTR(REPLACE(REPLACE(UPPER(TRIM(f.flat_no)),'-',''),' ',''),1,1)=UPPER(TRIM(f.block_no))
+             AND SUBSTR(REPLACE(REPLACE(UPPER(TRIM(f.flat_no)),'-',''),' ',''),2,1) BETWEEN '0' AND '9'
+           THEN SUBSTR(REPLACE(REPLACE(UPPER(TRIM(f.flat_no)),'-',''),' ',''),2)
+           ELSE REPLACE(REPLACE(UPPER(TRIM(f.flat_no)),'-',''),' ','')
+         END flatNo
+       FROM flats f WHERE f.event_id=? AND f.occupied=1 ${blockFilter}
+       GROUP BY blockNo,flatNo
+     ), donated_flat_keys AS (
+       SELECT UPPER(TRIM(r.block_no)) blockNo,
+         CASE
+           WHEN SUBSTR(REPLACE(REPLACE(UPPER(TRIM(r.flat_no)),'-',''),' ',''),1,1)=UPPER(TRIM(r.block_no))
+             AND SUBSTR(REPLACE(REPLACE(UPPER(TRIM(r.flat_no)),'-',''),' ',''),2,1) BETWEEN '0' AND '9'
+           THEN SUBSTR(REPLACE(REPLACE(UPPER(TRIM(r.flat_no)),'-',''),' ',''),2)
+           ELSE REPLACE(REPLACE(UPPER(TRIM(r.flat_no)),'-',''),' ','')
+         END flatNo
+       FROM registrations r JOIN donations d ON d.registration_id=r.id
+       WHERE r.event_id=? AND r.status!='cancelled' AND d.status!='reversed' AND d.amount>0
+       GROUP BY blockNo,flatNo
+     )
+     SELECT o.blockNo,COUNT(*) occupiedFlats,
+       SUM(CASE WHEN d.flatNo IS NOT NULL THEN 1 ELSE 0 END) donatedOccupiedFlats
+     FROM occupied_flat_keys o LEFT JOIN donated_flat_keys d ON d.blockNo=o.blockNo AND d.flatNo=o.flatNo
+     GROUP BY o.blockNo ORDER BY o.blockNo`,
   );
 
   const collectionStatement = d1.prepare(
     `WITH registration_totals AS (
-       SELECT UPPER(TRIM(r.block_no)) blockNo,UPPER(TRIM(r.flat_no)) flatNo,r.id,
+       SELECT UPPER(TRIM(r.block_no)) blockNo,
+         CASE
+           WHEN SUBSTR(REPLACE(REPLACE(UPPER(TRIM(r.flat_no)),'-',''),' ',''),1,1)=UPPER(TRIM(r.block_no))
+             AND SUBSTR(REPLACE(REPLACE(UPPER(TRIM(r.flat_no)),'-',''),' ',''),2,1) BETWEEN '0' AND '9'
+           THEN SUBSTR(REPLACE(REPLACE(UPPER(TRIM(r.flat_no)),'-',''),' ',''),2)
+           ELSE REPLACE(REPLACE(UPPER(TRIM(r.flat_no)),'-',''),' ','')
+         END flatNo,r.id,
          SUM(CASE WHEN d.status!='reversed' THEN d.amount ELSE 0 END) totalCollection,
          SUM(CASE WHEN r.status='verified' AND d.status='verified' THEN d.amount ELSE 0 END) verifiedCollection,
          SUM(CASE WHEN d.status!='reversed' AND d.category='festival' THEN d.amount ELSE 0 END) festivalCollection,
@@ -65,7 +88,7 @@ export async function GET(request: Request) {
      FROM flat_totals GROUP BY blockNo ORDER BY blockNo`,
   );
 
-  const bindings = auth.user.role === "block" ? [EVENT_ID, auth.user.blockNo] : [EVENT_ID];
+  const bindings = auth.user.role === "block" ? [EVENT_ID, auth.user.blockNo, EVENT_ID] : [EVENT_ID, EVENT_ID];
   const collectionBindings = auth.user.role === "block" ? [EVENT_ID, auth.user.blockNo] : [EVENT_ID];
   const [occupancy, collections] = await Promise.all([
     occupancyStatement.bind(...bindings).all<OccupancyRow>(),

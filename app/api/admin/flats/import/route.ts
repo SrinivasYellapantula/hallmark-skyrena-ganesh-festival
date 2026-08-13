@@ -2,7 +2,7 @@ import { getD1 } from "../../../../../db";
 import { ensureDatabase } from "../../../../../db/initialize";
 import { authorize } from "../../../../lib/auth";
 import { BLOCKS, EVENT_ID } from "../../../../lib/constants";
-import { cleanText } from "../../../../lib/server";
+import { cleanText, normalizeFlatNo } from "../../../../lib/server";
 
 type FlatInput = { flatNo?: unknown; residentName?: unknown; occupancy?: unknown };
 
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   if (!Array.isArray(body.flats) || body.flats.length === 0 || body.flats.length > 1000) return Response.json({ error: "Upload a CSV containing between 1 and 1,000 occupied flats." }, { status: 400 });
   const seen = new Set<string>();
   const flats = body.flats.map((raw) => {
-    const item = raw as FlatInput; const flatNo = cleanText(item.flatNo, 20).toUpperCase();
+    const item = raw as FlatInput; const flatNo = normalizeFlatNo(item.flatNo, blockNo);
     const requestedOccupancy = cleanText(item.occupancy, 10).toLowerCase();
     return { flatNo, residentName: cleanText(item.residentName, 100), occupancy: ["owner", "tenant"].includes(requestedOccupancy) ? requestedOccupancy : "" };
   }).filter((item) => item.flatNo && !seen.has(item.flatNo) && Boolean(seen.add(item.flatNo)));

@@ -3,7 +3,7 @@ import { ensureDatabase } from "../../../db/initialize";
 import { getD1 } from "../../../db";
 import { BLOCKS, EVENT_ID, MINIMUM_DONATION } from "../../lib/constants";
 import { getAppUser, scopedBlock } from "../../lib/auth";
-import { cleanText, wholeNumber } from "../../lib/server";
+import { cleanText, normalizeFlatNo, wholeNumber } from "../../lib/server";
 import { notifyPortalAdminOfDonation } from "../../lib/telegram";
 
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     const body = await request.formData();
     const residentName = cleanText(body.get("residentName"), 100);
     const blockNo = user ? scopedBlock(user, body.get("blockNo")) : cleanText(body.get("blockNo"), 2).toUpperCase();
-    const flatNo = cleanText(body.get("flatNo"), 20).toUpperCase();
+    const flatNo = normalizeFlatNo(body.get("flatNo"), blockNo);
     const gotram = cleanText(body.get("gotram"), 100);
     const occupancy = cleanText(body.get("occupancy"), 10);
     const phone = cleanText(body.get("phone"), 20).replace(/\D/g, "");

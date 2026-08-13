@@ -405,9 +405,10 @@ test("role-scoped collection summary shows block and overall donation metrics", 
   assert.match(route, /verifiedCollection/);
   assert.match(route, /maximumDonation/);
   assert.match(route, /averageDonation/);
-  assert.match(route, /COUNT\(DISTINCT UPPER\(TRIM\(f\.flat_no\)\)\) occupiedFlats/);
-  assert.match(route, /THEN UPPER\(TRIM\(f\.flat_no\)\) END\) donatedOccupiedFlats/);
-  assert.match(route, /UPPER\(TRIM\(r\.flat_no\)\) flatNo/);
+  assert.match(route, /occupied_flat_keys AS/);
+  assert.match(route, /donated_flat_keys AS/);
+  assert.match(route, /SUBSTR\(REPLACE\(REPLACE\(UPPER\(TRIM\(r\.flat_no\)\)/);
+  assert.match(route, /d\.flatNo=o\.flatNo/);
   assert.match(route, /flat_totals AS/);
   assert.match(route, /FROM registration_totals GROUP BY blockNo,flatNo/);
   assert.match(route, /COALESCE\(MAX\(totalCollection\),0\) maximumDonation/);
@@ -420,6 +421,18 @@ test("role-scoped collection summary shows block and overall donation metrics", 
   assert.match(page, /CollectionSummary/);
   assert.match(chrome, /href="\/collection-summary">Collection Summary/);
   assert.match(styles, /\.block-summary-grid/);
+});
+
+test("flat numbers are canonicalized so block-prefixed repeat donations count once", async () => {
+  const [server, registration, summary] = await Promise.all([
+    source("app/lib/server.ts"),
+    source("app/api/registrations/route.ts"),
+    source("app/api/collection-summary/route.ts"),
+  ]);
+  assert.match(server, /export function normalizeFlatNo/);
+  assert.match(server, /flat\.startsWith\(block\)/);
+  assert.match(registration, /normalizeFlatNo\(body\.get\("flatNo"\), blockNo\)/);
+  assert.match(summary, /THEN SUBSTR\(REPLACE\(REPLACE\(UPPER\(TRIM\(r\.flat_no\)\)/);
 });
 
 test("occupied-flat map and block-wise CSV import preserve collection history", async () => {
