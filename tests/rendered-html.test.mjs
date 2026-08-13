@@ -382,6 +382,8 @@ test("mobile app metadata and compact controls are present", async () => {
   assert.match(layout, /skyrena-favicon-32\.png/);
   assert.match(layout, /apple-touch-icon\.png/);
   assert.match(styles, /@media \(max-width: 480px\)/);
+  assert.match(styles, /@media \(max-width: 1150px\)/);
+  assert.match(styles, /\.brand-copy \{[^}]*white-space: nowrap/);
   assert.match(chrome, /className="admin-chevron"/);
   assert.match(styles, /\.admin-chevron\{/);
   assert.match(styles, /\.admin-menu\[open\] \.admin-chevron/);
