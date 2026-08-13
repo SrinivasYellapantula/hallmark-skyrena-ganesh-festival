@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     if (!residentName || !flatNo || !BLOCKS.includes(blockNo as (typeof BLOCKS)[number]))
       return Response.json({ error: "Resident name, block, flat and phone number are required." }, { status: 400 });
     if (!/^\d{10}$/.test(phone)) return Response.json({ error: "Enter a valid 10-digit Indian mobile number." }, { status: 400 });
-    if ((user && !['owner', 'tenant'].includes(occupancy)) || (!user && occupancy && !['owner', 'tenant'].includes(occupancy)))
+    if (occupancy && !['owner', 'tenant'].includes(occupancy))
       return Response.json({ error: "Choose owner or tenant." }, { status: 400 });
     if (mainDonation === null || idolDonation === null || annadaanamDonation === null)
       return Response.json({ error: "Donation amounts must be valid non-negative whole numbers." }, { status: 400 });

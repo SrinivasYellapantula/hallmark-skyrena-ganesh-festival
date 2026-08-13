@@ -150,6 +150,18 @@ test("gotram is optional for resident and committee donation entry", async () =>
   assert.match(donations, /selected\.gotram \|\| "Not recorded"/);
 });
 
+test("occupancy is optional for resident and committee donation entry", async () => {
+  const [form, registration] = await Promise.all([
+    source("app/contribute/ContributionForm.tsx"),
+    source("app/api/registrations/route.ts"),
+  ]);
+  assert.match(form, /Occupancy<span className="optional">optional<\/span>/);
+  assert.match(form, /<select name="occupancy"/);
+  assert.doesNotMatch(form, /<select required=\{!isResident\} name="occupancy"/);
+  assert.match(registration, /if \(occupancy && !\['owner', 'tenant'\]\.includes\(occupancy\)\)/);
+  assert.doesNotMatch(registration, /user && !\['owner', 'tenant'\]\.includes\(occupancy\)/);
+});
+
 test("block users are scoped by the authenticated server identity", async () => {
   const [registration, flats] = await Promise.all([
     source("app/api/registrations/route.ts"),
@@ -169,14 +181,13 @@ test("residents can use an unrestricted flat field without changing the voluntee
   assert.doesNotMatch(form, /api\/public\/flats/);
   assert.match(form, /Flat Number<span className="required-mark">\*<\/span>/);
   assert.match(form, /input required name="flatNo"/);
-  assert.match(form, /required=\{!isResident\}/);
   assert.match(form, /isResident \? "UPI payments only\."/);
   assert.match(form, /api\/flats\/map/);
   assert.match(form, /Select occupied flat/);
   assert.match(registration, /getAppUser\(request\)/);
   assert.match(registration, /resident-self-service/);
   assert.match(registration, /if \(user\) \{/);
-  assert.match(registration, /!user && occupancy/);
+  assert.match(registration, /occupancy && !\['owner', 'tenant'\]\.includes\(occupancy\)/);
   assert.match(registration, /excluded\.occupancy<>'' THEN excluded\.occupancy ELSE flats\.occupancy/);
   assert.doesNotMatch(registration, /const auth = await authorize\(request\)/);
   assert.match(page, /No login is required for residents/);

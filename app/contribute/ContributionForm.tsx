@@ -224,9 +224,9 @@ export function ContributionForm() {
             <label><span className="field-label">Gotram<span className="optional">optional</span></span>
               <input name="gotram" value={form.gotram} onChange={(event) => update(event.target.name, event.target.value)} />
             </label>
-            <label>{isResident ? <span className="field-label">Occupancy<span className="optional">optional</span></span> : "Occupancy"}
-              <select required={!isResident} name="occupancy" value={form.occupancy} onChange={(event) => update(event.target.name, event.target.value)}>
-                <option value="">{isResident ? "Prefer not to specify" : "Select occupancy"}</option>
+            <label><span className="field-label">Occupancy<span className="optional">optional</span></span>
+              <select name="occupancy" value={form.occupancy} onChange={(event) => update(event.target.name, event.target.value)}>
+                <option value="">Not specified</option>
                 <option value="owner">Owner</option>
                 <option value="tenant">Tenant</option>
               </select>
