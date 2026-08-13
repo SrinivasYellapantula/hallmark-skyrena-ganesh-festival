@@ -41,6 +41,7 @@ export function ContributionForm() {
   const [masterFlats, setMasterFlats] = useState<MasterFlat[]>([]);
   const [flatsLoading, setFlatsLoading] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [upiCopied, setUpiCopied] = useState(false);
 
   useEffect(() => {
     setIsIOS(isIOSBrowser());
@@ -125,6 +126,29 @@ export function ContributionForm() {
       event.preventDefault();
       setError("Enter the contribution amount before opening a UPI app.");
     }
+  }
+
+  async function copyUpiId() {
+    setError("");
+    try {
+      await navigator.clipboard.writeText(FESTIVAL_UPI_ID);
+    } catch {
+      const field = document.createElement("textarea");
+      field.value = FESTIVAL_UPI_ID;
+      field.setAttribute("readonly", "");
+      field.style.position = "fixed";
+      field.style.opacity = "0";
+      document.body.appendChild(field);
+      field.select();
+      const copied = document.execCommand("copy");
+      field.remove();
+      if (!copied) {
+        setError("Unable to copy automatically. Please select and copy the UPI ID shown below.");
+        return;
+      }
+    }
+    setUpiCopied(true);
+    window.setTimeout(() => setUpiCopied(false), 3000);
   }
 
   const floorFlats = useMemo(() => masterFlats.filter((flat) => flatFloor(flat.flatNo) === form.floorNo), [masterFlats, form.floorNo]);
@@ -267,6 +291,10 @@ export function ContributionForm() {
                       ? total > 0 ? `Pay ${currency(total)} with Google Pay` : "Pay with Google Pay"
                       : total > 0 ? `Pay ${currency(total)} using any UPI app` : "Pay using any UPI app"}
                   </a>
+                  <div className="upi-copy-row">
+                    <span><small>Official UPI ID</small><strong>{FESTIVAL_UPI_ID}</strong></span>
+                    <button type="button" className="button quiet upi-copy-button" onClick={copyUpiId}>{upiCopied ? "UPI ID Copied ✓" : "Copy UPI ID"}</button>
+                  </div>
                   <small>{isIOS
                     ? <>On iPhone, this button opens Google Pay directly. To pay with PhonePe or another UPI app, use the QR code shown here. </>
                     : <>On a supported Android phone, this opens the installed UPI apps with the amount filled in. </>}

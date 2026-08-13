@@ -138,7 +138,11 @@ test("resident donation form uses platform-safe UPI links without changing manua
   assert.match(form, /recipient name contains <strong>Hallmark Skyrena<\/strong> and <strong>Cultural<\/strong>/);
   assert.match(form, /Never share your UPI PIN or OTP/);
   assert.match(form, /Please use a linked bank account\. RuPay credit-card payments may not be supported for this merchant/);
+  assert.match(form, /navigator\.clipboard\.writeText\(FESTIVAL_UPI_ID\)/);
+  assert.match(form, /UPI ID Copied ✓/);
+  assert.match(form, /Copy UPI ID/);
   assert.match(styles, /\.upi-intent-panel/);
+  assert.match(styles, /\.upi-copy-row/);
   assert.match(styles, /\.upi-payment-note/);
   assert.match(styles, /\.upi-intent-button/);
   assert.match(form, /Payment Confirmation Image/);
