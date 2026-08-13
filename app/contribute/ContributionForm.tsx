@@ -271,6 +271,7 @@ export function ContributionForm() {
                     ? <>On iPhone, this button opens Google Pay directly. To pay with PhonePe or another UPI app, use the QR code shown here. </>
                     : <>On a supported Android phone, this opens the installed UPI apps with the amount filled in. </>}
                         Before paying, confirm that the recipient name contains <strong>Hallmark Skyrena</strong> and <strong>Cultural</strong>. Never share your UPI PIN or OTP.</small>
+                  <p className="upi-payment-note"><strong>Payment method:</strong> Please use a linked bank account. RuPay credit-card payments may not be supported for this merchant.</p>
                 </div>}
                 <small>On mobile, tap the payment poster to open it at full size. You can then share or save it if needed.</small>
               </div>
