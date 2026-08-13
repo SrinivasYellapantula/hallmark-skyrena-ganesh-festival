@@ -437,6 +437,29 @@ test("flat numbers are canonicalized so block-prefixed repeat donations count on
   assert.match(summary, /THEN SUBSTR\(REPLACE\(REPLACE\(UPPER\(TRIM\(r\.flat_no\)\)/);
 });
 
+test("resident donations remain separate from occupied-flat coverage", async () => {
+  const [registration, summaryRoute, summaryScreen, donationsRoute, donationsScreen, styles] = await Promise.all([
+    source("app/api/registrations/route.ts"),
+    source("app/api/collection-summary/route.ts"),
+    source("app/collection-summary/CollectionSummary.tsx"),
+    source("app/api/donations/route.ts"),
+    source("app/donations/DonationsDashboard.tsx"),
+    source("app/globals.css"),
+  ]);
+  assert.match(registration, /if \(user\) statements\.push/);
+  assert.match(registration, /else statements\.push\(d1\.prepare\(`UPDATE flats SET/);
+  assert.match(registration, /WHERE event_id=\? AND block_no=\? AND flat_no=\? AND occupied=1/);
+  assert.doesNotMatch(registration, /occupied=1, visit_status='donated'/);
+  assert.match(summaryRoute, /occupiedDonatedFlats/);
+  assert.match(summaryRoute, /outsideMasterDonatingFlats/);
+  assert.match(summaryRoute, /totalDonatingFlats \? Math\.round\(totalCollection \/ totalDonatingFlats\)/);
+  assert.match(summaryScreen, /Occupied flats donated/);
+  assert.match(summaryScreen, /Donating flats outside occupied master/);
+  assert.match(donationsRoute, /inOccupiedMaster/);
+  assert.match(donationsScreen, /Add to Occupied-Flat Master/);
+  assert.match(styles, /\.master-membership\.outside/);
+});
+
 test("occupied-flat map and block-wise CSV import preserve collection history", async () => {
   const [mapRoute, flatsRoute, importRoute, screen, contribution, registration, chrome, migration, occupancyMigration] = await Promise.all([
     source("app/api/flats/map/route.ts"), source("app/api/flats/route.ts"),

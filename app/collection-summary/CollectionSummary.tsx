@@ -6,7 +6,9 @@ import { currency } from "../lib/constants";
 type Summary = {
   blockNo: string;
   occupiedFlats: number;
-  donatedFlats: number;
+  occupiedDonatedFlats: number;
+  donatingFlats: number;
+  outsideMasterDonatingFlats: number;
   pendingFlats: number;
   totalCollection: number;
   verifiedCollection: number;
@@ -48,15 +50,17 @@ export function CollectionSummary() {
 }
 
 function SummaryCard({ summary, featured = false }: { summary: Summary; featured?: boolean }) {
-  const coverage = summary.occupiedFlats ? Math.round((summary.donatedFlats / summary.occupiedFlats) * 100) : 0;
+  const coverage = summary.occupiedFlats ? Math.round((summary.occupiedDonatedFlats / summary.occupiedFlats) * 100) : 0;
   return <article className={`collection-summary-card ${featured ? "featured" : ""}`}>
     <header><div><span>{summary.blockNo === "Overall" ? "All five blocks" : `Block ${summary.blockNo}`}</span><strong>{coverage}% covered</strong></div><div className="coverage-track" aria-label={`${coverage}% of occupied flats donated`}><i style={{ width: `${coverage}%` }} /></div></header>
     <div className="collection-core-metrics">
-      <div><span>Flats donated</span><strong>{summary.donatedFlats}</strong><small>of {summary.occupiedFlats} occupied</small></div>
+      <div><span>Occupied flats donated</span><strong>{summary.occupiedDonatedFlats}</strong><small>of {summary.occupiedFlats} occupied</small></div>
       <div><span>Pending flats</span><strong>{summary.pendingFlats}</strong><small>still to collect</small></div>
       <div className="collection-total"><span>Recorded collection</span><strong>{currency(summary.totalCollection)}</strong><small>including verification pending</small></div>
     </div>
     <dl className="collection-detail-metrics">
+      <div><dt>Total donating flats</dt><dd>{summary.donatingFlats}</dd></div>
+      <div><dt>Donating flats outside occupied master</dt><dd>{summary.outsideMasterDonatingFlats}</dd></div>
       <div><dt>Verified collection</dt><dd>{currency(summary.verifiedCollection)}</dd></div>
       <div><dt>Maximum flat donation</dt><dd>{currency(summary.maximumDonation)}</dd></div>
       <div><dt>Average per donated flat</dt><dd>{currency(summary.averageDonation)}</dd></div>

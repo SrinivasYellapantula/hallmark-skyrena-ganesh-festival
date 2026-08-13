@@ -9,7 +9,7 @@ type Row = {
   gotram: string; occupancy: string; phone: string | null; amount: number;
   festivalAmount: number; idolAmount: number; annadaanamAmount: number; status: string; paymentReference: string;
   createdAt: string; hasProof: number; adultCount: number; childCount: number; notes: string;
-  correctionReason: string;
+  correctionReason: string; inOccupiedMaster: number;
 };
 type User = { role: "admin" | "block"; blockNo: string | null };
 
@@ -20,6 +20,7 @@ export function DonationsDashboard() {
   const [selected, setSelected] = useState<Row | null>(null);
   const [replacementProof, setReplacementProof] = useState<File | null>(null);
   const [optimizingProof, setOptimizingProof] = useState(false);
+  const [masterBusy, setMasterBusy] = useState(false);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -28,6 +29,7 @@ export function DonationsDashboard() {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error);
       setRows(payload.donations);
+      setSelected((current) => current ? payload.donations.find((row: Row) => row.id === current.id) ?? null : null);
       setUser(payload.user);
       setError("");
     } catch (caught) {
@@ -85,6 +87,18 @@ export function DonationsDashboard() {
     setSelected(null);setReplacementProof(null);await load();
   }
 
+  async function addToOccupiedMaster(row: Row) {
+    if (!window.confirm(`Add Block ${row.blockNo} Flat ${row.flatNo} to the occupied-flat master? This will include it in occupied-flat coverage and pending calculations.`)) return;
+    setMasterBusy(true); setError("");
+    try {
+      const response = await fetch("/api/flats", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ blockNo: row.blockNo, flatNo: row.flatNo, residentName: row.residentName, occupancy: row.occupancy }) });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? "Unable to add the flat to the occupied-flat master.");
+      await load();
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Unable to add the flat to the occupied-flat master."); }
+    finally { setMasterBusy(false); }
+  }
+
   return (
     <section className="wrap records-shell">
       {error && <p className="form-error">{error}</p>}
@@ -113,6 +127,7 @@ export function DonationsDashboard() {
           {selected.status === "correction_requested" && <div className="correction-alert"><strong>Correction requested</strong><span>{selected.correctionReason || "Please review and correct this submission."}</span><small>Saving the corrected record will send it back for administrator verification.</small></div>}
           <dl>
             <div><dt>Status</dt><dd>{selected.status}</dd></div>
+            <div><dt>Occupied-flat master</dt><dd><span className={`master-membership ${selected.inOccupiedMaster ? "included" : "outside"}`}>{selected.inOccupiedMaster ? "Included" : "Not included"}</span></dd></div>
             <div><dt>Festival donation</dt><dd>{currency(Number(selected.festivalAmount))}</dd></div>
             <div><dt>Idol donation</dt><dd>{currency(Number(selected.idolAmount))}</dd></div>
             <div><dt>Mahaprasadam donation</dt><dd>{currency(Number(selected.annadaanamAmount))}</dd></div>
@@ -123,6 +138,7 @@ export function DonationsDashboard() {
             <div><dt>Attendees</dt><dd>{selected.adultCount} adults · {selected.childCount} children</dd></div>
             <div><dt>UPI reference</dt><dd>{selected.paymentReference || "Not recorded"}</dd></div>
           </dl>
+          {!selected.inOccupiedMaster && <div className="master-review"><p>This donation is included in the collection total but the flat is not counted as occupied.</p><button type="button" className="button quiet full" disabled={masterBusy} onClick={() => void addToOccupiedMaster(selected)}>{masterBusy ? "Adding…" : "Add to Occupied-Flat Master"}</button></div>}
           {selected.hasProof ? (
             <a className="button quiet full" target="_blank" rel="noreferrer" href={`/api/payment-proofs/${selected.id}`}>View payment proof</a>
           ) : <p className="notice">No proof attached.</p>}

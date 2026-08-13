@@ -102,12 +102,15 @@ export async function GET(request: Request) {
     const occupied = occupancyByBlock.get(blockNo);
     const collection = collectionByBlock.get(blockNo);
     const occupiedFlats = Number(occupied?.occupiedFlats ?? 0);
-    const donatedFlats = Number(occupied?.donatedOccupiedFlats ?? 0);
+    const occupiedDonatedFlats = Number(occupied?.donatedOccupiedFlats ?? 0);
+    const donatingFlats = Number(collection?.donatedFlats ?? 0);
     return {
       blockNo,
       occupiedFlats,
-      donatedFlats,
-      pendingFlats: Math.max(occupiedFlats - donatedFlats, 0),
+      occupiedDonatedFlats,
+      donatingFlats,
+      outsideMasterDonatingFlats: Math.max(donatingFlats - occupiedDonatedFlats, 0),
+      pendingFlats: Math.max(occupiedFlats - occupiedDonatedFlats, 0),
       totalCollection: Number(collection?.totalCollection ?? 0),
       verifiedCollection: Number(collection?.verifiedCollection ?? 0),
       festivalCollection: Number(collection?.festivalCollection ?? 0),
@@ -119,20 +122,23 @@ export async function GET(request: Request) {
   });
 
   const totalOccupied = blocks.reduce((sum, block) => sum + block.occupiedFlats, 0);
-  const totalDonated = blocks.reduce((sum, block) => sum + block.donatedFlats, 0);
+  const totalOccupiedDonated = blocks.reduce((sum, block) => sum + block.occupiedDonatedFlats, 0);
+  const totalDonatingFlats = blocks.reduce((sum, block) => sum + block.donatingFlats, 0);
   const totalCollection = blocks.reduce((sum, block) => sum + block.totalCollection, 0);
   const overall = {
     blockNo: "Overall",
     occupiedFlats: totalOccupied,
-    donatedFlats: totalDonated,
-    pendingFlats: Math.max(totalOccupied - totalDonated, 0),
+    occupiedDonatedFlats: totalOccupiedDonated,
+    donatingFlats: totalDonatingFlats,
+    outsideMasterDonatingFlats: blocks.reduce((sum, block) => sum + block.outsideMasterDonatingFlats, 0),
+    pendingFlats: Math.max(totalOccupied - totalOccupiedDonated, 0),
     totalCollection,
     verifiedCollection: blocks.reduce((sum, block) => sum + block.verifiedCollection, 0),
     festivalCollection: blocks.reduce((sum, block) => sum + block.festivalCollection, 0),
     idolCollection: blocks.reduce((sum, block) => sum + block.idolCollection, 0),
     mahaprasadamCollection: blocks.reduce((sum, block) => sum + block.mahaprasadamCollection, 0),
     maximumDonation: Math.max(0, ...blocks.map((block) => block.maximumDonation)),
-    averageDonation: totalDonated ? Math.round(totalCollection / totalDonated) : 0,
+    averageDonation: totalDonatingFlats ? Math.round(totalCollection / totalDonatingFlats) : 0,
   };
 
   return Response.json({ user: auth.user, blocks, overall });

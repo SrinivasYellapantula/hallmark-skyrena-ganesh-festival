@@ -15,6 +15,20 @@ export async function GET(request: Request) {
     SUM(CASE WHEN d.category = 'annadaanam' THEN d.amount ELSE 0 END) annadaanamAmount,
     MAX(d.payment_reference) paymentReference,
     MAX(CASE WHEN d.payment_proof_key IS NOT NULL THEN 1 ELSE 0 END) hasProof,
+    CASE WHEN EXISTS (
+      SELECT 1 FROM flats f WHERE f.event_id=r.event_id AND f.occupied=1
+        AND UPPER(TRIM(f.block_no))=UPPER(TRIM(r.block_no))
+        AND CASE
+          WHEN SUBSTR(REPLACE(REPLACE(UPPER(TRIM(f.flat_no)),'-',''),' ',''),1,1)=UPPER(TRIM(f.block_no))
+            AND SUBSTR(REPLACE(REPLACE(UPPER(TRIM(f.flat_no)),'-',''),' ',''),2,1) BETWEEN '0' AND '9'
+          THEN SUBSTR(REPLACE(REPLACE(UPPER(TRIM(f.flat_no)),'-',''),' ',''),2)
+          ELSE REPLACE(REPLACE(UPPER(TRIM(f.flat_no)),'-',''),' ','') END
+        = CASE
+          WHEN SUBSTR(REPLACE(REPLACE(UPPER(TRIM(r.flat_no)),'-',''),' ',''),1,1)=UPPER(TRIM(r.block_no))
+            AND SUBSTR(REPLACE(REPLACE(UPPER(TRIM(r.flat_no)),'-',''),' ',''),2,1) BETWEEN '0' AND '9'
+          THEN SUBSTR(REPLACE(REPLACE(UPPER(TRIM(r.flat_no)),'-',''),' ',''),2)
+          ELSE REPLACE(REPLACE(UPPER(TRIM(r.flat_no)),'-',''),' ','') END
+    ) THEN 1 ELSE 0 END inOccupiedMaster,
     COALESCE((SELECT json_extract(a.details, '$.reason') FROM audit_log a
       WHERE a.entity_type='registration' AND a.entity_id=r.id AND a.action='correction_requested'
       ORDER BY a.created_at DESC LIMIT 1), '') correctionReason

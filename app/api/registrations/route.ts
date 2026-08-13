@@ -72,16 +72,22 @@ export async function POST(request: Request) {
            payment_proof_key, payment_proof_name, payment_proof_type)
           VALUES (?, ?, 'festival', ?, 'upi', ?, 'pending', ?, ?, ?)`)
           .bind(donationId, registrationId, mainDonation, paymentReference, proofKey, proof.name, proof.type),
-        d1.prepare(`INSERT INTO flats (id, event_id, block_no, flat_no, resident_name, occupancy, occupied, visit_status, updated_by)
-          VALUES (?, ?, ?, ?, ?, ?, 1, 'donated', ?)
-          ON CONFLICT(event_id, block_no, flat_no) DO UPDATE SET resident_name=excluded.resident_name,
-          occupancy=CASE WHEN excluded.occupancy<>'' THEN excluded.occupancy ELSE flats.occupancy END,
-          occupied=1, visit_status='donated', updated_by=excluded.updated_by, updated_at=CURRENT_TIMESTAMP`)
-          .bind(crypto.randomUUID(), EVENT_ID, blockNo, flatNo, residentName, occupancy, actor),
         d1.prepare(`INSERT INTO audit_log (id, entity_type, entity_id, action, actor, details)
           VALUES (?, 'registration', ?, 'submitted', ?, ?)`)
           .bind(crypto.randomUUID(), registrationId, actor, JSON.stringify({ blockNo, flatNo, proofKey, source: user ? "committee" : "resident" })),
       ];
+      if (user) statements.push(d1.prepare(`INSERT INTO flats (id, event_id, block_no, flat_no, resident_name, occupancy, occupied, visit_status, updated_by)
+        VALUES (?, ?, ?, ?, ?, ?, 1, 'donated', ?)
+        ON CONFLICT(event_id, block_no, flat_no) DO UPDATE SET resident_name=excluded.resident_name,
+        occupancy=CASE WHEN excluded.occupancy<>'' THEN excluded.occupancy ELSE flats.occupancy END,
+        visit_status='donated', updated_by=excluded.updated_by, updated_at=CURRENT_TIMESTAMP`)
+        .bind(crypto.randomUUID(), EVENT_ID, blockNo, flatNo, residentName, occupancy, actor));
+      else statements.push(d1.prepare(`UPDATE flats SET
+        resident_name=CASE WHEN ?<>'' THEN ? ELSE resident_name END,
+        occupancy=CASE WHEN ?<>'' THEN ? ELSE occupancy END,
+        visit_status='donated',updated_by=?,updated_at=CURRENT_TIMESTAMP
+        WHERE event_id=? AND block_no=? AND flat_no=? AND occupied=1`)
+        .bind(residentName, residentName, occupancy, occupancy, actor, EVENT_ID, blockNo, flatNo));
       if (annadaanamDonation > 0) statements.push(d1.prepare(`INSERT INTO donations
         (id, registration_id, category, amount, payment_method, payment_reference, status)
         VALUES (?, ?, 'annadaanam', ?, 'upi', ?, 'pending')`)
