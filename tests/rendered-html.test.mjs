@@ -221,7 +221,9 @@ test("payment verification supports proof review and recoverable corrections", a
   assert.match(dashboardRoute, /json_extract\(a\.details, '\$\.reason'\)/);
   assert.match(dashboard, /View Payment Proof/);
   assert.match(dashboard, /Verify Payment/);
-  assert.match(dashboard, /Send Back for Correction/);
+  assert.match(dashboard, /Request Correction/);
+  assert.match(dashboard, /Request a correction/);
+  assert.doesNotMatch(dashboard, /Send Back|Send back/);
   assert.match(donationsRoute, /correctionReason/);
   assert.match(donationDetail, /\["submitted","correction_requested"\]/);
   assert.match(donationDetail, /request\.formData\(\)/);
