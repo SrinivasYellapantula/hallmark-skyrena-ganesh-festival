@@ -40,12 +40,16 @@ export function CollectionSummary() {
   const blockUser = data.user.role === "block";
   return <section className="wrap collection-summary-shell">
     <header className="collection-summary-heading">
-      <div><div className="eyebrow"><span />Collection overview</div><h1>{blockUser ? `Block ${data.user.blockNo} Collection Summary` : "Collection Summary"}</h1><p>{blockUser ? "A live view of your block’s donation progress." : "All block-wise figures, followed by the overall festival collection."}</p></div>
+      <div><div className="eyebrow"><span />Collection overview</div><h1>{blockUser ? `Block ${data.user.blockNo} Collection Summary` : "Collection Summary"}</h1><p>{blockUser ? "A live view of your block’s donation progress." : "The overall festival position, followed by block-wise figures."}</p></div>
       <div className="summary-definition"><strong>Recorded collection</strong><span>Includes active payments awaiting verification.</span><strong>Verified collection</strong><span>Payments confirmed by an administrator.</span></div>
     </header>
 
-    {!blockUser && <><div className="section-title"><span className="card-kicker">Block-wise progress</span><h2>Blocks A–E</h2></div><div className="block-summary-grid">{data.blocks.map((block) => <SummaryCard key={block.blockNo} summary={block} />)}</div></>}
-    {blockUser ? <SummaryCard summary={data.blocks[0] ?? data.overall} featured /> : <><div className="section-title overall-title"><span className="card-kicker">Festival-wide position</span><h2>Overall Summary</h2></div><SummaryCard summary={data.overall} featured /></>}
+    {blockUser ? <SummaryCard summary={data.blocks[0] ?? data.overall} featured /> : <>
+      <div className="section-title overall-title"><span className="card-kicker">Festival-wide position</span><h2>Overall Summary</h2></div>
+      <SummaryCard summary={data.overall} featured />
+      <div className="section-title"><span className="card-kicker">Block-wise progress</span><h2>Blocks A–E</h2></div>
+      <div className="block-summary-grid">{data.blocks.map((block) => <SummaryCard key={block.blockNo} summary={block} />)}</div>
+    </>}
   </section>;
 }
 

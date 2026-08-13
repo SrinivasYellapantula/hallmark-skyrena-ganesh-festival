@@ -440,6 +440,7 @@ test("role-scoped collection summary shows block and overall donation metrics", 
   assert.match(route, /COALESCE\(ROUND\(AVG\(totalCollection\)\),0\) averageDonation/);
   assert.match(screen, /Blocks A–E/);
   assert.match(screen, /Overall Summary/);
+  assert.ok(screen.indexOf("Overall Summary") < screen.indexOf("Blocks A–E"));
   assert.match(screen, /Pending flats/);
   assert.match(screen, /Maximum flat donation/);
   assert.doesNotMatch(screen, /<select/);
