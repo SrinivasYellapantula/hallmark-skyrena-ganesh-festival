@@ -405,6 +405,13 @@ test("role-scoped collection summary shows block and overall donation metrics", 
   assert.match(route, /verifiedCollection/);
   assert.match(route, /maximumDonation/);
   assert.match(route, /averageDonation/);
+  assert.match(route, /COUNT\(DISTINCT UPPER\(TRIM\(f\.flat_no\)\)\) occupiedFlats/);
+  assert.match(route, /THEN UPPER\(TRIM\(f\.flat_no\)\) END\) donatedOccupiedFlats/);
+  assert.match(route, /UPPER\(TRIM\(r\.flat_no\)\) flatNo/);
+  assert.match(route, /flat_totals AS/);
+  assert.match(route, /FROM registration_totals GROUP BY blockNo,flatNo/);
+  assert.match(route, /COALESCE\(MAX\(totalCollection\),0\) maximumDonation/);
+  assert.match(route, /COALESCE\(ROUND\(AVG\(totalCollection\)\),0\) averageDonation/);
   assert.match(screen, /Blocks A–E/);
   assert.match(screen, /Overall Summary/);
   assert.match(screen, /Pending flats/);

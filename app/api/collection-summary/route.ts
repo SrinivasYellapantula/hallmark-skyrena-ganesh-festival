@@ -26,19 +26,20 @@ export async function GET(request: Request) {
   const d1 = getD1();
 
   const occupancyStatement = d1.prepare(
-    `SELECT f.block_no blockNo, COUNT(*) occupiedFlats,
-      SUM(CASE WHEN EXISTS (
+    `SELECT f.block_no blockNo, COUNT(DISTINCT UPPER(TRIM(f.flat_no))) occupiedFlats,
+      COUNT(DISTINCT CASE WHEN EXISTS (
         SELECT 1 FROM registrations r JOIN donations d ON d.registration_id=r.id
-        WHERE r.event_id=f.event_id AND r.block_no=f.block_no AND r.flat_no=f.flat_no
+        WHERE r.event_id=f.event_id AND UPPER(TRIM(r.block_no))=UPPER(TRIM(f.block_no))
+          AND UPPER(TRIM(r.flat_no))=UPPER(TRIM(f.flat_no))
           AND r.status!='cancelled' AND d.status!='reversed' AND d.amount>0
-      ) THEN 1 ELSE 0 END) donatedOccupiedFlats
+      ) THEN UPPER(TRIM(f.flat_no)) END) donatedOccupiedFlats
      FROM flats f WHERE f.event_id=? AND f.occupied=1 ${blockFilter}
      GROUP BY f.block_no ORDER BY f.block_no`,
   );
 
   const collectionStatement = d1.prepare(
     `WITH registration_totals AS (
-       SELECT r.block_no blockNo,r.flat_no flatNo,r.id,
+       SELECT UPPER(TRIM(r.block_no)) blockNo,UPPER(TRIM(r.flat_no)) flatNo,r.id,
          SUM(CASE WHEN d.status!='reversed' THEN d.amount ELSE 0 END) totalCollection,
          SUM(CASE WHEN r.status='verified' AND d.status='verified' THEN d.amount ELSE 0 END) verifiedCollection,
          SUM(CASE WHEN d.status!='reversed' AND d.category='festival' THEN d.amount ELSE 0 END) festivalCollection,
