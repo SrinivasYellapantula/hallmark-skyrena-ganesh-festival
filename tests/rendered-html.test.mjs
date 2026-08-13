@@ -118,7 +118,11 @@ test("resident donation form uses platform-safe UPI links without changing manua
   assert.match(form, /FESTIVAL_UPI_ID/);
   assert.match(form, /MSHALLMARKSKYRENAFLATOWNERSMAINTENANCEMACSOCIETYLTDCULTURAL\.eazypay@icici/);
   assert.match(form, /new URLSearchParams/);
-  assert.match(form, /tr: paymentReference/);
+  assert.match(form, /FESTIVAL_UPI_TRANSACTION_REFERENCE = "EZYS9182205699"/);
+  assert.match(form, /FESTIVAL_UPI_NAME = "M\/S\.HALLMARK SKYRENA FLAT OWNERS MAINTENANCE MAC SOCIETY LTD -CULTURAL"/);
+  assert.match(form, /tr: FESTIVAL_UPI_TRANSACTION_REFERENCE/);
+  assert.match(form, /mc: FESTIVAL_UPI_MERCHANT_CATEGORY/);
+  assert.doesNotMatch(form, /HS26\$\{Date\.now/);
   assert.match(form, /am: total\.toFixed\(2\)/);
   assert.match(form, /const scheme = isIOSBrowser\(\) \? "gpay:\/\/upi\/pay" : "upi:\/\/pay"/);
   assert.match(form, /window\.location\.assign\(`\$\{scheme\}\?/);
@@ -129,7 +133,7 @@ test("resident donation form uses platform-safe UPI links without changing manua
   assert.match(form, /Pay \$\{currency\(total\)\} with Google Pay/);
   assert.match(form, /On iPhone, this button opens Google Pay directly/);
   assert.match(form, /To pay with PhonePe or another UPI app, use the QR code shown here/);
-  assert.match(form, /confirm that the app shows <strong>Hallmark Skyrena Cultural<\/strong>/);
+  assert.match(form, /recipient name contains <strong>Hallmark Skyrena<\/strong> and <strong>Cultural<\/strong>/);
   assert.match(form, /Never share your UPI PIN or OTP/);
   assert.match(styles, /\.upi-intent-panel/);
   assert.match(styles, /\.upi-intent-button/);

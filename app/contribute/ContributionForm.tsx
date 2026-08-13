@@ -26,7 +26,9 @@ const blank = {
 const ATTENDANCE_OPTIONS = Array.from({ length: 8 }, (_, index) => String(index));
 const FLOOR_OPTIONS = ["G", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "14", "15"];
 const FESTIVAL_UPI_ID = "MSHALLMARKSKYRENAFLATOWNERSMAINTENANCEMACSOCIETYLTDCULTURAL.eazypay@icici";
-const FESTIVAL_UPI_NAME = "Hallmark Skyrena Cultural";
+const FESTIVAL_UPI_NAME = "M/S.HALLMARK SKYRENA FLAT OWNERS MAINTENANCE MAC SOCIETY LTD -CULTURAL";
+const FESTIVAL_UPI_TRANSACTION_REFERENCE = "EZYS9182205699";
+const FESTIVAL_UPI_MERCHANT_CATEGORY = "NULL";
 export function ContributionForm() {
   const [form, setForm] = useState(blank);
   const [user, setUser] = useState<User | null>(null);
@@ -111,17 +113,15 @@ export function ContributionForm() {
       return;
     }
 
-    const paymentReference = `HS26${Date.now().toString(36)}${form.blockNo}${form.flatNo}`
-      .replace(/[^a-zA-Z0-9]/g, "")
-      .slice(0, 35);
     const paymentNote = `Ganesh Chaturthi 2026${form.blockNo ? ` - Block ${form.blockNo}` : ""}${form.flatNo ? ` Flat ${form.flatNo}` : ""}`;
     const parameters = new URLSearchParams({
       pa: FESTIVAL_UPI_ID,
       pn: FESTIVAL_UPI_NAME,
-      tr: paymentReference,
+      tr: FESTIVAL_UPI_TRANSACTION_REFERENCE,
       tn: paymentNote,
       am: total.toFixed(2),
       cu: "INR",
+      mc: FESTIVAL_UPI_MERCHANT_CATEGORY,
     });
 
     const scheme = isIOSBrowser() ? "gpay://upi/pay" : "upi://pay";
@@ -271,7 +271,7 @@ export function ContributionForm() {
                   <small>{isIOS
                     ? <>On iPhone, this button opens Google Pay directly. To pay with PhonePe or another UPI app, use the QR code shown here. </>
                     : <>On a supported Android phone, this opens the installed UPI apps with the amount filled in. </>}
-                    Before paying, confirm that the app shows <strong>Hallmark Skyrena Cultural</strong> as the recipient. Never share your UPI PIN or OTP.</small>
+                        Before paying, confirm that the recipient name contains <strong>Hallmark Skyrena</strong> and <strong>Cultural</strong>. Never share your UPI PIN or OTP.</small>
                 </div>}
                 <small>On mobile, tap the payment poster to open it at full size. You can then share or save it if needed.</small>
               </div>
