@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, MouseEvent, useEffect, useMemo, useState } from "react";
 import { BLOCKS, MINIMUM_DONATION, currency } from "../lib/constants";
 import { optimizeImageUpload } from "../lib/client-image";
 
@@ -84,6 +84,19 @@ export function ContributionForm() {
     () => Number(form.mainDonation || 0) + Number(form.idolDonation || 0) + Number(form.annadaanamDonation || 0),
     [form.mainDonation, form.idolDonation, form.annadaanamDonation],
   );
+  const upiIntentUrl = useMemo(() => {
+    const paymentNote = `Ganesh Chaturthi 2026${form.blockNo ? ` - Block ${form.blockNo}` : ""}${form.flatNo ? ` Flat ${form.flatNo}` : ""}`;
+    const parameters = new URLSearchParams({
+      pa: FESTIVAL_UPI_ID,
+      pn: FESTIVAL_UPI_NAME,
+      tr: FESTIVAL_UPI_TRANSACTION_REFERENCE,
+      tn: paymentNote,
+      am: total.toFixed(2),
+      cu: "INR",
+      mc: FESTIVAL_UPI_MERCHANT_CATEGORY,
+    });
+    return `${isIOS ? "gpay://upi/pay" : "upi://pay"}?${parameters.toString()}`;
+  }, [form.blockNo, form.flatNo, isIOS, total]);
 
   function update(name: string, value: string) {
     if (name === "blockNo") { setMasterFlats([]); setFlatsLoading(Boolean(value) && Boolean(user)); }
@@ -106,26 +119,12 @@ export function ContributionForm() {
     setForm((current) => current[name] === "" ? { ...current, [name]: "0" } : current);
   }
 
-  function openUpiApp() {
+  function validateUpiLink(event: MouseEvent<HTMLAnchorElement>) {
     setError("");
     if (total <= 0) {
+      event.preventDefault();
       setError("Enter the contribution amount before opening a UPI app.");
-      return;
     }
-
-    const paymentNote = `Ganesh Chaturthi 2026${form.blockNo ? ` - Block ${form.blockNo}` : ""}${form.flatNo ? ` Flat ${form.flatNo}` : ""}`;
-    const parameters = new URLSearchParams({
-      pa: FESTIVAL_UPI_ID,
-      pn: FESTIVAL_UPI_NAME,
-      tr: FESTIVAL_UPI_TRANSACTION_REFERENCE,
-      tn: paymentNote,
-      am: total.toFixed(2),
-      cu: "INR",
-      mc: FESTIVAL_UPI_MERCHANT_CATEGORY,
-    });
-
-    const scheme = isIOSBrowser() ? "gpay://upi/pay" : "upi://pay";
-    window.location.assign(`${scheme}?${parameters.toString()}`);
   }
 
   const floorFlats = useMemo(() => masterFlats.filter((flat) => flatFloor(flat.flatNo) === form.floorNo), [masterFlats, form.floorNo]);
@@ -263,11 +262,11 @@ export function ContributionForm() {
                 <h3 id="payment-qr-title">Scan to make the resident’s payment</h3>
                 <p>Use this QR code only for Hallmark Skyrena Ganesh Chaturthi 2026 contributions.</p>
                 {isResident && <div className="upi-intent-panel">
-                  <button type="button" className="button primary full upi-intent-button" onClick={openUpiApp}>
+                  <a href={upiIntentUrl} className="button primary full upi-intent-button" onClick={validateUpiLink}>
                     {isIOS
                       ? total > 0 ? `Pay ${currency(total)} with Google Pay` : "Pay with Google Pay"
                       : total > 0 ? `Pay ${currency(total)} using any UPI app` : "Pay using any UPI app"}
-                  </button>
+                  </a>
                   <small>{isIOS
                     ? <>On iPhone, this button opens Google Pay directly. To pay with PhonePe or another UPI app, use the QR code shown here. </>
                     : <>On a supported Android phone, this opens the installed UPI apps with the amount filled in. </>}

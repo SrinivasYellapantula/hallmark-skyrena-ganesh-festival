@@ -124,8 +124,10 @@ test("resident donation form uses platform-safe UPI links without changing manua
   assert.match(form, /mc: FESTIVAL_UPI_MERCHANT_CATEGORY/);
   assert.doesNotMatch(form, /HS26\$\{Date\.now/);
   assert.match(form, /am: total\.toFixed\(2\)/);
-  assert.match(form, /const scheme = isIOSBrowser\(\) \? "gpay:\/\/upi\/pay" : "upi:\/\/pay"/);
-  assert.match(form, /window\.location\.assign\(`\$\{scheme\}\?/);
+  assert.match(form, /return `\$\{isIOS \? "gpay:\/\/upi\/pay" : "upi:\/\/pay"\}\?/);
+  assert.match(form, /<a href=\{upiIntentUrl\} className="button primary full upi-intent-button" onClick=\{validateUpiLink\}>/);
+  assert.match(form, /event\.preventDefault\(\)/);
+  assert.doesNotMatch(form, /window\.location\.assign/);
   assert.match(form, /iPad\|iPhone\|iPod/);
   assert.match(form, /navigator\.platform === "MacIntel" && navigator\.maxTouchPoints > 1/);
   assert.match(form, /isResident && <div className="upi-intent-panel">/);
