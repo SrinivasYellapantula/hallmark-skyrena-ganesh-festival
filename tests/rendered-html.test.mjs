@@ -443,6 +443,10 @@ test("role-scoped collection summary shows block and overall donation metrics", 
   assert.ok(screen.indexOf("Overall Summary") < screen.indexOf("Blocks A–E"));
   assert.match(screen, /Pending flats/);
   assert.match(screen, /Maximum flat donation/);
+  assert.ok(screen.indexOf("Total donating flats") < screen.indexOf("Main festival donation"));
+  assert.ok(screen.indexOf("Main festival donation") < screen.indexOf("Donating flats outside occupied master"));
+  assert.ok(screen.indexOf("Average per donated flat") < screen.indexOf("Additional Mahaprasadam support"));
+  assert.ok(screen.indexOf("Verified collection") < screen.indexOf("Maximum flat donation"));
   assert.doesNotMatch(screen, /<select/);
   assert.match(page, /CollectionSummary/);
   assert.match(chrome, /href="\/collection-summary">Collection Summary/);

@@ -64,13 +64,13 @@ function SummaryCard({ summary, featured = false }: { summary: Summary; featured
     </div>
     <dl className="collection-detail-metrics">
       <div><dt>Total donating flats</dt><dd>{summary.donatingFlats}</dd></div>
+      <div><dt>Main festival donation</dt><dd>{currency(summary.festivalCollection)}</dd></div>
       <div><dt>Donating flats outside occupied master</dt><dd>{summary.outsideMasterDonatingFlats}</dd></div>
+      <div><dt>Idol donation</dt><dd>{currency(summary.idolCollection)}</dd></div>
+      <div><dt>Average per donated flat</dt><dd>{currency(summary.averageDonation)}</dd></div>
+      <div><dt>Additional Mahaprasadam support</dt><dd>{currency(summary.mahaprasadamCollection)}</dd></div>
       <div><dt>Verified collection</dt><dd>{currency(summary.verifiedCollection)}</dd></div>
       <div><dt>Maximum flat donation</dt><dd>{currency(summary.maximumDonation)}</dd></div>
-      <div><dt>Average per donated flat</dt><dd>{currency(summary.averageDonation)}</dd></div>
-      <div><dt>Main festival donation</dt><dd>{currency(summary.festivalCollection)}</dd></div>
-      <div><dt>Idol donation</dt><dd>{currency(summary.idolCollection)}</dd></div>
-      <div><dt>Additional Mahaprasadam support</dt><dd>{currency(summary.mahaprasadamCollection)}</dd></div>
     </dl>
   </article>;
 }
