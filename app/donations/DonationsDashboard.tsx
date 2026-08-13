@@ -117,7 +117,7 @@ export function DonationsDashboard() {
             <div><dt>Idol donation</dt><dd>{currency(Number(selected.idolAmount))}</dd></div>
             <div><dt>Mahaprasadam donation</dt><dd>{currency(Number(selected.annadaanamAmount))}</dd></div>
             <div><dt>Total</dt><dd>{currency(Number(selected.amount))}</dd></div>
-            <div><dt>Gotram</dt><dd>{selected.gotram}</dd></div>
+            <div><dt>Gotram</dt><dd>{selected.gotram || "Not recorded"}</dd></div>
             <div><dt>Resident type</dt><dd>{selected.occupancy}</dd></div>
             <div><dt>Phone</dt><dd>{selected.phone || "Not recorded"}</dd></div>
             <div><dt>Attendees</dt><dd>{selected.adultCount} adults · {selected.childCount} children</dd></div>

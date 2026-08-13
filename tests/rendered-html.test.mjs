@@ -136,6 +136,20 @@ test("resident donation form uses platform-safe UPI links without changing manua
   assert.match(form, /Payment Confirmation Image/);
 });
 
+test("gotram is optional for resident and committee donation entry", async () => {
+  const [form, registration, donations] = await Promise.all([
+    source("app/contribute/ContributionForm.tsx"),
+    source("app/api/registrations/route.ts"),
+    source("app/donations/DonationsDashboard.tsx"),
+  ]);
+  assert.match(form, /Gotram<span className="optional">optional<\/span>/);
+  assert.match(form, /<input name="gotram"/);
+  assert.doesNotMatch(form, /<input required name="gotram"/);
+  assert.doesNotMatch(registration, /!gotram/);
+  assert.doesNotMatch(registration, /gotram and phone number are required/);
+  assert.match(donations, /selected\.gotram \|\| "Not recorded"/);
+});
+
 test("block users are scoped by the authenticated server identity", async () => {
   const [registration, flats] = await Promise.all([
     source("app/api/registrations/route.ts"),

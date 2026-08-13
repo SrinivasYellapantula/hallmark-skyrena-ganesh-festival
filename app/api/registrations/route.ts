@@ -30,8 +30,8 @@ export async function POST(request: Request) {
     const notes = cleanText(body.get("notes"), 500);
     const proof = body.get("paymentProof");
 
-    if (!residentName || !flatNo || !gotram || !BLOCKS.includes(blockNo as (typeof BLOCKS)[number]))
-      return Response.json({ error: "Resident name, block, flat, gotram and phone number are required." }, { status: 400 });
+    if (!residentName || !flatNo || !BLOCKS.includes(blockNo as (typeof BLOCKS)[number]))
+      return Response.json({ error: "Resident name, block, flat and phone number are required." }, { status: 400 });
     if (!/^\d{10}$/.test(phone)) return Response.json({ error: "Enter a valid 10-digit Indian mobile number." }, { status: 400 });
     if ((user && !['owner', 'tenant'].includes(occupancy)) || (!user && occupancy && !['owner', 'tenant'].includes(occupancy)))
       return Response.json({ error: "Choose owner or tenant." }, { status: 400 });

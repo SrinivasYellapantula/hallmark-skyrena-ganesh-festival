@@ -221,8 +221,8 @@ export function ContributionForm() {
               <input required name="residentName" autoComplete="name" value={form.residentName} onChange={(event) => update(event.target.name, event.target.value)} />
               {user && <small>Prefilled from the flat master when available. Correcting it here updates the master after saving.</small>}
             </label>
-            <label>{isResident ? <span className="field-label">Gotram<span className="required-mark">*</span></span> : "Gotram"}
-              <input required name="gotram" value={form.gotram} onChange={(event) => update(event.target.name, event.target.value)} />
+            <label><span className="field-label">Gotram<span className="optional">optional</span></span>
+              <input name="gotram" value={form.gotram} onChange={(event) => update(event.target.name, event.target.value)} />
             </label>
             <label>{isResident ? <span className="field-label">Occupancy<span className="optional">optional</span></span> : "Occupancy"}
               <select required={!isResident} name="occupancy" value={form.occupancy} onChange={(event) => update(event.target.name, event.target.value)}>
