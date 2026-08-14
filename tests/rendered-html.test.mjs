@@ -465,11 +465,14 @@ test("flat numbers are canonicalized so block-prefixed repeat donations count on
   assert.match(server, /export function normalizeFlatNo/);
   assert.match(server, /flat\.startsWith\(block\)/);
   assert.match(server, /export function isValidFlatNo/);
-  assert.match(server, /flat\.slice\(0, -2\)/);
+  assert.match(server, /isFlatNumberAllowed\(flat, block\)/);
   assert.match(registration, /normalizeFlatNo\(body\.get\("flatNo"\), blockNo\)/);
-  assert.match(registration, /!isValidFlatNo\(flatNo\)/);
-  assert.match(contribution, /pattern="\(\?:G\[0-9\]\{1,2\}/);
+  assert.match(registration, /!isValidFlatNo\(flatNo, blockNo\)/);
+  assert.match(registration, /flat sequence.*01–06.*01–10/);
+  assert.match(contribution, /pattern=\{flatPattern\(form\.blockNo\)\}/);
+  assert.match(contribution, /blockNo === "C" \? "0\[1-6\]"/);
   assert.match(donationDetail, /previousFlatNo:current\.flatNo,flatNo/);
+  assert.match(donationDetail, /isValidFlatNo\(flatNo,current\.blockNo\)/);
   assert.match(donationDetail, /UPDATE registrations SET flat_no=\?/);
   assert.match(donationsScreen, /Administrator correction\. The block remains/);
   assert.match(summary, /THEN SUBSTR\(REPLACE\(REPLACE\(UPPER\(TRIM\(r\.flat_no\)\)/);

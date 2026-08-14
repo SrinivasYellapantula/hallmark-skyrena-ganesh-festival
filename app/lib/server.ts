@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { getAppUser } from "./auth";
-import { FLOORS } from "./constants";
+import { isFlatNumberAllowed } from "./constants";
 
 export async function isAdminRequest(request: Request) {
   return (await getAppUser(request))?.role === "admin";
@@ -42,11 +42,10 @@ export function normalizeFlatNo(value: unknown, blockNo: unknown) {
   return flat;
 }
 
-export function isValidFlatNo(flatNo: unknown) {
+export function isValidFlatNo(flatNo: unknown, blockNo: unknown) {
   const flat = cleanText(flatNo, 20).toUpperCase();
-  if (/^G\d{1,2}$/.test(flat)) return true;
-  if (!/^\d{3,4}$/.test(flat)) return false;
-  return (FLOORS as readonly string[]).includes(String(Number(flat.slice(0, -2))));
+  const block = cleanText(blockNo, 2).toUpperCase();
+  return isFlatNumberAllowed(flat, block);
 }
 
 export function wholeNumber(value: unknown, minimum = 0, maximum = 1_000_000) {

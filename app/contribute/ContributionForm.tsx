@@ -232,7 +232,7 @@ export function ContributionForm() {
               </select>
             </label>}
             {isResident ? <label><span className="field-label">Flat Number<span className="required-mark">*</span></span>
-              <input required name="flatNo" autoCapitalize="characters" maxLength={20} pattern="(?:G[0-9]{1,2}|(?:[1-9]|1[01245])[0-9]{2})" title="Enter a flat on floor G, 1–12, 14 or 15 (for example G01, 505 or 1505)." value={form.flatNo} onChange={(event) => update(event.target.name, event.target.value)} placeholder="e.g. G01, 505 or 1505" />
+              <input required name="flatNo" autoCapitalize="characters" maxLength={20} pattern={flatPattern(form.blockNo)} title={flatRule(form.blockNo)} value={form.flatNo} onChange={(event) => update(event.target.name, event.target.value)} placeholder="e.g. G01, 505 or 1505" />
             </label> : <label className="wide">Flat Number
               <select required name="flatNo" value={form.flatNo} disabled={!form.floorNo || flatsLoading} onChange={(event) => update(event.target.name, event.target.value)}>
                 <option value="">{!form.floorNo ? "Select block and floor first" : floorFlats.length ? "Select occupied flat" : "No occupied flats on this floor"}</option>
@@ -368,6 +368,16 @@ function flatFloor(flatNo: string) {
   if (normalized.startsWith("G")) return "G";
   const match = normalized.match(/(\d{3,4})$/);
   return match ? String(Number(match[1].slice(0, -2))) : "";
+}
+
+function flatPattern(blockNo: string) {
+  const units = blockNo === "C" ? "0[1-6]" : "(?:0[1-9]|10)";
+  const groundUnits = blockNo === "C" ? "0?[1-6]" : "(?:0?[1-9]|10)";
+  return `(?:G${groundUnits}|(?:[1-9]|1[01245])${units})`;
+}
+
+function flatRule(blockNo: string) {
+  return `Enter a valid Block ${blockNo || "A–E"} flat on floor G, 1–12, 14 or 15. ${blockNo === "C" ? "Use flat sequence 01–06." : "Use flat sequence 01–10."}`;
 }
 
 function isIOSBrowser() {
