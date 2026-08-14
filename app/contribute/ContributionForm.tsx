@@ -46,6 +46,8 @@ export function ContributionForm() {
   const [residentDraftReady, setResidentDraftReady] = useState(false);
 
   useEffect(() => {
+    // Browser capability is intentionally detected only after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsIOS(isIOSBrowser());
   }, []);
 
@@ -88,6 +90,8 @@ export function ContributionForm() {
     if (!user) {
       try {
         const saved = window.localStorage.getItem(RESIDENT_DRAFT_KEY);
+        // The resident draft can only be restored after anonymous access is confirmed.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (saved) setForm((current) => ({ ...current, ...JSON.parse(saved) }));
       } catch {
         window.localStorage.removeItem(RESIDENT_DRAFT_KEY);

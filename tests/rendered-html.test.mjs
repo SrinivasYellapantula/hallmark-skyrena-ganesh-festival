@@ -524,6 +524,30 @@ test("resident donations remain separate from occupied-flat coverage", async () 
   assert.match(styles, /\.master-membership\.outside/);
 });
 
+test("donated-flat Excel export is role-scoped and deduplicates repeat payments", async () => {
+  const [route, screen, styles, packageFile] = await Promise.all([
+    source("app/api/donations/export/route.ts"),
+    source("app/donations/DonationsDashboard.tsx"),
+    source("app/globals.css"),
+    source("package.json"),
+  ]);
+  assert.match(route, /authorize\(request, \["admin", "block"\]\)/);
+  assert.match(route, /auth\.user\.role === "block"/);
+  assert.match(route, /exportBlocks\.map\(\(block\) => `Block \$\{block\}`\)/);
+  assert.match(route, /\.\.\.BLOCKS/);
+  assert.match(route, /normalizeFlatNo\(record\.flatNo, blockNo\)/);
+  assert.match(route, /current\.donationCount \+= 1/);
+  assert.match(route, /current\.totalAmount \+=/);
+  assert.match(route, /No donations recorded for this block/);
+  assert.match(route, /application\/vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet/);
+  assert.match(route, /content-disposition/);
+  assert.match(route, /private, no-store/);
+  assert.match(screen, /href="\/api\/donations\/export"/);
+  assert.match(screen, /Export Donated Flats \(\.xlsx\)/);
+  assert.match(styles, /\.donation-list-actions/);
+  assert.match(packageFile, /write-excel-file/);
+});
+
 test("occupied-flat map and block-wise CSV import preserve collection history", async () => {
   const [mapRoute, flatsRoute, importRoute, screen, contribution, registration, chrome, migration, occupancyMigration] = await Promise.all([
     source("app/api/flats/map/route.ts"), source("app/api/flats/route.ts"),

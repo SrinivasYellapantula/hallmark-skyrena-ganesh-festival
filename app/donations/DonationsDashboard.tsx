@@ -105,7 +105,12 @@ export function DonationsDashboard() {
       <div className="admin-card">
         <header>
           <div><span className="card-kicker">List view</span><h2>Recorded donations</h2></div>
-          <input placeholder="Search resident, flat or reference" value={query} onChange={(event) => setQuery(event.target.value)} />
+          <div className="donation-list-actions">
+            <input placeholder="Search resident, flat or reference" value={query} onChange={(event) => setQuery(event.target.value)} />
+            {/* This endpoint returns a file rather than a navigable application page. */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            <a className="button quiet donation-export" href="/api/donations/export">Export Donated Flats (.xlsx)</a>
+          </div>
         </header>
         <div className="record-list">
           {visible.map((row) => (
