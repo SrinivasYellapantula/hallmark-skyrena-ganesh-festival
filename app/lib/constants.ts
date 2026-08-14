@@ -2,6 +2,7 @@ export const EVENT_ID = "ganesh-2026";
 export const EVENT_YEAR = 2026;
 export const MINIMUM_DONATION = 0;
 export const BLOCKS = ["A", "B", "C", "D", "E"] as const;
+export const FLOORS = ["G", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "14", "15"] as const;
 
 export function currency(amount: number) {
   return new Intl.NumberFormat("en-IN", {

@@ -454,14 +454,24 @@ test("role-scoped collection summary shows block and overall donation metrics", 
 });
 
 test("flat numbers are canonicalized so block-prefixed repeat donations count once", async () => {
-  const [server, registration, summary] = await Promise.all([
+  const [server, registration, summary, donationDetail, donationsScreen, contribution] = await Promise.all([
     source("app/lib/server.ts"),
     source("app/api/registrations/route.ts"),
     source("app/api/collection-summary/route.ts"),
+    source("app/api/donations/[id]/route.ts"),
+    source("app/donations/DonationsDashboard.tsx"),
+    source("app/contribute/ContributionForm.tsx"),
   ]);
   assert.match(server, /export function normalizeFlatNo/);
   assert.match(server, /flat\.startsWith\(block\)/);
+  assert.match(server, /export function isValidFlatNo/);
+  assert.match(server, /flat\.slice\(0, -2\)/);
   assert.match(registration, /normalizeFlatNo\(body\.get\("flatNo"\), blockNo\)/);
+  assert.match(registration, /!isValidFlatNo\(flatNo\)/);
+  assert.match(contribution, /pattern="\(\?:G\[0-9\]\{1,2\}/);
+  assert.match(donationDetail, /previousFlatNo:current\.flatNo,flatNo/);
+  assert.match(donationDetail, /UPDATE registrations SET flat_no=\?/);
+  assert.match(donationsScreen, /Administrator correction\. The block remains/);
   assert.match(summary, /THEN SUBSTR\(REPLACE\(REPLACE\(UPPER\(TRIM\(r\.flat_no\)\)/);
 });
 

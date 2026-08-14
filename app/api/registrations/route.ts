@@ -3,7 +3,7 @@ import { ensureDatabase } from "../../../db/initialize";
 import { getD1 } from "../../../db";
 import { BLOCKS, EVENT_ID, MINIMUM_DONATION } from "../../lib/constants";
 import { getAppUser, scopedBlock } from "../../lib/auth";
-import { cleanText, normalizeFlatNo, wholeNumber } from "../../lib/server";
+import { cleanText, isValidFlatNo, normalizeFlatNo, wholeNumber } from "../../lib/server";
 import { notifyPortalAdminOfDonation } from "../../lib/telegram";
 
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -32,6 +32,8 @@ export async function POST(request: Request) {
 
     if (!residentName || !flatNo || !BLOCKS.includes(blockNo as (typeof BLOCKS)[number]))
       return Response.json({ error: "Resident name, block, flat and phone number are required." }, { status: 400 });
+    if (!isValidFlatNo(flatNo))
+      return Response.json({ error: "Enter a valid flat number on floor G, 1–12, 14 or 15." }, { status: 400 });
     if (!/^\d{10}$/.test(phone)) return Response.json({ error: "Enter a valid 10-digit Indian mobile number." }, { status: 400 });
     if (occupancy && !['owner', 'tenant'].includes(occupancy))
       return Response.json({ error: "Choose owner or tenant." }, { status: 400 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, MouseEvent, useEffect, useMemo, useState } from "react";
-import { BLOCKS, MINIMUM_DONATION, currency } from "../lib/constants";
+import { BLOCKS, FLOORS, MINIMUM_DONATION, currency } from "../lib/constants";
 import { optimizeImageUpload } from "../lib/client-image";
 
 type User = { role: "admin" | "block"; blockNo: string | null };
@@ -24,7 +24,7 @@ const blank = {
   paymentReference: "",
 };
 const ATTENDANCE_OPTIONS = Array.from({ length: 8 }, (_, index) => String(index));
-const FLOOR_OPTIONS = ["G", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "14", "15"];
+const FLOOR_OPTIONS = [...FLOORS];
 const FESTIVAL_UPI_ID = "MSHALLMARKSKYRENAFLATOWNERSMAINTENANCEMACSOCIETYLTDCULTURAL.eazypay@icici";
 const FESTIVAL_UPI_NAME = "M/S.HALLMARK SKYRENA FLAT OWNERS MAINTENANCE MAC SOCIETY LTD -CULTURAL";
 const FESTIVAL_UPI_TRANSACTION_REFERENCE = "EZYS9182205699";
@@ -232,7 +232,7 @@ export function ContributionForm() {
               </select>
             </label>}
             {isResident ? <label><span className="field-label">Flat Number<span className="required-mark">*</span></span>
-              <input required name="flatNo" autoCapitalize="characters" maxLength={20} value={form.flatNo} onChange={(event) => update(event.target.name, event.target.value)} placeholder="e.g. G01 or 101" />
+              <input required name="flatNo" autoCapitalize="characters" maxLength={20} pattern="(?:G[0-9]{1,2}|(?:[1-9]|1[01245])[0-9]{2})" title="Enter a flat on floor G, 1–12, 14 or 15 (for example G01, 505 or 1505)." value={form.flatNo} onChange={(event) => update(event.target.name, event.target.value)} placeholder="e.g. G01, 505 or 1505" />
             </label> : <label className="wide">Flat Number
               <select required name="flatNo" value={form.flatNo} disabled={!form.floorNo || flatsLoading} onChange={(event) => update(event.target.name, event.target.value)}>
                 <option value="">{!form.floorNo ? "Select block and floor first" : floorFlats.length ? "Select occupied flat" : "No occupied flats on this floor"}</option>
