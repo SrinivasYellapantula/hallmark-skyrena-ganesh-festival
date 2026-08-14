@@ -148,6 +148,29 @@ test("resident donation form uses platform-safe UPI links without changing manua
   assert.match(form, /Payment Confirmation Image/);
 });
 
+test("resident payment is the final gated step while committee entry remains unchanged", async () => {
+  const [form, styles] = await Promise.all([
+    source("app/contribute/ContributionForm.tsx"),
+    source("app/globals.css"),
+  ]);
+  assert.match(form, /residentPaymentReady = Boolean/);
+  assert.match(form, /new RegExp\(`\^\(\?:\$\{flatPattern\(form\.blockNo\)\}\)\$`/);
+  assert.ok(form.includes("/^\\d{10}$/.test(form.phone)"));
+  assert.match(form, /&& total > 0/);
+  assert.match(form, /Payment &amp; Confirmation/);
+  assert.ok(form.indexOf("Lunch Mahaprasadam Attendance") < form.indexOf("Payment &amp; Confirmation"));
+  assert.match(form, /!isResident && paymentFields/);
+  assert.match(form, /Complete the required details to view payment options/);
+  assert.match(form, /After making the payment:/);
+  assert.match(form, /Submit Donation/);
+  assert.match(form, /RESIDENT_DRAFT_KEY/);
+  assert.match(form, /window\.localStorage\.setItem\(RESIDENT_DRAFT_KEY/);
+  assert.match(form, /window\.localStorage\.removeItem\(RESIDENT_DRAFT_KEY\)/);
+  assert.match(styles, /\.payment-locked/);
+  assert.match(styles, /\.payment-return-reminder/);
+  assert.match(styles, /\.resident-submit/);
+});
+
 test("gotram is optional for resident and committee donation entry", async () => {
   const [form, registration, donations] = await Promise.all([
     source("app/contribute/ContributionForm.tsx"),

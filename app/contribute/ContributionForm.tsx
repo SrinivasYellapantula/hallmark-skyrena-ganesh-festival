@@ -29,6 +29,7 @@ const FESTIVAL_UPI_ID = "MSHALLMARKSKYRENAFLATOWNERSMAINTENANCEMACSOCIETYLTDCULT
 const FESTIVAL_UPI_NAME = "M/S.HALLMARK SKYRENA FLAT OWNERS MAINTENANCE MAC SOCIETY LTD -CULTURAL";
 const FESTIVAL_UPI_TRANSACTION_REFERENCE = "EZYS9182205699";
 const FESTIVAL_UPI_MERCHANT_CATEGORY = "NULL";
+const RESIDENT_DRAFT_KEY = "ganeshfestival2026-resident-donation-draft";
 export function ContributionForm() {
   const [form, setForm] = useState(blank);
   const [user, setUser] = useState<User | null>(null);
@@ -42,6 +43,7 @@ export function ContributionForm() {
   const [flatsLoading, setFlatsLoading] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [upiCopied, setUpiCopied] = useState(false);
+  const [residentDraftReady, setResidentDraftReady] = useState(false);
 
   useEffect(() => {
     setIsIOS(isIOSBrowser());
@@ -80,6 +82,24 @@ export function ContributionForm() {
       .finally(() => active && setFlatsLoading(false));
     return () => { active = false; };
   }, [accessChecked, form.blockNo, user]);
+
+  useEffect(() => {
+    if (!accessChecked) return;
+    if (!user) {
+      try {
+        const saved = window.localStorage.getItem(RESIDENT_DRAFT_KEY);
+        if (saved) setForm((current) => ({ ...current, ...JSON.parse(saved) }));
+      } catch {
+        window.localStorage.removeItem(RESIDENT_DRAFT_KEY);
+      }
+    }
+    setResidentDraftReady(true);
+  }, [accessChecked, user]);
+
+  useEffect(() => {
+    if (!accessChecked || user || !residentDraftReady || success) return;
+    window.localStorage.setItem(RESIDENT_DRAFT_KEY, JSON.stringify(form));
+  }, [accessChecked, form, residentDraftReady, success, user]);
 
   const total = useMemo(
     () => Number(form.mainDonation || 0) + Number(form.idolDonation || 0) + Number(form.annadaanamDonation || 0),
@@ -183,6 +203,7 @@ export function ContributionForm() {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "Submission failed.");
       setMasterFlats((current) => current.map((flat) => flat.flatNo === form.flatNo ? { ...flat, ...(user ? { residentName: form.residentName, occupancy: form.occupancy, donated: 1 } : {}) } : flat));
+      if (!user) window.localStorage.removeItem(RESIDENT_DRAFT_KEY);
       setSuccess(payload);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (caught) {
@@ -209,6 +230,70 @@ export function ContributionForm() {
   if (!accessChecked) return <section className="wrap compact auth-state donation-form-loading"><h2>Loading donation form…</h2></section>;
 
   const isResident = !user;
+  const residentPaymentReady = Boolean(
+    form.blockNo
+    && form.flatNo
+    && new RegExp(`^(?:${flatPattern(form.blockNo)})$`, "i").test(form.flatNo.trim())
+    && form.residentName.trim()
+    && /^\d{10}$/.test(form.phone)
+    && total > 0,
+  );
+
+  const paymentFields = <>
+    {(!isResident || residentPaymentReady) ? <>
+      <section className="wide payment-qr-card" aria-labelledby="payment-qr-title">
+        <div className="payment-qr-copy">
+          <span className="card-kicker">Official festival UPI</span>
+          <h3 id="payment-qr-title">Scan to make the resident’s payment</h3>
+          <p>Use this QR code only for Hallmark Skyrena Ganesh Chaturthi 2026 contributions.</p>
+          {isResident && <div className="upi-intent-panel">
+            <a href={upiIntentUrl} className="button primary full upi-intent-button" onClick={validateUpiLink}>
+              {isIOS
+                ? total > 0 ? `Pay ${currency(total)} with Google Pay` : "Pay with Google Pay"
+                : total > 0 ? `Pay ${currency(total)} using any UPI app` : "Pay using any UPI app"}
+            </a>
+            <div className="upi-copy-row">
+              <span><small>Official UPI ID</small><strong>{FESTIVAL_UPI_ID}</strong></span>
+              <button type="button" className="button quiet upi-copy-button" onClick={copyUpiId}>{upiCopied ? "UPI ID Copied ✓" : "Copy UPI ID"}</button>
+            </div>
+            <small>{isIOS
+              ? <>On iPhone, this button opens Google Pay directly. To pay with PhonePe or another UPI app, use the QR code shown here. </>
+              : <>On a supported Android phone, this opens the installed UPI apps with the amount filled in. </>}
+                  Before paying, confirm that the recipient name contains <strong>Hallmark Skyrena</strong> and <strong>Cultural</strong>. Never share your UPI PIN or OTP.</small>
+            <p className="upi-payment-note"><strong>Payment method:</strong> Please use a linked bank account. RuPay credit-card payments may not be supported for this merchant.</p>
+          </div>}
+          <small>On mobile, tap the payment poster to open it at full size. You can then share or save it if needed.</small>
+        </div>
+        <a href="/hallmark-skyrena-upi-qr.png" target="_blank" rel="noreferrer" aria-label="Open the official UPI payment QR code at full size">
+          {/* Keep the original bank-issued QR pixels intact instead of routing it through an image optimizer. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/hallmark-skyrena-upi-qr.png" alt="Official Hallmark Skyrena cultural account UPI payment QR code" />
+          <strong>Tap to view full size</strong>
+        </a>
+      </section>
+      {isResident && <p className="wide payment-return-reminder"><strong>After making the payment:</strong> Return to this page, upload the confirmation screenshot and tap Submit Donation to complete your entry.</p>}
+      <label className="wide">UPI Transaction Reference No. <span className="optional">optional</span>
+        <input name="paymentReference" value={form.paymentReference} onChange={(event) => update(event.target.name, event.target.value)} placeholder="UPI / UTR reference" />
+      </label>
+      <div className="wide proof-picker" role="group" aria-labelledby="payment-proof-label">
+        <span className="proof-picker-title" id="payment-proof-label">{isResident ? <span className="field-label">Payment Confirmation Image<span className="required-mark">*</span></span> : "Payment Confirmation Image"}</span>
+        <div className="proof-source-grid">
+          <label>Take Photo
+            <input aria-label="Take a payment confirmation photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => void selectProof(event.target.files?.[0] ?? null)} />
+          </label>
+          <label>Choose from Gallery
+            <input aria-label="Choose a payment confirmation image from gallery" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void selectProof(event.target.files?.[0] ?? null)} />
+          </label>
+        </div>
+        <small>Take a new photo or select an existing screenshot from your gallery. Large images are automatically compressed for private storage.</small>
+        {optimizing && <strong>Optimizing image…</strong>}
+        {proof && <strong>Ready: {proof.name} ({Math.ceil(proof.size / 1024)} KB)</strong>}
+      </div>
+    </> : <div className="wide payment-locked" role="status">
+      <span aria-hidden="true">🔒</span>
+      <div><strong>Complete the required details to view payment options</strong><p>Enter Block, a valid Flat Number, Resident Name, a 10-digit Phone No. and a contribution amount above ₹0.</p></div>
+    </div>}
+  </>;
 
   return (
     <form className="wrap form-shell" onSubmit={submit}>
@@ -280,53 +365,7 @@ export function ContributionForm() {
               <input name="annadaanamDonation" type="number" inputMode="numeric" min="0" step="1" value={form.annadaanamDonation} onFocus={() => clearDefaultAmount("annadaanamDonation")} onBlur={() => restoreEmptyAmount("annadaanamDonation")} onChange={(event) => update(event.target.name, event.target.value)} />
               <small>Enter 0 when there is no additional Mahaprasadam support.</small>
             </label>
-            <section className="wide payment-qr-card" aria-labelledby="payment-qr-title">
-              <div className="payment-qr-copy">
-                <span className="card-kicker">Official festival UPI</span>
-                <h3 id="payment-qr-title">Scan to make the resident’s payment</h3>
-                <p>Use this QR code only for Hallmark Skyrena Ganesh Chaturthi 2026 contributions.</p>
-                {isResident && <div className="upi-intent-panel">
-                  <a href={upiIntentUrl} className="button primary full upi-intent-button" onClick={validateUpiLink}>
-                    {isIOS
-                      ? total > 0 ? `Pay ${currency(total)} with Google Pay` : "Pay with Google Pay"
-                      : total > 0 ? `Pay ${currency(total)} using any UPI app` : "Pay using any UPI app"}
-                  </a>
-                  <div className="upi-copy-row">
-                    <span><small>Official UPI ID</small><strong>{FESTIVAL_UPI_ID}</strong></span>
-                    <button type="button" className="button quiet upi-copy-button" onClick={copyUpiId}>{upiCopied ? "UPI ID Copied ✓" : "Copy UPI ID"}</button>
-                  </div>
-                  <small>{isIOS
-                    ? <>On iPhone, this button opens Google Pay directly. To pay with PhonePe or another UPI app, use the QR code shown here. </>
-                    : <>On a supported Android phone, this opens the installed UPI apps with the amount filled in. </>}
-                        Before paying, confirm that the recipient name contains <strong>Hallmark Skyrena</strong> and <strong>Cultural</strong>. Never share your UPI PIN or OTP.</small>
-                  <p className="upi-payment-note"><strong>Payment method:</strong> Please use a linked bank account. RuPay credit-card payments may not be supported for this merchant.</p>
-                </div>}
-                <small>On mobile, tap the payment poster to open it at full size. You can then share or save it if needed.</small>
-              </div>
-              <a href="/hallmark-skyrena-upi-qr.png" target="_blank" rel="noreferrer" aria-label="Open the official UPI payment QR code at full size">
-                {/* Keep the original bank-issued QR pixels intact instead of routing it through an image optimizer. */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/hallmark-skyrena-upi-qr.png" alt="Official Hallmark Skyrena cultural account UPI payment QR code" />
-                <strong>Tap to view full size</strong>
-              </a>
-            </section>
-            <label className="wide">UPI Transaction Reference No. <span className="optional">optional</span>
-              <input name="paymentReference" value={form.paymentReference} onChange={(event) => update(event.target.name, event.target.value)} placeholder="UPI / UTR reference" />
-            </label>
-            <div className="wide proof-picker" role="group" aria-labelledby="payment-proof-label">
-              <span className="proof-picker-title" id="payment-proof-label">{isResident ? <span className="field-label">Payment Confirmation Image<span className="required-mark">*</span></span> : "Payment Confirmation Image"}</span>
-              <div className="proof-source-grid">
-                <label>Take Photo
-                  <input aria-label="Take a payment confirmation photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => void selectProof(event.target.files?.[0] ?? null)} />
-                </label>
-                <label>Choose from Gallery
-                  <input aria-label="Choose a payment confirmation image from gallery" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void selectProof(event.target.files?.[0] ?? null)} />
-                </label>
-              </div>
-              <small>Take a new photo or select an existing screenshot from your gallery. Large images are automatically compressed for private storage.</small>
-              {optimizing && <strong>Optimizing image…</strong>}
-              {proof && <strong>Ready: {proof.name} ({Math.ceil(proof.size / 1024)} KB)</strong>}
-            </div>
+            {!isResident && paymentFields}
           </div>
         </fieldset>
 
@@ -347,6 +386,13 @@ export function ContributionForm() {
             </label>
           </div>
         </fieldset>
+
+        {isResident && <fieldset aria-labelledby="payment-section-title">
+          <div className="form-section-heading" id="payment-section-title"><span>4</span><h2>Payment &amp; Confirmation</h2></div>
+          <p className="fieldset-help">Complete the required details above before making the payment.</p>
+          <div className="field-grid">{paymentFields}</div>
+          {residentPaymentReady && <button className="button primary full resident-submit" disabled={busy || optimizing}>{optimizing ? "Optimizing image…" : busy ? "Submitting…" : "Submit Donation"}</button>}
+        </fieldset>}
         {error && <p className="form-error" role="alert">{error}</p>}
       </div>
 
@@ -356,7 +402,7 @@ export function ContributionForm() {
         <div><span>Idol donation</span><strong>{currency(Number(form.idolDonation) || 0)}</strong></div>
         <div><span>Mahaprasadam</span><strong>{currency(Number(form.annadaanamDonation) || 0)}</strong></div>
         <div className="summary-total"><span>Total</span><strong>{currency(total)}</strong></div>
-        <button className="button primary full" disabled={busy || optimizing}>{optimizing ? "Optimizing image…" : busy ? "Saving…" : "Save Donation"}</button>
+        {!isResident && <button className="button primary full" disabled={busy || optimizing}>{optimizing ? "Optimizing image…" : busy ? "Saving…" : "Save Donation"}</button>}
         <p>{isResident ? "UPI payments only." : "UPI only. Payment remains pending until an admin verifies it."}</p>
       </aside>
     </form>
