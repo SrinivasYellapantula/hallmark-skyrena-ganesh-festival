@@ -16,7 +16,7 @@ export default function Home() {
             <Link className="button primary" href="/contribute">Record New Donation <span aria-hidden="true">→</span></Link>
             <Link className="button quiet" href="/transparency">View live accounts</Link>
           </div>
-          <p className="microcopy">Voluntary contribution · UPI only · Payment proof required</p>
+          <p className="microcopy">Voluntary contribution · UPI, IMPS or NEFT · Payment proof required</p>
         </div>
         <div className="hero-art" aria-label="2026 Ganesh Chaturthi community celebration">
           <div className="sun-disc" />

@@ -39,12 +39,12 @@ test("registration validation supports voluntary donations while rejecting a zer
   assert.match(form, /Voluntary contribution/);
   assert.match(route, /mainDonation \+ idolDonation \+ annadaanamDonation <= 0/);
   assert.match(route, /at least one donation amount greater than ₹0/);
-  assert.match(home, /Voluntary contribution · UPI only/);
+  assert.match(home, /Voluntary contribution · UPI, IMPS or NEFT/);
   assert.doesNotMatch(home, /Minimum festival contribution/);
   assert.match(initialize, /donation_minimum INTEGER NOT NULL DEFAULT 0/);
   assert.match(schema, /donationMinimum: integer\("donation_minimum"\)\.notNull\(\)\.default\(0\)/);
   assert.doesNotMatch(route, /payment reference is required/i);
-  assert.match(form, /UPI Transaction Reference No\. <span className="optional">optional<\/span>/);
+  assert.match(form, /isResident \? "Transaction Reference No\." : "UPI Transaction Reference No\."/);
   assert.match(route, /wholeNumber\(body\.get\("adultCount"\), 0, 7\)/);
   assert.match(route, /\^\\d\{10\}\$\/\.test\(phone\)/);
   assert.match(form, /className="phone-prefix" aria-hidden="true">\+91/);
@@ -216,7 +216,7 @@ test("residents can use an unrestricted flat field without changing the voluntee
   assert.doesNotMatch(form, /api\/public\/flats/);
   assert.match(form, /Flat Number<span className="required-mark">\*<\/span>/);
   assert.match(form, /input required name="flatNo"/);
-  assert.match(form, /isResident \? "UPI payments only\."/);
+  assert.match(form, /isResident \? "Pay using UPI, IMPS or NEFT\."/);
   assert.match(form, /api\/flats\/map/);
   assert.match(form, /Select occupied flat/);
   assert.match(registration, /getAppUser\(request\)/);
@@ -227,6 +227,31 @@ test("residents can use an unrestricted flat field without changing the voluntee
   assert.doesNotMatch(registration, /const auth = await authorize\(request\)/);
   assert.match(page, /No login is required for residents/);
   assert.doesNotMatch(await source("app/components/SiteChrome.tsx"), /Committee sign in|committee-signin/);
+});
+
+test("resident donations support reconciliable UPI, IMPS and NEFT payments", async () => {
+  const [form, registration, schema, styles] = await Promise.all([
+    source("app/contribute/ContributionForm.tsx"),
+    source("app/api/registrations/route.ts"),
+    source("db/schema.ts"),
+    source("app/globals.css"),
+  ]);
+  assert.match(form, /FESTIVAL_BANK_ACCOUNT = "576905000064"/);
+  assert.match(form, /FESTIVAL_BANK_IFSC = "ICIC0005769"/);
+  assert.match(form, /FESTIVAL_BANK_HOLDER = "HALLMARK SKYRENA FLAT OWNERS MAINTENANCE MAC SOCIETY LTD - CULTURAL"/);
+  assert.match(form, /name="paymentMethod"/);
+  assert.match(form, /<option value="upi">UPI<\/option>/);
+  assert.match(form, /<option value="imps">IMPS bank transfer<\/option>/);
+  assert.match(form, /<option value="neft">NEFT bank transfer<\/option>/);
+  assert.match(form, /Copy Bank Details/);
+  assert.match(form, /navigator\.clipboard\.writeText\(details\)/);
+  assert.match(form, /Transaction Reference No\./);
+  assert.match(registration, /\["upi", "imps", "neft"\]\.includes\(paymentMethod\)/);
+  assert.match(registration, /mainDonation, paymentMethod, paymentReference/);
+  assert.match(registration, /annadaanamDonation, paymentMethod, paymentReference/);
+  assert.match(registration, /idolDonation, paymentMethod, paymentReference/);
+  assert.match(schema, /"bank_transfer", "imps", "neft"/);
+  assert.match(styles, /\.bank-transfer-card/);
 });
 
 test("successful donations notify the portal admin through optional failure-safe Telegram secrets", async () => {

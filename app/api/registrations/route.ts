@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     const annadaanamDonation = wholeNumber(body.get("annadaanamDonation"), 0);
     const adultCount = wholeNumber(body.get("adultCount"), 0, 7);
     const childCount = wholeNumber(body.get("childCount"), 0, 7);
+    const paymentMethod = user ? "upi" : cleanText(body.get("paymentMethod"), 10).toLowerCase();
     const paymentReference = cleanText(body.get("paymentReference"), 80);
     const notes = cleanText(body.get("notes"), 500);
     const proof = body.get("paymentProof");
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
     if (mainDonation + idolDonation + annadaanamDonation <= 0)
       return Response.json({ error: "Enter at least one donation amount greater than ₹0." }, { status: 400 });
     if (adultCount === null || childCount === null) return Response.json({ error: "Mahaprasadam attendance counts must be between 0 and 7." }, { status: 400 });
+    if (!["upi", "imps", "neft"].includes(paymentMethod)) return Response.json({ error: "Choose UPI, IMPS or NEFT as the payment method." }, { status: 400 });
     if (!(proof instanceof File) || proof.size === 0) return Response.json({ error: "Payment confirmation image is required." }, { status: 400 });
     if (!IMAGE_TYPES.has(proof.type) || proof.size > MAX_PROOF_BYTES)
       return Response.json({ error: "Upload a JPG, PNG or WebP payment image up to 1 MB." }, { status: 400 });
@@ -72,8 +74,8 @@ export async function POST(request: Request) {
         d1.prepare(`INSERT INTO donations
           (id, registration_id, category, amount, payment_method, payment_reference, status,
            payment_proof_key, payment_proof_name, payment_proof_type)
-          VALUES (?, ?, 'festival', ?, 'upi', ?, 'pending', ?, ?, ?)`)
-          .bind(donationId, registrationId, mainDonation, paymentReference, proofKey, proof.name, proof.type),
+          VALUES (?, ?, 'festival', ?, ?, ?, 'pending', ?, ?, ?)`)
+          .bind(donationId, registrationId, mainDonation, paymentMethod, paymentReference, proofKey, proof.name, proof.type),
         d1.prepare(`INSERT INTO audit_log (id, entity_type, entity_id, action, actor, details)
           VALUES (?, 'registration', ?, 'submitted', ?, ?)`)
           .bind(crypto.randomUUID(), registrationId, actor, JSON.stringify({ blockNo, flatNo, proofKey, source: user ? "committee" : "resident" })),
@@ -92,12 +94,12 @@ export async function POST(request: Request) {
         .bind(residentName, residentName, occupancy, occupancy, actor, EVENT_ID, blockNo, flatNo));
       if (annadaanamDonation > 0) statements.push(d1.prepare(`INSERT INTO donations
         (id, registration_id, category, amount, payment_method, payment_reference, status)
-        VALUES (?, ?, 'annadaanam', ?, 'upi', ?, 'pending')`)
-        .bind(crypto.randomUUID(), registrationId, annadaanamDonation, paymentReference));
+        VALUES (?, ?, 'annadaanam', ?, ?, ?, 'pending')`)
+        .bind(crypto.randomUUID(), registrationId, annadaanamDonation, paymentMethod, paymentReference));
       if (idolDonation > 0) statements.push(d1.prepare(`INSERT INTO donations
         (id, registration_id, category, amount, payment_method, payment_reference, status)
-        VALUES (?, ?, 'idol', ?, 'upi', ?, 'pending')`)
-        .bind(crypto.randomUUID(), registrationId, idolDonation, paymentReference));
+        VALUES (?, ?, 'idol', ?, ?, ?, 'pending')`)
+        .bind(crypto.randomUUID(), registrationId, idolDonation, paymentMethod, paymentReference));
       await d1.batch(statements);
       try {
         await notifyPortalAdminOfDonation({

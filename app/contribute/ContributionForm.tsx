@@ -21,6 +21,7 @@ const blank = {
   annadaanamDonation: "0",
   adultCount: "0",
   childCount: "0",
+  paymentMethod: "upi",
   paymentReference: "",
 };
 const ATTENDANCE_OPTIONS = Array.from({ length: 8 }, (_, index) => String(index));
@@ -29,6 +30,9 @@ const FESTIVAL_UPI_ID = "MSHALLMARKSKYRENAFLATOWNERSMAINTENANCEMACSOCIETYLTDCULT
 const FESTIVAL_UPI_NAME = "M/S.HALLMARK SKYRENA FLAT OWNERS MAINTENANCE MAC SOCIETY LTD -CULTURAL";
 const FESTIVAL_UPI_TRANSACTION_REFERENCE = "EZYS9182205699";
 const FESTIVAL_UPI_MERCHANT_CATEGORY = "NULL";
+const FESTIVAL_BANK_ACCOUNT = "576905000064";
+const FESTIVAL_BANK_IFSC = "ICIC0005769";
+const FESTIVAL_BANK_HOLDER = "HALLMARK SKYRENA FLAT OWNERS MAINTENANCE MAC SOCIETY LTD - CULTURAL";
 const RESIDENT_DRAFT_KEY = "ganeshfestival2026-resident-donation-draft";
 export function ContributionForm() {
   const [form, setForm] = useState(blank);
@@ -43,6 +47,7 @@ export function ContributionForm() {
   const [flatsLoading, setFlatsLoading] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [upiCopied, setUpiCopied] = useState(false);
+  const [bankDetailsCopied, setBankDetailsCopied] = useState(false);
   const [residentDraftReady, setResidentDraftReady] = useState(false);
 
   useEffect(() => {
@@ -175,6 +180,30 @@ export function ContributionForm() {
     window.setTimeout(() => setUpiCopied(false), 3000);
   }
 
+  async function copyBankDetails() {
+    setError("");
+    const details = `Account Holder: ${FESTIVAL_BANK_HOLDER}\nAccount Number: ${FESTIVAL_BANK_ACCOUNT}\nIFSC Code: ${FESTIVAL_BANK_IFSC}`;
+    try {
+      await navigator.clipboard.writeText(details);
+    } catch {
+      const field = document.createElement("textarea");
+      field.value = details;
+      field.setAttribute("readonly", "");
+      field.style.position = "fixed";
+      field.style.opacity = "0";
+      document.body.appendChild(field);
+      field.select();
+      const copied = document.execCommand("copy");
+      field.remove();
+      if (!copied) {
+        setError("Unable to copy automatically. Please select and copy the bank details shown below.");
+        return;
+      }
+    }
+    setBankDetailsCopied(true);
+    window.setTimeout(() => setBankDetailsCopied(false), 3000);
+  }
+
   const floorFlats = useMemo(() => masterFlats.filter((flat) => flatFloor(flat.flatNo) === form.floorNo), [masterFlats, form.floorNo]);
 
   async function selectProof(file: File | null) {
@@ -194,7 +223,7 @@ export function ContributionForm() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!proof) {
-      setError("Capture or upload the UPI payment confirmation.");
+      setError(isResident ? "Capture or upload the payment confirmation." : "Capture or upload the UPI payment confirmation.");
       return;
     }
     setBusy(true);
@@ -245,7 +274,14 @@ export function ContributionForm() {
 
   const paymentFields = <>
     {(!isResident || residentPaymentReady) ? <>
-      <section className="wide payment-qr-card" aria-labelledby="payment-qr-title">
+      {isResident && <label className="wide">Payment Method<span className="required-mark">*</span>
+        <select required name="paymentMethod" value={form.paymentMethod} onChange={(event) => update(event.target.name, event.target.value)}>
+          <option value="upi">UPI</option>
+          <option value="imps">IMPS bank transfer</option>
+          <option value="neft">NEFT bank transfer</option>
+        </select>
+      </label>}
+      {(!isResident || form.paymentMethod === "upi") && <section className="wide payment-qr-card" aria-labelledby="payment-qr-title">
         <div className="payment-qr-copy">
           <span className="card-kicker">Official festival UPI</span>
           <h3 id="payment-qr-title">Scan to make the resident’s payment</h3>
@@ -274,10 +310,22 @@ export function ContributionForm() {
           <img src="/hallmark-skyrena-upi-qr.png" alt="Official Hallmark Skyrena cultural account UPI payment QR code" />
           <strong>Tap to view full size</strong>
         </a>
-      </section>
+      </section>}
+      {isResident && form.paymentMethod !== "upi" && <section className="wide bank-transfer-card" aria-labelledby="bank-transfer-title">
+        <span className="card-kicker">Official festival bank account</span>
+        <h3 id="bank-transfer-title">Pay using {form.paymentMethod.toUpperCase()}</h3>
+        <p>Use these details only for Hallmark Skyrena Ganesh Chaturthi 2026 contributions.</p>
+        <dl>
+          <div><dt>Account Number</dt><dd>{FESTIVAL_BANK_ACCOUNT}</dd></div>
+          <div><dt>IFSC Code</dt><dd>{FESTIVAL_BANK_IFSC}</dd></div>
+          <div><dt>Account Holder Name</dt><dd>{FESTIVAL_BANK_HOLDER}</dd></div>
+        </dl>
+        <button type="button" className="button quiet full" onClick={copyBankDetails}>{bankDetailsCopied ? "Bank Details Copied ✓" : "Copy Bank Details"}</button>
+        <small>Before transferring, confirm that the beneficiary name contains <strong>Hallmark Skyrena</strong> and <strong>Cultural</strong>.</small>
+      </section>}
       {isResident && <p className="wide payment-return-reminder"><strong>After making the payment:</strong> Return to this page, upload the confirmation screenshot and tap Submit Donation to complete your entry.</p>}
-      <label className="wide">UPI Transaction Reference No. <span className="optional">optional</span>
-        <input name="paymentReference" value={form.paymentReference} onChange={(event) => update(event.target.name, event.target.value)} placeholder="UPI / UTR reference" />
+      <label className="wide">{isResident ? "Transaction Reference No." : "UPI Transaction Reference No."} <span className="optional">optional</span>
+        <input name="paymentReference" value={form.paymentReference} onChange={(event) => update(event.target.name, event.target.value)} placeholder={isResident ? "UPI / IMPS / NEFT reference" : "UPI / UTR reference"} />
       </label>
       <div className="wide proof-picker" role="group" aria-labelledby="payment-proof-label">
         <span className="proof-picker-title" id="payment-proof-label">{isResident ? <span className="field-label">Payment Confirmation Image<span className="required-mark">*</span></span> : "Payment Confirmation Image"}</span>
@@ -407,7 +455,7 @@ export function ContributionForm() {
         <div><span>Mahaprasadam</span><strong>{currency(Number(form.annadaanamDonation) || 0)}</strong></div>
         <div className="summary-total"><span>Total</span><strong>{currency(total)}</strong></div>
         {!isResident && <button className="button primary full" disabled={busy || optimizing}>{optimizing ? "Optimizing image…" : busy ? "Saving…" : "Save Donation"}</button>}
-        <p>{isResident ? "UPI payments only." : "UPI only. Payment remains pending until an admin verifies it."}</p>
+        <p>{isResident ? "Pay using UPI, IMPS or NEFT." : "UPI only. Payment remains pending until an admin verifies it."}</p>
       </aside>
     </form>
   );
