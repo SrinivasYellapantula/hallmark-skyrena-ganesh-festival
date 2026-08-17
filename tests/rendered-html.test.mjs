@@ -154,7 +154,7 @@ test("resident payment is the final gated step while committee entry remains unc
     source("app/globals.css"),
   ]);
   assert.match(form, /residentPaymentReady = Boolean/);
-  assert.match(form, /new RegExp\(`\^\(\?:\$\{flatPattern\(form\.blockNo\)\}\)\$`/);
+  assert.match(form, /new RegExp\(`\^\(\?:\$\{canonicalFlatPattern\(form\.blockNo\)\}\)\$`/);
   assert.ok(form.includes("/^\\d{10}$/.test(form.phone)"));
   assert.match(form, /&& total > 0/);
   assert.match(form, /Payment &amp; Confirmation/);
@@ -512,12 +512,18 @@ test("flat numbers are canonicalized so block-prefixed repeat donations count on
   ]);
   assert.match(server, /export function normalizeFlatNo/);
   assert.match(server, /flat\.startsWith\(block\)/);
+  assert.match(server, /\^\(\?:G\|\\d\)/);
   assert.match(server, /export function isValidFlatNo/);
   assert.match(server, /isFlatNumberAllowed\(flat, block\)/);
   assert.match(registration, /normalizeFlatNo\(body\.get\("flatNo"\), blockNo\)/);
   assert.match(registration, /!isValidFlatNo\(flatNo, blockNo\)/);
   assert.match(registration, /flat sequence.*01–06.*01–10/);
   assert.match(contribution, /pattern=\{flatPattern\(form\.blockNo\)\}/);
+  assert.match(contribution, /normalizeResidentFlatNo\(form\.flatNo, form\.blockNo\)/);
+  assert.match(contribution, /E1006 accepted/);
+  assert.match(contribution, /it will be removed automatically/);
+  assert.match(contribution, /className="field-error"/);
+  assert.match(contribution, /const blockPrefix = blockNo \? `\(\?:\$\{blockNo\}\)\?` : "\(\?:\[A-E\]\)\?"/);
   assert.match(contribution, /blockNo === "C" \? "0\[1-6\]"/);
   assert.match(donationDetail, /previousFlatNo:current\.flatNo,flatNo/);
   assert.match(donationDetail, /isValidFlatNo\(flatNo,current\.blockNo\)/);

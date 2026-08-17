@@ -112,7 +112,7 @@ input, select, textarea { width: 100%; border: 1px solid #d9cfc0; border-radius:
 input, select { height: 46px; padding: 0 13px; }
 textarea { padding: 12px 13px; resize: vertical; }
 input:focus, select:focus, textarea:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(180,49,32,.09); }
-label small { color: var(--muted); font-weight: 500; }
+label small { color: var(--muted); font-weight: 500; }.field-error{color:var(--red)!important;font-weight:800!important;line-height:1.45}
 .field-label { display: inline-flex; align-items: baseline; gap: 5px; }
 .label-note { color: var(--muted); font-size: 10px; font-weight: 500; }
 .phone-input-group{display:grid;grid-template-columns:62px minmax(0,1fr)}.phone-prefix{height:46px;display:grid;place-items:center;border:1px solid #d9cfc0;border-right:0;border-radius:4px 0 0 4px;background:#eee7dc;color:#655d52;font-size:13px;font-weight:800}.phone-input-group input{border-radius:0 4px 4px 0}

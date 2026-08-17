@@ -36,7 +36,7 @@ export function cleanText(value: unknown, maxLength = 120) {
 export function normalizeFlatNo(value: unknown, blockNo: unknown) {
   const flat = cleanText(value, 20).toUpperCase().replace(/[\s-]+/g, "");
   const block = cleanText(blockNo, 2).toUpperCase();
-  if (block && flat.startsWith(block) && /^\d/.test(flat.slice(block.length))) {
+  if (block && flat.startsWith(block) && /^(?:G|\d)/.test(flat.slice(block.length))) {
     return flat.slice(block.length);
   }
   return flat;

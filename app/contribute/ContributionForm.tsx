@@ -263,10 +263,15 @@ export function ContributionForm() {
   if (!accessChecked) return <section className="wrap compact auth-state donation-form-loading"><h2>Loading donation form…</h2></section>;
 
   const isResident = !user;
+  const normalizedResidentFlatNo = normalizeResidentFlatNo(form.flatNo, form.blockNo);
+  const residentFlatNoValid = Boolean(
+    form.blockNo
+    && normalizedResidentFlatNo
+    && new RegExp(`^(?:${canonicalFlatPattern(form.blockNo)})$`, "i").test(normalizedResidentFlatNo),
+  );
   const residentPaymentReady = Boolean(
     form.blockNo
-    && form.flatNo
-    && new RegExp(`^(?:${flatPattern(form.blockNo)})$`, "i").test(form.flatNo.trim())
+    && residentFlatNoValid
     && form.residentName.trim()
     && /^\d{10}$/.test(form.phone)
     && total > 0,
@@ -369,7 +374,9 @@ export function ContributionForm() {
               </select>
             </label>}
             {isResident ? <label><span className="field-label">Flat Number<span className="required-mark">*</span></span>
-              <input required name="flatNo" autoCapitalize="characters" maxLength={20} pattern={flatPattern(form.blockNo)} title={flatRule(form.blockNo)} value={form.flatNo} onChange={(event) => update(event.target.name, event.target.value)} placeholder="e.g. G01, 505 or 1505" />
+              <input required name="flatNo" autoCapitalize="characters" maxLength={20} pattern={flatPattern(form.blockNo)} title={flatRule(form.blockNo)} value={form.flatNo} onChange={(event) => update(event.target.name, event.target.value)} onBlur={() => update("flatNo", normalizeResidentFlatNo(form.flatNo, form.blockNo))} placeholder="e.g. 1006 or G01 (E1006 accepted)" />
+              <small>Enter the flat number without the block letter. If you include the selected block, such as <strong>E1006</strong>, it will be removed automatically.</small>
+              {form.flatNo && form.blockNo && !residentFlatNoValid && <small className="field-error">For Block {form.blockNo}, enter a valid flat such as 1006 or {form.blockNo}1006.</small>}
             </label> : <label className="wide">Flat Number
               <select required name="flatNo" value={form.flatNo} disabled={!form.floorNo || flatsLoading} onChange={(event) => update(event.target.name, event.target.value)}>
                 <option value="">{!form.floorNo ? "Select block and floor first" : floorFlats.length ? "Select occupied flat" : "No occupied flats on this floor"}</option>
@@ -469,13 +476,26 @@ function flatFloor(flatNo: string) {
 }
 
 function flatPattern(blockNo: string) {
+  const blockPrefix = blockNo ? `(?:${blockNo})?` : "(?:[A-E])?";
+  return `${blockPrefix}(?:${canonicalFlatPattern(blockNo)})`;
+}
+
+function canonicalFlatPattern(blockNo: string) {
   const units = blockNo === "C" ? "0[1-6]" : "(?:0[1-9]|10)";
   const groundUnits = blockNo === "C" ? "0?[1-6]" : "(?:0?[1-9]|10)";
   return `(?:G${groundUnits}|(?:[1-9]|1[01245])${units})`;
 }
 
 function flatRule(blockNo: string) {
-  return `Enter a valid Block ${blockNo || "A–E"} flat on floor G, 1–12, 14 or 15. ${blockNo === "C" ? "Use flat sequence 01–06." : "Use flat sequence 01–10."}`;
+  return `Enter the flat number, such as 1006, or include the selected block, such as ${blockNo || "E"}1006. Floor G, 1–12, 14 or 15. ${blockNo === "C" ? "Use flat sequence 01–06." : "Use flat sequence 01–10."}`;
+}
+
+function normalizeResidentFlatNo(flatNo: string, blockNo: string) {
+  const flat = flatNo.trim().toUpperCase().replace(/[\s-]+/g, "");
+  const block = blockNo.trim().toUpperCase();
+  return block && flat.startsWith(block) && /^(?:G|\d)/.test(flat.slice(block.length))
+    ? flat.slice(block.length)
+    : flat;
 }
 
 function isIOSBrowser() {

@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     if (!residentName || !flatNo || !BLOCKS.includes(blockNo as (typeof BLOCKS)[number]))
       return Response.json({ error: "Resident name, block, flat and phone number are required." }, { status: 400 });
     if (!isValidFlatNo(flatNo, blockNo))
-      return Response.json({ error: `Enter a valid Block ${blockNo} flat: floor G, 1–12, 14 or 15 and flat sequence ${blockNo === "C" ? "01–06" : "01–10"}.` }, { status: 400 });
+      return Response.json({ error: `Enter a valid Block ${blockNo} flat, such as 1006 or ${blockNo}1006. Floor G, 1–12, 14 or 15; flat sequence ${blockNo === "C" ? "01–06" : "01–10"}.` }, { status: 400 });
     if (!/^\d{10}$/.test(phone)) return Response.json({ error: "Enter a valid 10-digit Indian mobile number." }, { status: 400 });
     if (occupancy && !['owner', 'tenant'].includes(occupancy))
       return Response.json({ error: "Choose owner or tenant." }, { status: 400 });
