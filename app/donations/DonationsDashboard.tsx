@@ -12,11 +12,13 @@ type Row = {
   correctionReason: string; inOccupiedMaster: number;
 };
 type User = { role: "admin" | "block"; blockNo: string | null };
+type AttendanceFilter = "all" | "zero" | "attending";
 
 export function DonationsDashboard() {
   const [rows, setRows] = useState<Row[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [query, setQuery] = useState("");
+  const [attendanceFilter, setAttendanceFilter] = useState<AttendanceFilter>("all");
   const [selected, setSelected] = useState<Row | null>(null);
   const [replacementProof, setReplacementProof] = useState<File | null>(null);
   const [optimizingProof, setOptimizingProof] = useState(false);
@@ -50,10 +52,20 @@ export function DonationsDashboard() {
     return () => { active = false; };
   }, []);
 
-  const visible = useMemo(
-    () => rows.filter((row) => `${row.residentName} ${row.blockNo} ${row.flatNo} ${row.referenceNo}`.toLowerCase().includes(query.toLowerCase())),
-    [rows, query],
+  const zeroAttendanceCount = useMemo(
+    () => rows.filter((row) => Number(row.adultCount) === 0 && Number(row.childCount) === 0).length,
+    [rows],
   );
+
+  const visible = useMemo(() => rows.filter((row) => {
+    const matchesQuery = `${row.residentName} ${row.blockNo} ${row.flatNo} ${row.referenceNo} ${row.phone ?? ""}`
+      .toLowerCase().includes(query.trim().toLowerCase());
+    const totalAttendees = Number(row.adultCount) + Number(row.childCount);
+    const matchesAttendance = attendanceFilter === "all"
+      || (attendanceFilter === "zero" && totalAttendees === 0)
+      || (attendanceFilter === "attending" && totalAttendees > 0);
+    return matchesQuery && matchesAttendance;
+  }), [attendanceFilter, query, rows]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -106,7 +118,12 @@ export function DonationsDashboard() {
         <header>
           <div><span className="card-kicker">List view</span><h2>Recorded donations</h2></div>
           <div className="donation-list-actions">
-            <input placeholder="Search resident, flat or reference" value={query} onChange={(event) => setQuery(event.target.value)} />
+            <input aria-label="Search donations" placeholder="Search resident, flat, phone or reference" value={query} onChange={(event) => setQuery(event.target.value)} />
+            <select className="attendance-filter" aria-label="Filter by Mahaprasadam attendance" value={attendanceFilter} onChange={(event) => setAttendanceFilter(event.target.value as AttendanceFilter)}>
+              <option value="all">All attendance</option>
+              <option value="zero">0 attendees ({zeroAttendanceCount})</option>
+              <option value="attending">1 or more attendees</option>
+            </select>
             {/* This endpoint returns a file rather than a navigable application page. */}
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a className="button quiet donation-export" href="/api/donations/export">Export Donated Flats (.xlsx)</a>
@@ -115,7 +132,7 @@ export function DonationsDashboard() {
         <div className="record-list">
           {visible.map((row) => (
             <button key={row.id} onClick={() => { setSelected(row); setReplacementProof(null); }}>
-              <span><strong>{row.residentName}</strong><small>Block {row.blockNo} · Flat {row.flatNo} · {row.referenceNo}</small></span>
+              <span><strong>{row.residentName}</strong><small>Block {row.blockNo} · Flat {row.flatNo} · {row.referenceNo}</small><small className={row.adultCount + row.childCount === 0 ? "attendance-review" : ""}>{row.adultCount + row.childCount} Mahaprasadam attendee{row.adultCount + row.childCount === 1 ? "" : "s"}{row.adultCount + row.childCount === 0 ? " · please confirm" : ""}</small></span>
               <span><strong>{currency(Number(row.amount))}</strong><small className={`status ${row.status}`}>{row.status}</small></span>
             </button>
           ))}
@@ -139,7 +156,7 @@ export function DonationsDashboard() {
             <div><dt>Total</dt><dd>{currency(Number(selected.amount))}</dd></div>
             <div><dt>Gotram</dt><dd>{selected.gotram || "Not recorded"}</dd></div>
             <div><dt>Resident type</dt><dd>{selected.occupancy}</dd></div>
-            <div><dt>Phone</dt><dd>{selected.phone || "Not recorded"}</dd></div>
+            <div><dt>Phone</dt><dd>{selected.phone ? <a href={`tel:+91${selected.phone}`}>+91 {selected.phone}</a> : "Not recorded"}</dd></div>
             <div><dt>Attendees</dt><dd>{selected.adultCount} adults · {selected.childCount} children</dd></div>
             <div><dt>UPI reference</dt><dd>{selected.paymentReference || "Not recorded"}</dd></div>
           </dl>

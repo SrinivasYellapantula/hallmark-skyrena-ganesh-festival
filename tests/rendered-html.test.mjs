@@ -573,6 +573,23 @@ test("donated-flat Excel export is role-scoped and deduplicates repeat payments"
   assert.match(packageFile, /write-excel-file/);
 });
 
+test("donations can be filtered for zero Mahaprasadam attendance and contacted", async () => {
+  const [screen, styles] = await Promise.all([
+    source("app/donations/DonationsDashboard.tsx"),
+    source("app/globals.css"),
+  ]);
+  assert.match(screen, /type AttendanceFilter = "all" \| "zero" \| "attending"/);
+  assert.match(screen, /Number\(row\.adultCount\) === 0 && Number\(row\.childCount\) === 0/);
+  assert.match(screen, /attendanceFilter === "zero" && totalAttendees === 0/);
+  assert.match(screen, /Filter by Mahaprasadam attendance/);
+  assert.match(screen, /<option value="zero">0 attendees \(\{zeroAttendanceCount\}\)<\/option>/);
+  assert.match(screen, /Search resident, flat, phone or reference/);
+  assert.match(screen, /please confirm/);
+  assert.match(screen, /href=\{`tel:\+91\$\{selected\.phone\}`\}/);
+  assert.match(styles, /\.attendance-filter/);
+  assert.match(styles, /\.attendance-review/);
+});
+
 test("occupied-flat map and block-wise CSV import preserve collection history", async () => {
   const [mapRoute, flatsRoute, importRoute, screen, contribution, registration, chrome, migration, occupancyMigration] = await Promise.all([
     source("app/api/flats/map/route.ts"), source("app/api/flats/route.ts"),
