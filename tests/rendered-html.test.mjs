@@ -586,8 +586,12 @@ test("donations can be filtered for zero Mahaprasadam attendance and contacted",
   assert.match(screen, /Search resident, flat, phone or reference/);
   assert.match(screen, /please confirm/);
   assert.match(screen, /href=\{`tel:\+91\$\{selected\.phone\}`\}/);
+  assert.match(screen, /records-shell\$\{selected \? "" : " records-shell-wide"\}/);
+  assert.match(screen, /admin-card donation-records-card/);
   assert.match(styles, /\.attendance-filter/);
   assert.match(styles, /\.attendance-review/);
+  assert.match(styles, /\.records-shell-wide\{grid-template-columns:minmax\(0,1fr\)\}/);
+  assert.match(styles, /\.donation-records-card>header\{display:grid/);
 });
 
 test("occupied-flat map and block-wise CSV import preserve collection history", async () => {

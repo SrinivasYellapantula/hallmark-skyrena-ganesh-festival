@@ -112,9 +112,9 @@ export function DonationsDashboard() {
   }
 
   return (
-    <section className="wrap records-shell">
+    <section className={`wrap records-shell${selected ? "" : " records-shell-wide"}`}>
       {error && <p className="form-error">{error}</p>}
-      <div className="admin-card">
+      <div className="admin-card donation-records-card">
         <header>
           <div><span className="card-kicker">List view</span><h2>Recorded donations</h2></div>
           <div className="donation-list-actions">
