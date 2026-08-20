@@ -481,6 +481,8 @@ test("role-scoped collection summary shows block and overall donation metrics", 
   assert.match(route, /averageDonation/);
   assert.match(route, /optedOutFlats/);
   assert.match(route, /f\.visit_status='opted_out'/);
+  assert.match(route, /competitionBlocks/);
+  assert.match(route, /competitionBlocks\.filter\(\(block\) => block\.blockNo === auth\.user\.blockNo\)/);
   assert.match(route, /occupied_flat_keys AS/);
   assert.match(route, /donated_flat_keys AS/);
   assert.match(route, /SUBSTR\(REPLACE\(REPLACE\(UPPER\(TRIM\(r\.flat_no\)\)/);
@@ -495,6 +497,12 @@ test("role-scoped collection summary shows block and overall donation metrics", 
   assert.match(screen, /Door-to-door pending/);
   assert.match(screen, /Opted out/);
   assert.match(screen, /Maximum flat donation/);
+  assert.match(screen, /Participation Leaderboard/);
+  assert.match(screen, /Ranked by the percentage of occupied flats/);
+  assert.match(screen, /Collection Split by Block/);
+  assert.match(screen, /Highest participation/);
+  assert.match(screen, /Highest collection/);
+  assert.match(screen, /Best average per donating flat/);
   assert.ok(screen.indexOf("Total donating flats") < screen.indexOf("Main festival donation"));
   assert.ok(screen.indexOf("Main festival donation") < screen.indexOf("Donating flats outside occupied master"));
   assert.ok(screen.indexOf("Average per donated flat") < screen.indexOf("Additional Mahaprasadam support"));
@@ -503,6 +511,8 @@ test("role-scoped collection summary shows block and overall donation metrics", 
   assert.match(page, /CollectionSummary/);
   assert.match(chrome, /href="\/collection-summary">Collection Summary/);
   assert.match(styles, /\.block-summary-grid/);
+  assert.match(styles, /\.challenge-leaderboard/);
+  assert.match(styles, /\.challenge-stack-fill/);
 });
 
 test("volunteers can exclude opted-out flats from the door-to-door queue and restore them", async () => {

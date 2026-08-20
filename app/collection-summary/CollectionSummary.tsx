@@ -19,7 +19,7 @@ type Summary = {
   maximumDonation: number;
   averageDonation: number;
 };
-type Payload = { user: { role: "admin" | "block"; blockNo: string | null }; blocks: Summary[]; overall: Summary };
+type Payload = { user: { role: "admin" | "block"; blockNo: string | null }; blocks: Summary[]; competitionBlocks: Summary[]; overall: Summary };
 
 export function CollectionSummary() {
   const [data, setData] = useState<Payload | null>(null);
@@ -45,13 +45,51 @@ export function CollectionSummary() {
       <div className="summary-definition"><strong>Recorded collection</strong><span>Includes active payments awaiting verification.</span><strong>Verified collection</strong><span>Payments confirmed by an administrator.</span></div>
     </header>
 
-    {blockUser ? <SummaryCard summary={data.blocks[0] ?? data.overall} featured /> : <>
+    {blockUser ? <><SummaryCard summary={data.blocks[0] ?? data.overall} featured /><BlockChallenge summaries={data.competitionBlocks} /></> : <>
       <div className="section-title overall-title"><span className="card-kicker">Festival-wide position</span><h2>Overall Summary</h2></div>
       <SummaryCard summary={data.overall} featured />
+      <BlockChallenge summaries={data.competitionBlocks} />
       <div className="section-title"><span className="card-kicker">Block-wise progress</span><h2>Blocks A–E</h2></div>
       <div className="block-summary-grid">{data.blocks.map((block) => <SummaryCard key={block.blockNo} summary={block} />)}</div>
     </>}
   </section>;
+}
+
+function BlockChallenge({ summaries }: { summaries: Summary[] }) {
+  const ranked = [...summaries].sort((a, b) => participation(b) - participation(a) || b.totalCollection - a.totalCollection || a.blockNo.localeCompare(b.blockNo));
+  const highestParticipation = ranked[0];
+  const highestCollection = [...summaries].sort((a, b) => b.totalCollection - a.totalCollection || a.blockNo.localeCompare(b.blockNo))[0];
+  const highestAverage = [...summaries].sort((a, b) => b.averageDonation - a.averageDonation || a.blockNo.localeCompare(b.blockNo))[0];
+  const maxCollection = Math.max(1, ...summaries.map((summary) => summary.totalCollection));
+
+  return <section className="block-challenge">
+    <div className="section-title"><span className="card-kicker">Friendly block challenge</span><h2>Participation Leaderboard</h2><p>Ranked by the percentage of occupied flats that have donated, so every block competes fairly.</p></div>
+    <div className="challenge-layout">
+      <div className="challenge-leaderboard table-wrap">
+        <table>
+          <thead><tr><th>Rank</th><th>Block</th><th>Participation</th><th className="leaderboard-optional">Donated</th><th>Pending</th><th className="leaderboard-optional">Opted out</th><th>Collection</th></tr></thead>
+          <tbody>{ranked.map((summary, index) => <tr key={summary.blockNo}><td><span className={`rank-medal rank-${index + 1}`}>{index + 1}</span></td><td><strong>Block {summary.blockNo}</strong></td><td><div className="challenge-participation"><span className="challenge-track"><i style={{ width: `${participation(summary)}%` }} /></span><strong>{participation(summary)}%</strong></div></td><td className="leaderboard-optional">{summary.occupiedDonatedFlats}<small>of {summary.occupiedFlats}</small></td><td><strong>{summary.pendingFlats}</strong></td><td className="leaderboard-optional">{summary.optedOutFlats}</td><td><strong>{currency(summary.totalCollection)}</strong></td></tr>)}</tbody>
+        </table>
+      </div>
+      <div className="challenge-highlights">
+        <Highlight symbol="★" label="Highest participation" block={highestParticipation} value={`${participation(highestParticipation)}%`} />
+        <Highlight symbol="₹" label="Highest collection" block={highestCollection} value={currency(highestCollection?.totalCollection ?? 0)} />
+        <Highlight symbol="↗" label="Best average per donating flat" block={highestAverage} value={currency(highestAverage?.averageDonation ?? 0)} />
+      </div>
+    </div>
+    <div className="challenge-comparison">
+      <header><div><span className="card-kicker">Contribution comparison</span><h3>Collection Split by Block</h3></div><div className="challenge-legend"><span><i className="festival" />Main festival</span><span><i className="idol" />Idol</span><span><i className="mahaprasadam" />Mahaprasadam</span></div></header>
+      <div className="challenge-bars">{summaries.map((summary) => <div className="challenge-bar-row" key={summary.blockNo}><strong>Block {summary.blockNo}</strong><div className="challenge-stack-track" aria-label={`Block ${summary.blockNo}: ${currency(summary.totalCollection)} total collection`}><div className="challenge-stack-fill" style={{ width: `${(summary.totalCollection / maxCollection) * 100}%` }}><i className="festival" style={{ flexGrow: summary.festivalCollection }} /><i className="idol" style={{ flexGrow: summary.idolCollection }} /><i className="mahaprasadam" style={{ flexGrow: summary.mahaprasadamCollection }} /></div></div><span>{currency(summary.totalCollection)}</span></div>)}</div>
+    </div>
+  </section>;
+}
+
+function Highlight({ symbol, label, block, value }: { symbol: string; label: string; block?: Summary; value: string }) {
+  return <article><span className="highlight-symbol">{symbol}</span><div><small>{label}</small><strong>{block ? `Block ${block.blockNo}` : "—"}</strong></div><b>{value}</b></article>;
+}
+
+function participation(summary?: Summary) {
+  return summary?.occupiedFlats ? Math.round((summary.occupiedDonatedFlats / summary.occupiedFlats) * 100) : 0;
 }
 
 function SummaryCard({ summary, featured = false }: { summary: Summary; featured?: boolean }) {

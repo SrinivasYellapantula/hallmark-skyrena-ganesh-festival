@@ -21,8 +21,6 @@ export async function GET(request: Request) {
   if ("response" in auth) return auth.response;
   await ensureDatabase();
 
-  const blockFilter = auth.user.role === "block" ? "AND f.block_no = ?" : "";
-  const registrationFilter = auth.user.role === "block" ? "AND r.block_no = ?" : "";
   const d1 = getD1();
 
   const occupancyStatement = d1.prepare(
@@ -35,7 +33,7 @@ export async function GET(request: Request) {
            ELSE REPLACE(REPLACE(UPPER(TRIM(f.flat_no)),'-',''),' ','')
          END flatNo,
          MAX(CASE WHEN f.visit_status='opted_out' THEN 1 ELSE 0 END) optedOut
-       FROM flats f WHERE f.event_id=? AND f.occupied=1 ${blockFilter}
+       FROM flats f WHERE f.event_id=? AND f.occupied=1
        GROUP BY blockNo,flatNo
      ), donated_flat_keys AS (
        SELECT UPPER(TRIM(r.block_no)) blockNo,
@@ -71,7 +69,7 @@ export async function GET(request: Request) {
          SUM(CASE WHEN d.status!='reversed' AND d.category='idol' THEN d.amount ELSE 0 END) idolCollection,
          SUM(CASE WHEN d.status!='reversed' AND d.category='annadaanam' THEN d.amount ELSE 0 END) mahaprasadamCollection
        FROM registrations r JOIN donations d ON d.registration_id=r.id
-       WHERE r.event_id=? AND r.status!='cancelled' ${registrationFilter}
+       WHERE r.event_id=? AND r.status!='cancelled'
        GROUP BY r.id
      ), flat_totals AS (
        SELECT blockNo,flatNo,SUM(totalCollection) totalCollection,
@@ -90,17 +88,14 @@ export async function GET(request: Request) {
      FROM flat_totals GROUP BY blockNo ORDER BY blockNo`,
   );
 
-  const bindings = auth.user.role === "block" ? [EVENT_ID, auth.user.blockNo, EVENT_ID] : [EVENT_ID, EVENT_ID];
-  const collectionBindings = auth.user.role === "block" ? [EVENT_ID, auth.user.blockNo] : [EVENT_ID];
   const [occupancy, collections] = await Promise.all([
-    occupancyStatement.bind(...bindings).all<OccupancyRow>(),
-    collectionStatement.bind(...collectionBindings).all<CollectionRow>(),
+    occupancyStatement.bind(EVENT_ID, EVENT_ID).all<OccupancyRow>(),
+    collectionStatement.bind(EVENT_ID).all<CollectionRow>(),
   ]);
 
   const occupancyByBlock = new Map(occupancy.results.map((row) => [row.blockNo, row]));
   const collectionByBlock = new Map(collections.results.map((row) => [row.blockNo, row]));
-  const visibleBlocks = auth.user.role === "block" ? [String(auth.user.blockNo)] : [...BLOCKS];
-  const blocks = visibleBlocks.map((blockNo) => {
+  const competitionBlocks = [...BLOCKS].map((blockNo) => {
     const occupied = occupancyByBlock.get(blockNo);
     const collection = collectionByBlock.get(blockNo);
     const occupiedFlats = Number(occupied?.occupiedFlats ?? 0);
@@ -124,28 +119,29 @@ export async function GET(request: Request) {
       averageDonation: Number(collection?.averageDonation ?? 0),
     };
   });
+  const blocks = auth.user.role === "block" ? competitionBlocks.filter((block) => block.blockNo === auth.user.blockNo) : competitionBlocks;
 
-  const totalOccupied = blocks.reduce((sum, block) => sum + block.occupiedFlats, 0);
-  const totalOccupiedDonated = blocks.reduce((sum, block) => sum + block.occupiedDonatedFlats, 0);
-  const totalDonatingFlats = blocks.reduce((sum, block) => sum + block.donatingFlats, 0);
-  const totalOptedOut = blocks.reduce((sum, block) => sum + block.optedOutFlats, 0);
-  const totalCollection = blocks.reduce((sum, block) => sum + block.totalCollection, 0);
+  const totalOccupied = competitionBlocks.reduce((sum, block) => sum + block.occupiedFlats, 0);
+  const totalOccupiedDonated = competitionBlocks.reduce((sum, block) => sum + block.occupiedDonatedFlats, 0);
+  const totalDonatingFlats = competitionBlocks.reduce((sum, block) => sum + block.donatingFlats, 0);
+  const totalOptedOut = competitionBlocks.reduce((sum, block) => sum + block.optedOutFlats, 0);
+  const totalCollection = competitionBlocks.reduce((sum, block) => sum + block.totalCollection, 0);
   const overall = {
     blockNo: "Overall",
     occupiedFlats: totalOccupied,
     occupiedDonatedFlats: totalOccupiedDonated,
     optedOutFlats: totalOptedOut,
     donatingFlats: totalDonatingFlats,
-    outsideMasterDonatingFlats: blocks.reduce((sum, block) => sum + block.outsideMasterDonatingFlats, 0),
+    outsideMasterDonatingFlats: competitionBlocks.reduce((sum, block) => sum + block.outsideMasterDonatingFlats, 0),
     pendingFlats: Math.max(totalOccupied - totalOccupiedDonated - totalOptedOut, 0),
     totalCollection,
-    verifiedCollection: blocks.reduce((sum, block) => sum + block.verifiedCollection, 0),
-    festivalCollection: blocks.reduce((sum, block) => sum + block.festivalCollection, 0),
-    idolCollection: blocks.reduce((sum, block) => sum + block.idolCollection, 0),
-    mahaprasadamCollection: blocks.reduce((sum, block) => sum + block.mahaprasadamCollection, 0),
-    maximumDonation: Math.max(0, ...blocks.map((block) => block.maximumDonation)),
+    verifiedCollection: competitionBlocks.reduce((sum, block) => sum + block.verifiedCollection, 0),
+    festivalCollection: competitionBlocks.reduce((sum, block) => sum + block.festivalCollection, 0),
+    idolCollection: competitionBlocks.reduce((sum, block) => sum + block.idolCollection, 0),
+    mahaprasadamCollection: competitionBlocks.reduce((sum, block) => sum + block.mahaprasadamCollection, 0),
+    maximumDonation: Math.max(0, ...competitionBlocks.map((block) => block.maximumDonation)),
     averageDonation: totalDonatingFlats ? Math.round(totalCollection / totalDonatingFlats) : 0,
   };
 
-  return Response.json({ user: auth.user, blocks, overall });
+  return Response.json({ user: auth.user, blocks, competitionBlocks, overall });
 }
