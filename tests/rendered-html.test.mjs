@@ -513,6 +513,8 @@ test("role-scoped collection summary shows block and overall donation metrics", 
   assert.match(styles, /\.block-summary-grid/);
   assert.match(styles, /\.challenge-leaderboard/);
   assert.match(styles, /\.challenge-stack-fill/);
+  assert.match(styles, /\/\* Readable statistical numerals \*\//);
+  assert.match(styles, /font-variant-numeric:tabular-nums/);
 });
 
 test("volunteers can exclude opted-out flats from the door-to-door queue and restore them", async () => {
