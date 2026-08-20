@@ -290,10 +290,17 @@ test("payment verification supports proof review and recoverable corrections", a
   assert.match(adminRoute, /Enter what needs to be corrected/);
   assert.match(dashboardRoute, /hasProof/);
   assert.match(dashboardRoute, /json_extract\(a\.details, '\$\.reason'\)/);
+  assert.match(dashboardRoute, /LIMIT \? OFFSET \?/);
+  assert.match(dashboardRoute, /verifiedCount/);
+  assert.match(dashboardRoute, /pagination:/);
+  assert.doesNotMatch(dashboardRoute, /LIMIT 100/);
   assert.match(dashboard, /View Payment Proof/);
   assert.match(dashboard, /Verify Payment/);
   assert.match(dashboard, /Request Correction/);
   assert.match(dashboard, /Request a correction/);
+  assert.match(dashboard, /Filter submissions by status/);
+  assert.match(dashboard, /Complete \(\{data\.statusCounts\.verified\}\)/);
+  assert.match(dashboard, /Page \{data\.pagination\.page\} of/);
   assert.doesNotMatch(dashboard, /Send Back|Send back/);
   assert.match(donationsRoute, /correctionReason/);
   assert.match(donationDetail, /\["submitted","correction_requested"\]/);

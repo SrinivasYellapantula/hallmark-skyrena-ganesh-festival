@@ -9,12 +9,25 @@ type Registration = {
   paymentMethod: string; paymentReference: string; createdAt: string; hasProof: number; correctionReason: string;
 };
 type RecycleItem={id:string;entityType:"expense"|"meeting"|"registration";entityId:string;entityLabel:string;deletedBy:string;deletedAt:string;ageDays:number};
-type Dashboard = { registrations: Registration[]; totals: { verified: number; pending: number; submissions: number }; portalOwner: boolean };
-const blank: Dashboard = { registrations: [], totals: { verified: 0, pending: 0, submissions: 0 }, portalOwner: false };
+type VerificationStatus = "all" | "submitted" | "verified" | "correction_requested";
+type Dashboard = {
+  registrations: Registration[];
+  totals: { verified: number; pending: number; submissions: number };
+  statusCounts: Record<VerificationStatus, number>;
+  pagination: { page: number; pageSize: number; total: number; totalPages: number };
+  portalOwner: boolean;
+};
+const blank: Dashboard = {
+  registrations: [], totals: { verified: 0, pending: 0, submissions: 0 },
+  statusCounts: { all: 0, submitted: 0, verified: 0, correction_requested: 0 },
+  pagination: { page: 1, pageSize: 50, total: 0, totalPages: 1 }, portalOwner: false,
+};
 
 export function AdminDashboard() {
   const [data, setData] = useState<Dashboard>(blank);
   const [filter, setFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<VerificationStatus>("submitted");
+  const [page, setPage] = useState(1);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
   const [correctionTarget, setCorrectionTarget] = useState<Registration | null>(null);
@@ -23,28 +36,20 @@ export function AdminDashboard() {
   const loadRecycle=useCallback(async()=>{const response=await fetch("/api/admin/recycle-bin",{cache:"no-store"});const payload=await response.json();if(!response.ok)throw new Error(payload.error??"Unable to load the Recycle Bin.");setRecycleItems(payload.items??[]);},[]);
 
   const load = useCallback(async () => {
-    const response = await fetch("/api/admin/dashboard");
+    const response = await fetch(`/api/admin/dashboard?status=${statusFilter}&page=${page}`, { cache: "no-store" });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error ?? "Unable to load festival accounts.");
     setData(payload);
+    setPage(payload.pagination?.page ?? 1);
     if(payload.portalOwner)await loadRecycle();else setRecycleItems([]);
-  }, [loadRecycle]);
+  }, [loadRecycle, page, statusFilter]);
 
   useEffect(() => {
-    let active = true;
-    fetch("/api/admin/dashboard")
-      .then(async (response) => ({ response, payload: await response.json() }))
-      .then(({ response, payload }) => {
-        if (!active) return;
-        if (!response.ok) setError(payload.error ?? "Unable to load festival accounts.");
-        else {
-          setData(payload);
-          if(payload.portalOwner)void loadRecycle().catch(()=>active&&setError("Unable to load the Recycle Bin."));
-        }
-      })
-      .catch(() => active && setError("Unable to load."));
-    return () => { active = false; };
-  }, [loadRecycle]);
+    const timeout = window.setTimeout(() => {
+      void load().catch((caught) => setError(caught instanceof Error ? caught.message : "Unable to load festival accounts."));
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [load]);
   useEffect(()=>{if(data.portalOwner&&window.location.hash==="#recycle-bin")requestAnimationFrame(()=>document.getElementById("recycle-bin")?.scrollIntoView({behavior:"smooth"}));},[data.portalOwner]);
 
   const visible = useMemo(
@@ -86,9 +91,10 @@ export function AdminDashboard() {
         <article><span>Household submissions</span><strong>{data.totals.submissions}</strong></article>
       </div>
 
-      <div className="admin-card">
-        <header><div><span className="card-kicker">Collection queue</span><h2>Household submissions</h2></div><input aria-label="Search submissions" placeholder="Search name, block, flat or reference" value={filter} onChange={(event) => setFilter(event.target.value)} /></header>
+      <div className="admin-card verification-card">
+        <header><div><span className="card-kicker">Collection queue</span><h2>Household submissions</h2></div><div className="verification-controls"><select aria-label="Filter submissions by status" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value as VerificationStatus); setPage(1); setFilter(""); }}><option value="submitted">Awaiting Verification ({data.statusCounts.submitted})</option><option value="verified">Complete ({data.statusCounts.verified})</option><option value="correction_requested">Correction Requested ({data.statusCounts.correction_requested})</option><option value="all">All Records ({data.statusCounts.all})</option></select><input aria-label="Search submissions" placeholder="Search this page" value={filter} onChange={(event) => setFilter(event.target.value)} /></div></header>
         <div className="table-wrap"><table><thead><tr><th>Resident</th><th>Location</th><th>Contribution</th><th>Payment</th><th>Status</th><th>Action</th></tr></thead><tbody>{visible.map((item) => <tr key={item.id}><td><strong>{item.residentName}</strong><small>{item.referenceNo}</small>{item.status==="correction_requested"&&item.correctionReason&&<small className="correction-note">Correction: {item.correctionReason}</small>}</td><td>Block {item.blockNo} · {item.flatNo}<small>{item.adultCount + item.childCount} attendees</small></td><td><strong>{currency(Number(item.amount))}</strong></td><td>{item.paymentMethod?.replace("_", " ")}<small>{item.paymentReference || "No reference"}</small>{item.hasProof?<a className="table-proof-link" target="_blank" rel="noreferrer" href={`/api/payment-proofs/${item.id}`}>View Payment Proof</a>:<small>No proof attached</small>}</td><td><span className={`status ${item.status}`}>{item.status.replaceAll("_", " ")}</span></td><td>{item.status === "submitted" ? <div className="row-actions"><button disabled={busy === item.id} onClick={() => updateRegistration(item.id, "verify")}>Verify Payment</button><button className="danger" disabled={busy === item.id} onClick={() => setCorrectionTarget(item)}>Request Correction</button></div> : item.status === "correction_requested"?<span className="done">Awaiting correction</span>:<span className="done">Complete</span>}</td></tr>)}</tbody></table>{visible.length === 0 && <div className="empty-state"><span>◎</span><p>No matching submissions.</p></div>}</div>
+        <div className="verification-pagination"><span>{data.pagination.total ? `Showing ${(data.pagination.page - 1) * data.pagination.pageSize + 1}–${Math.min(data.pagination.page * data.pagination.pageSize, data.pagination.total)} of ${data.pagination.total}` : "No records in this view"}</span><div><button className="button quiet" disabled={data.pagination.page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>Previous</button><strong>Page {data.pagination.page} of {data.pagination.totalPages}</strong><button className="button quiet" disabled={data.pagination.page >= data.pagination.totalPages} onClick={() => setPage((current) => current + 1)}>Next</button></div></div>
       </div>
 
       <div className="security-note"><strong>Security checkpoint</strong><p>Change the initial administrator password before sharing the portal. New passwords are salted and hashed, and all active sessions are revoked when a password is reset.</p></div>
