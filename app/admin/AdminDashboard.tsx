@@ -1,31 +1,22 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { currency } from "../lib/constants";
-import { optimizeImageUpload } from "../lib/client-image";
-import { EXPENSE_CATEGORIES } from "../lib/expense-categories";
 
 type Registration = {
   id: string; referenceNo: string; residentName: string; blockNo: string; flatNo: string;
   adultCount: number; childCount: number; status: string; amount: number; paymentStatus: string;
   paymentMethod: string; paymentReference: string; createdAt: string; hasProof: number; correctionReason: string;
 };
-type Expense = {
-  id: string; category: string; vendor: string; description: string; amount: number; expenseDate: string;
-  receiptUrl: string; hasReceipt: number; receiptName: string | null; status: string; createdBy: string; createdAt: string;
-};
 type RecycleItem={id:string;entityType:"expense"|"meeting"|"registration";entityId:string;entityLabel:string;deletedBy:string;deletedAt:string;ageDays:number};
-type Dashboard = { registrations: Registration[]; expenses: Expense[]; totals: { verified: number; pending: number; submissions: number }; portalOwner: boolean };
-const blank: Dashboard = { registrations: [], expenses: [], totals: { verified: 0, pending: 0, submissions: 0 }, portalOwner: false };
+type Dashboard = { registrations: Registration[]; totals: { verified: number; pending: number; submissions: number }; portalOwner: boolean };
+const blank: Dashboard = { registrations: [], totals: { verified: 0, pending: 0, submissions: 0 }, portalOwner: false };
 
 export function AdminDashboard() {
   const [data, setData] = useState<Dashboard>(blank);
   const [filter, setFilter] = useState("");
-  const [expenseFilter, setExpenseFilter] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
-  const [expenseDialog, setExpenseDialog] = useState<Expense | "new" | null>(null);
-  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [correctionTarget, setCorrectionTarget] = useState<Registration | null>(null);
   const [recycleItems,setRecycleItems]=useState<RecycleItem[]>([]);
 
@@ -37,9 +28,6 @@ export function AdminDashboard() {
     if (!response.ok) throw new Error(payload.error ?? "Unable to load festival accounts.");
     setData(payload);
     if(payload.portalOwner)await loadRecycle();else setRecycleItems([]);
-    setSelectedExpense((selected) => selected
-      ? payload.expenses.find((expense: Expense) => expense.id === selected.id) ?? payload.expenses[0] ?? null
-      : payload.expenses[0] ?? null);
   }, [loadRecycle]);
 
   useEffect(() => {
@@ -51,7 +39,6 @@ export function AdminDashboard() {
         if (!response.ok) setError(payload.error ?? "Unable to load festival accounts.");
         else {
           setData(payload);
-          setSelectedExpense(payload.expenses[0] ?? null);
           if(payload.portalOwner)void loadRecycle().catch(()=>active&&setError("Unable to load the Recycle Bin."));
         }
       })
@@ -63,10 +50,6 @@ export function AdminDashboard() {
   const visible = useMemo(
     () => data.registrations.filter((item) => `${item.residentName} ${item.blockNo} ${item.flatNo} ${item.referenceNo}`.toLowerCase().includes(filter.toLowerCase())),
     [data.registrations, filter],
-  );
-  const visibleExpenses = useMemo(
-    () => data.expenses.filter((item) => `${item.category} ${item.vendor} ${item.description}`.toLowerCase().includes(expenseFilter.toLowerCase())),
-    [data.expenses, expenseFilter],
   );
 
   async function updateRegistration(registrationId: string, action: "verify" | "request_correction", reason = "") {
@@ -87,37 +70,20 @@ export function AdminDashboard() {
     }
   }
 
-  async function deleteExpense(expense: Expense) {
-    if (!window.confirm(`Move the ${expense.category} expense of ${currency(Number(expense.amount))} to the Recycle Bin? The Portal Admin can restore it.`)) return;
-    setBusy(expense.id); setError("");
-    try {
-      const response = await fetch(`/api/admin/expenses/${expense.id}`, { method: "DELETE" });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "Could not move the expense to the Recycle Bin.");
-      setSelectedExpense(null);
-      await load();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not move the expense to the Recycle Bin.");
-    } finally {
-      setBusy("");
-    }
-  }
-
   async function restoreRecycleItem(item:RecycleItem){setBusy(item.id);setError("");try{const response=await fetch("/api/admin/recycle-bin",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({id:item.id})});const payload=await response.json();if(!response.ok)throw new Error(payload.error??"Could not restore the record.");await load();}catch(caught){setError(caught instanceof Error?caught.message:"Could not restore the record.");}finally{setBusy("");}}
   async function permanentlyDeleteRecycleItem(item:RecycleItem){const phrase=`DELETE ${item.entityLabel}`;const confirmation=window.prompt(`Permanent deletion cannot be undone. Type exactly:\n\n${phrase}`);if(confirmation===null)return;setBusy(item.id);setError("");try{const response=await fetch("/api/admin/recycle-bin",{method:"DELETE",headers:{"content-type":"application/json"},body:JSON.stringify({id:item.id,confirmation})});const payload=await response.json();if(!response.ok)throw new Error(payload.error??"Could not permanently delete the record.");await loadRecycle();}catch(caught){setError(caught instanceof Error?caught.message:"Could not permanently delete the record.");}finally{setBusy("");}}
 
   return (
     <section className="wrap admin-shell">
       <div className="admin-heading">
-        <div><div className="eyebrow"><span />{data.portalOwner ? "Portal Admin" : "Administrator"}</div><h1>Festival Accounts</h1><p>Verify collections, record expenses and keep the public ledger current.</p></div>
-        <div className="admin-heading-actions"><a className="button quiet" href="#expenses">View Expenses</a><button className="button primary" onClick={() => setExpenseDialog("new")}>+ Record Expense</button></div>
+        <div><div className="eyebrow"><span />{data.portalOwner ? "Portal Admin" : "Administrator"}</div><h1>Collection Verification</h1><p>Review household submissions, payment proofs and verified festival collections.</p></div>
+        <div className="admin-heading-actions"><a className="button primary" href="/expenses">Open Expense Workspace</a></div>
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}
       <div className="admin-metrics">
         <article><span>Verified collections</span><strong>{currency(Number(data.totals.verified))}</strong></article>
         <article><span>Pending verification</span><strong>{currency(Number(data.totals.pending))}</strong></article>
         <article><span>Household submissions</span><strong>{data.totals.submissions}</strong></article>
-        <article><span>Recorded expenses</span><strong>{currency(data.expenses.reduce((sum, item) => sum + Number(item.amount), 0))}</strong></article>
       </div>
 
       <div className="admin-card">
@@ -125,46 +91,8 @@ export function AdminDashboard() {
         <div className="table-wrap"><table><thead><tr><th>Resident</th><th>Location</th><th>Contribution</th><th>Payment</th><th>Status</th><th>Action</th></tr></thead><tbody>{visible.map((item) => <tr key={item.id}><td><strong>{item.residentName}</strong><small>{item.referenceNo}</small>{item.status==="correction_requested"&&item.correctionReason&&<small className="correction-note">Correction: {item.correctionReason}</small>}</td><td>Block {item.blockNo} · {item.flatNo}<small>{item.adultCount + item.childCount} attendees</small></td><td><strong>{currency(Number(item.amount))}</strong></td><td>{item.paymentMethod?.replace("_", " ")}<small>{item.paymentReference || "No reference"}</small>{item.hasProof?<a className="table-proof-link" target="_blank" rel="noreferrer" href={`/api/payment-proofs/${item.id}`}>View Payment Proof</a>:<small>No proof attached</small>}</td><td><span className={`status ${item.status}`}>{item.status.replaceAll("_", " ")}</span></td><td>{item.status === "submitted" ? <div className="row-actions"><button disabled={busy === item.id} onClick={() => updateRegistration(item.id, "verify")}>Verify Payment</button><button className="danger" disabled={busy === item.id} onClick={() => setCorrectionTarget(item)}>Request Correction</button></div> : item.status === "correction_requested"?<span className="done">Awaiting correction</span>:<span className="done">Complete</span>}</td></tr>)}</tbody></table>{visible.length === 0 && <div className="empty-state"><span>◎</span><p>No matching submissions.</p></div>}</div>
       </div>
 
-      <div className="admin-card expense-register" id="expenses">
-        <header><div><span className="card-kicker">Expense register</span><h2>Recorded Expenses</h2></div><input aria-label="Search expenses" placeholder="Search category, vendor or description" value={expenseFilter} onChange={(event) => setExpenseFilter(event.target.value)} /></header>
-        <div className="expense-records">
-          <div className="expense-record-list">
-            {visibleExpenses.map((expense) => (
-              <button key={expense.id} className={selectedExpense?.id === expense.id ? "selected" : ""} onClick={() => setSelectedExpense(expense)}>
-                <span><strong>{expense.category}</strong><small>{expense.vendor} · {expense.expenseDate}</small></span>
-                <span><strong>{currency(Number(expense.amount))}</strong><small>{expense.hasReceipt ? "Receipt attached" : "No receipt image"}</small></span>
-              </button>
-            ))}
-            {!visibleExpenses.length && <div className="empty-state"><span>◎</span><p>No matching expenses.</p></div>}
-          </div>
-          {selectedExpense ? (
-            <aside className="expense-detail">
-              <button className="dialog-close" onClick={() => setSelectedExpense(null)} aria-label="Close expense details">×</button>
-              <span className="card-kicker">Expense details</span>
-              <h3>{selectedExpense.category}</h3>
-              <p>{selectedExpense.description}</p>
-              <dl>
-                <div><dt>Vendor / Payee</dt><dd>{selectedExpense.vendor}</dd></div>
-                <div><dt>Amount</dt><dd>{currency(Number(selectedExpense.amount))}</dd></div>
-                <div><dt>Expense date</dt><dd>{selectedExpense.expenseDate}</dd></div>
-                <div><dt>Recorded by</dt><dd>{selectedExpense.createdBy}</dd></div>
-              </dl>
-              <div className="expense-proof-actions">
-                {Boolean(selectedExpense.hasReceipt) && <a className="button quiet" target="_blank" rel="noreferrer" href={`/api/admin/expense-receipts/${selectedExpense.id}`}>View Receipt Photo</a>}
-                {selectedExpense.receiptUrl && <a className="button quiet" target="_blank" rel="noreferrer" href={selectedExpense.receiptUrl}>Open Receipt Link</a>}
-              </div>
-              <div className="expense-detail-actions">
-                <button className="button quiet" onClick={() => setExpenseDialog(selectedExpense)}>Edit Expense</button>
-                <button className="button danger-button" disabled={busy === selectedExpense.id} onClick={() => void deleteExpense(selectedExpense)}>{busy === selectedExpense.id ? "Moving…" : "Move to Recycle Bin"}</button>
-              </div>
-            </aside>
-          ) : <aside className="expense-detail expense-detail-empty"><span>Choose an expense to view its details.</span></aside>}
-        </div>
-      </div>
-
       <div className="security-note"><strong>Security checkpoint</strong><p>Change the initial administrator password before sharing the portal. New passwords are salted and hashed, and all active sessions are revoked when a password is reset.</p></div>
       {data.portalOwner&&<section className="admin-card recycle-bin" id="recycle-bin"><header><div><span className="card-kicker">Portal Admin recovery</span><h2>Recycle Bin</h2><p>Restore accidentally removed records. Permanent deletion is locked for 30 days and requires typed confirmation.</p></div><span className="recycle-count">{recycleItems.length} item{recycleItems.length===1?"":"s"}</span></header>{recycleItems.length?<div className="recycle-list">{recycleItems.map((item)=><article key={item.id}><div><span className="status recycled">{item.entityType}</span><strong>{item.entityLabel}</strong><small>Removed by {item.deletedBy} · {new Date(item.deletedAt+"Z").toLocaleString("en-IN")}</small></div><div className="recycle-actions"><button className="button quiet" disabled={busy===item.id} onClick={()=>void restoreRecycleItem(item)}>Restore</button><button className="button danger-button" disabled={busy===item.id||Number(item.ageDays)<30} title={Number(item.ageDays)<30?`Available in ${30-Number(item.ageDays)} day(s)`:"Permanently delete"} onClick={()=>void permanentlyDeleteRecycleItem(item)}>{Number(item.ageDays)<30?`Delete in ${30-Number(item.ageDays)}d`:"Permanently Delete"}</button></div></article>)}</div>:<div className="empty-state"><p>The Recycle Bin is empty.</p></div>}</section>}
-      {expenseDialog && <ExpenseDialog expense={expenseDialog === "new" ? null : expenseDialog} close={() => setExpenseDialog(null)} saved={async () => { setExpenseDialog(null); await load(); }} />}
       {correctionTarget && <CorrectionDialog registration={correctionTarget} close={() => setCorrectionTarget(null)} submit={async (reason) => { const saved=await updateRegistration(correctionTarget.id,"request_correction",reason); if(saved)setCorrectionTarget(null); return saved; }} />}
     </section>
   );
@@ -173,62 +101,4 @@ export function AdminDashboard() {
 function CorrectionDialog({registration,close,submit}:{registration:Registration;close:()=>void;submit:(reason:string)=>Promise<boolean>}) {
   const [reason,setReason]=useState(""); const [busy,setBusy]=useState(false);
   return <div className="dialog-backdrop" role="presentation" onMouseDown={(event)=>{if(!busy&&event.target===event.currentTarget)close();}}><div className="dialog correction-dialog" role="dialog" aria-modal="true" aria-labelledby="correction-title"><button className="dialog-close" disabled={busy} onClick={close} aria-label="Close">×</button><span className="card-kicker">Payment verification</span><h2 id="correction-title">Request a correction</h2><p>Tell the Block {registration.blockNo} Coordinator exactly what needs to be corrected for Flat {registration.flatNo}.</p><label>Correction required<textarea rows={4} maxLength={300} required autoFocus value={reason} onChange={(event)=>setReason(event.target.value)} placeholder="For example: payment screenshot is unclear; please upload a clearer image."/></label><div className="dialog-actions"><button type="button" className="button quiet" disabled={busy} onClick={close}>Cancel</button><button type="button" className="button primary" disabled={busy||!reason.trim()} onClick={()=>{setBusy(true);void submit(reason.trim()).then((saved)=>{if(!saved)setBusy(false);}).catch(()=>setBusy(false));}}>{busy?"Requesting…":"Request Correction"}</button></div></div></div>;
-}
-
-function ExpenseDialog({ expense, close, saved }: { expense: Expense | null; close: () => void; saved: () => Promise<void> }) {
-  const [busy, setBusy] = useState(false);
-  const [optimizing, setOptimizing] = useState(false);
-  const [receipt, setReceipt] = useState<File | null>(null);
-  const [error, setError] = useState("");
-
-  async function selectReceipt(file: File | null) {
-    setReceipt(null); setError("");
-    if (!file) return;
-    setOptimizing(true);
-    try { setReceipt(await optimizeImageUpload(file, "expense-receipt")); }
-    catch (caught) { setError(caught instanceof Error ? caught.message : "Unable to optimize receipt image."); }
-    finally { setOptimizing(false); }
-  }
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setBusy(true); setError("");
-    const form = new FormData(event.currentTarget);
-    if (receipt) form.set("receiptImage", receipt);
-    try {
-      const response = await fetch(expense ? `/api/admin/expenses/${expense.id}` : "/api/admin/expenses", {
-        method: expense ? "PATCH" : "POST", body: form,
-      });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "Could not save expense.");
-      await saved();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not save expense."); setBusy(false);
-    }
-  }
-
-  return (
-    <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
-      <div className="dialog expense-dialog" role="dialog" aria-modal="true" aria-labelledby="expense-title">
-        <button className="dialog-close" onClick={close} aria-label="Close">×</button>
-        <span className="card-kicker">Expense register</span>
-        <h2 id="expense-title">{expense ? "Edit Expense" : "Record an Expense"}</h2>
-        <form onSubmit={submit}>
-          <label>Category<select name="category" required defaultValue={expense?.category ?? EXPENSE_CATEGORIES[0]}>{EXPENSE_CATEGORIES.map((category) => <option key={category}>{category}</option>)}</select></label>
-          <label>Vendor / Payee<input name="vendor" required defaultValue={expense?.vendor ?? ""} /></label>
-          <label>Description<textarea name="description" required rows={3} defaultValue={expense?.description ?? ""} /></label>
-          <div className="field-grid"><label>Amount<input name="amount" required type="number" min="1" defaultValue={expense?.amount ?? ""} /></label><label>Expense Date<input name="expenseDate" required type="date" defaultValue={expense?.expenseDate ?? ""} /></label></div>
-          <label className="proof-picker">Receipt Photo <span className="optional">optional</span>
-            <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => void selectReceipt(event.target.files?.[0] ?? null)} />
-            <small>On mobile, choose Camera to photograph the receipt. Large images are compressed for private storage.</small>
-            {optimizing && <strong>Optimizing image…</strong>}
-            {receipt && <strong>Ready: {receipt.name} ({Math.ceil(receipt.size / 1024)} KB)</strong>}
-          </label>
-          {expense?.hasReceipt ? <label className="remove-receipt"><input type="checkbox" name="removeReceipt" value="true" />Remove the existing receipt photo</label> : null}
-          <label>Receipt Link <span className="optional">optional</span><input name="receiptUrl" type="url" placeholder="https://drive.google.com/…" defaultValue={expense?.receiptUrl ?? ""} /></label>
-          {error && <p className="form-error">{error}</p>}
-          <div className="dialog-actions"><button type="button" className="button quiet" onClick={close}>Cancel</button><button className="button primary" disabled={busy || optimizing}>{optimizing ? "Optimizing…" : busy ? "Saving…" : expense ? "Save Changes" : "Save Expense"}</button></div>
-        </form>
-      </div>
-    </div>
-  );
 }

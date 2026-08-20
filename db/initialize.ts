@@ -111,6 +111,13 @@ async function initialize() {
       created_by TEXT NOT NULL DEFAULT 'committee',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`,
+    `CREATE TABLE IF NOT EXISTS event_finance_settings (
+      event_id TEXT PRIMARY KEY NOT NULL REFERENCES events(id),
+      opening_balance INTEGER NOT NULL DEFAULT 0,
+      opening_balance_note TEXT NOT NULL DEFAULT '',
+      updated_by TEXT NOT NULL DEFAULT 'committee',
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
     `CREATE TABLE IF NOT EXISTS meeting_minutes (
       id TEXT PRIMARY KEY NOT NULL,
       event_id TEXT NOT NULL REFERENCES events(id),

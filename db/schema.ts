@@ -180,6 +180,14 @@ export const expenses = sqliteTable(
   ],
 );
 
+export const eventFinanceSettings = sqliteTable("event_finance_settings", {
+  eventId: text("event_id").primaryKey().references(() => events.id),
+  openingBalance: integer("opening_balance").notNull().default(0),
+  openingBalanceNote: text("opening_balance_note").notNull().default(""),
+  updatedBy: text("updated_by").notNull().default("committee"),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const auditLog = sqliteTable(
   "audit_log",
   {

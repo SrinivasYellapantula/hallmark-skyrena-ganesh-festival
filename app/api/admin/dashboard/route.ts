@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   if (user?.role !== "admin") return Response.json({ error: "Administrator access required." }, { status: 401 });
   await ensureDatabase();
   const d1 = getD1();
-  const [registrations, expenses, totals] = await Promise.all([
+  const [registrations, totals] = await Promise.all([
     d1
       .prepare(
         `SELECT r.id, r.reference_no referenceNo, r.resident_name residentName,
@@ -29,16 +29,6 @@ export async function GET(request: Request) {
       .all(),
     d1
       .prepare(
-        `SELECT id, category, vendor, description, amount, expense_date expenseDate,
-          receipt_url receiptUrl, receipt_proof_key IS NOT NULL hasReceipt,
-          receipt_proof_name receiptName, status, created_by createdBy, created_at createdAt FROM expenses
-         WHERE event_id = ? AND status != 'reversed'
-         ORDER BY expense_date DESC, created_at DESC LIMIT 100`,
-      )
-      .bind(EVENT_ID)
-      .all(),
-    d1
-      .prepare(
         `SELECT
           COALESCE(SUM(CASE WHEN d.status = 'verified' THEN d.amount ELSE 0 END), 0) verified,
           COALESCE(SUM(CASE WHEN d.status = 'pending' THEN d.amount ELSE 0 END), 0) pending,
@@ -49,5 +39,5 @@ export async function GET(request: Request) {
       .bind(EVENT_ID)
       .first(),
   ]);
-  return Response.json({ registrations: registrations.results, expenses: expenses.results, totals, portalOwner: isPortalOwner(user) });
+  return Response.json({ registrations: registrations.results, totals, portalOwner: isPortalOwner(user) });
 }

@@ -347,32 +347,46 @@ test("portal-wide test-data clearing is unavailable while Portal Admin access re
   assert.match(usersScreen, /Protected/);
 });
 
-test("expense register supports private receipt images and full administration", async () => {
-  const [collectionRoute, detailRoute, receiptRoute, dashboard, chrome, categories, migration] = await Promise.all([
+test("separate expense workspace supports transparent fund accounting and private receipts", async () => {
+  const [collectionRoute, detailRoute, receiptRoute, expensesScreen, expensesPage, financeRoute, adminDashboard, chrome, categories, migration, financeMigration] = await Promise.all([
     source("app/api/admin/expenses/route.ts"),
     source("app/api/admin/expenses/[id]/route.ts"),
     source("app/api/admin/expense-receipts/[id]/route.ts"),
+    source("app/expenses/ExpensesDashboard.tsx"),
+    source("app/expenses/page.tsx"),
+    source("app/api/admin/finance-summary/route.ts"),
     source("app/admin/AdminDashboard.tsx"),
     source("app/components/SiteChrome.tsx"),
     source("app/lib/expense-categories.ts"),
     source("drizzle/0005_flawless_hawkeye.sql"),
+    source("drizzle/0010_event_finance_settings.sql"),
   ]);
   assert.match(collectionRoute, /request\.formData\(\)/);
   assert.match(collectionRoute, /PAYMENT_PROOFS/);
   assert.match(detailRoute, /export async function PATCH/);
   assert.match(detailRoute, /export async function DELETE/);
   assert.match(receiptRoute, /private, no-store/);
-  assert.match(dashboard, /capture="environment"/);
-  assert.match(dashboard, /Recorded Expenses/);
-  assert.match(dashboard, /Edit Expense/);
-  assert.match(dashboard, /Move to Recycle Bin/);
-  assert.match(dashboard, /Boolean\(selectedExpense\.hasReceipt\)/);
-  assert.match(dashboard, /id="expenses"/);
-  assert.match(dashboard, /payload\.expenses\[0\]/);
-  assert.match(chrome, /\/admin#expenses/);
+  assert.doesNotMatch(expensesScreen, /capture="environment"/);
+  assert.match(expensesScreen, /Festival Expenses/);
+  assert.match(expensesScreen, /Total funds available/);
+  assert.match(expensesScreen, /Current deficit/);
+  assert.match(expensesScreen, /Pending verification/);
+  assert.match(expensesScreen, /Previous-Year Carry Forward/);
+  assert.match(expensesScreen, /Edit Expense/);
+  assert.match(expensesScreen, /Move to Recycle Bin/);
+  assert.match(expensesScreen, /Boolean\(selected\.hasReceipt\)/);
+  assert.match(expensesPage, /ExpensesDashboard/);
+  assert.match(financeRoute, /openingBalance \+ verifiedCollections/);
+  assert.match(financeRoute, /recordedExpenses/);
+  assert.match(financeRoute, /Only the Portal Admin can change the opening balance/);
+  assert.match(adminDashboard, /Open Expense Workspace/);
+  assert.doesNotMatch(adminDashboard, /Recorded Expenses/);
+  assert.match(chrome, /href="\/expenses"/);
   assert.match(categories, /Sound & Lighting/);
   assert.match(categories, /Licences & Permissions/);
   assert.match(migration, /receipt_proof_key/);
+  assert.match(financeMigration, /event_finance_settings/);
+  assert.match(financeMigration, /opening_balance/);
 });
 
 test("application login uses hashed passwords and server-side sessions", async () => {
@@ -411,7 +425,7 @@ test("role-specific workspaces are enforced and clearly named", async () => {
   ]);
   assert.match(auth, /"cultural"/);
   assert.match(chrome, /Cultural Programme/);
-  assert.match(chrome, /Festival Accounts/);
+  assert.match(chrome, /Collection Verification/);
   assert.match(chrome, /Meeting Minutes/);
   assert.match(chrome, /Administration/);
   assert.match(chrome, /nav-toggle/);
