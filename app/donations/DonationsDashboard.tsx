@@ -13,12 +13,15 @@ type Row = {
 };
 type User = { role: "admin" | "block"; blockNo: string | null };
 type AttendanceFilter = "all" | "zero" | "attending";
+type ReviewFilter = "all" | "duplicates";
+type DuplicateInfo = { count: number; reason: string; references: string[] };
 
 export function DonationsDashboard() {
   const [rows, setRows] = useState<Row[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [query, setQuery] = useState("");
   const [attendanceFilter, setAttendanceFilter] = useState<AttendanceFilter>("all");
+  const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
   const [selected, setSelected] = useState<Row | null>(null);
   const [replacementProof, setReplacementProof] = useState<File | null>(null);
   const [optimizingProof, setOptimizingProof] = useState(false);
@@ -57,6 +60,9 @@ export function DonationsDashboard() {
     [rows],
   );
 
+  const duplicateReview = useMemo(() => buildDuplicateReview(rows), [rows]);
+  const duplicateFlatCount = useMemo(() => new Set(duplicateReview.values()).size, [duplicateReview]);
+
   const visible = useMemo(() => rows.filter((row) => {
     const matchesQuery = `${row.residentName} ${row.blockNo} ${row.flatNo} ${row.referenceNo} ${row.phone ?? ""}`
       .toLowerCase().includes(query.trim().toLowerCase());
@@ -64,8 +70,11 @@ export function DonationsDashboard() {
     const matchesAttendance = attendanceFilter === "all"
       || (attendanceFilter === "zero" && totalAttendees === 0)
       || (attendanceFilter === "attending" && totalAttendees > 0);
-    return matchesQuery && matchesAttendance;
-  }), [attendanceFilter, query, rows]);
+    const matchesReview = reviewFilter === "all" || duplicateReview.has(row.id);
+    return matchesQuery && matchesAttendance && matchesReview;
+  }), [attendanceFilter, duplicateReview, query, reviewFilter, rows]);
+
+  const selectedDuplicate = selected ? duplicateReview.get(selected.id) : undefined;
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -124,6 +133,10 @@ export function DonationsDashboard() {
               <option value="zero">0 attendees ({zeroAttendanceCount})</option>
               <option value="attending">1 or more attendees</option>
             </select>
+            <select className="duplicate-filter" aria-label="Filter donations requiring duplicate review" value={reviewFilter} onChange={(event) => setReviewFilter(event.target.value as ReviewFilter)}>
+              <option value="all">All records</option>
+              <option value="duplicates">Duplicate Review ({duplicateFlatCount} flats)</option>
+            </select>
             {/* This endpoint returns a file rather than a navigable application page. */}
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a className="button quiet donation-export" href="/api/donations/export">Export Donated Flats (.xlsx)</a>
@@ -132,7 +145,7 @@ export function DonationsDashboard() {
         <div className="record-list">
           {visible.map((row) => (
             <button key={row.id} onClick={() => { setSelected(row); setReplacementProof(null); }}>
-              <span><strong>{row.residentName}</strong><small>Block {row.blockNo} · Flat {row.flatNo} · {row.referenceNo}</small><small className={row.adultCount + row.childCount === 0 ? "attendance-review" : ""}>{row.adultCount + row.childCount} Mahaprasadam attendee{row.adultCount + row.childCount === 1 ? "" : "s"}{row.adultCount + row.childCount === 0 ? " · please confirm" : ""}</small></span>
+              <span><strong>{row.residentName}</strong><small>Block {row.blockNo} · Flat {row.flatNo} · {row.referenceNo}</small>{duplicateReview.has(row.id)&&<small className="duplicate-review-label">Duplicate Review · {duplicateReview.get(row.id)?.reason}</small>}<small className={row.adultCount + row.childCount === 0 ? "attendance-review" : ""}>{row.adultCount + row.childCount} Mahaprasadam attendee{row.adultCount + row.childCount === 1 ? "" : "s"}{row.adultCount + row.childCount === 0 ? " · please confirm" : ""}</small></span>
               <span><strong>{currency(Number(row.amount))}</strong><small className={`status ${row.status}`}>{row.status}</small></span>
             </button>
           ))}
@@ -146,6 +159,7 @@ export function DonationsDashboard() {
           <span className="card-kicker">Detailed view</span>
           <h2>{selected.residentName}</h2>
           <p>Block {selected.blockNo} · Flat {selected.flatNo} · {selected.referenceNo}</p>
+          {selectedDuplicate&&<div className="duplicate-review-alert"><strong>Duplicate Review</strong><span>{selectedDuplicate.count} active submissions were found for this block and flat.</span><span>{selectedDuplicate.reason}.</span><small>Review the payment reference and proof before moving any duplicate submission to the Recycle Bin. Genuine additional donations should be retained.</small></div>}
           {selected.status === "correction_requested" && <div className="correction-alert"><strong>Correction requested</strong><span>{selected.correctionReason || "Please review and correct this submission."}</span><small>Saving the corrected record will send it back for administrator verification.</small></div>}
           <dl>
             <div><dt>Status</dt><dd>{selected.status}</dd></div>
@@ -183,4 +197,37 @@ export function DonationsDashboard() {
       )}
     </section>
   );
+}
+
+function buildDuplicateReview(rows: Row[]) {
+  const groups = new Map<string, Row[]>();
+  for (const row of rows) {
+    const key = `${row.blockNo.trim().toUpperCase()}:${canonicalFlatNo(row.flatNo, row.blockNo)}`;
+    groups.set(key, [...(groups.get(key) ?? []), row]);
+  }
+  const review = new Map<string, DuplicateInfo>();
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    const paymentReferences = group.map((row) => normalizePaymentReference(row.paymentReference)).filter(Boolean);
+    const repeatedReference = paymentReferences.find((reference, index) => paymentReferences.indexOf(reference) !== index);
+    const verifiedCount = group.filter((row) => row.status === "verified").length;
+    const samePhoneAndAmount = group.some((row, index) => group.some((other, otherIndex) => index !== otherIndex && row.phone && row.phone === other.phone && Number(row.amount) === Number(other.amount)));
+    const reason = repeatedReference ? "Same payment reference appears more than once"
+      : verifiedCount === 1 ? "Multiple forms but only one verified payment"
+      : samePhoneAndAmount ? "Same phone number and amount appear more than once"
+      : "Multiple submissions exist for the same flat";
+    const info = { count: group.length, reason, references: group.map((row) => row.referenceNo).sort() };
+    for (const row of group) review.set(row.id, info);
+  }
+  return review;
+}
+
+function canonicalFlatNo(flatNo: string, blockNo: string) {
+  const flat = flatNo.trim().toUpperCase().replace(/[\s-]+/g, "");
+  const block = blockNo.trim().toUpperCase();
+  return flat.startsWith(block) && /^(?:G|\d)/.test(flat.slice(block.length)) ? flat.slice(block.length) : flat;
+}
+
+function normalizePaymentReference(reference: string) {
+  return reference.trim().toUpperCase().replace(/[\s-]+/g, "");
 }

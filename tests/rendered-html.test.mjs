@@ -635,6 +635,23 @@ test("donations can be filtered for zero Mahaprasadam attendance and contacted",
   assert.match(styles, /\.donation-records-card>header\{display:grid/);
 });
 
+test("duplicate review flags repeated flat submissions without changing valid donations", async () => {
+  const [screen, styles] = await Promise.all([
+    source("app/donations/DonationsDashboard.tsx"),
+    source("app/globals.css"),
+  ]);
+  assert.match(screen, /type ReviewFilter = "all" \| "duplicates"/);
+  assert.match(screen, /buildDuplicateReview\(rows\)/);
+  assert.match(screen, /canonicalFlatNo\(row\.flatNo, row\.blockNo\)/);
+  assert.match(screen, /Same payment reference appears more than once/);
+  assert.match(screen, /Multiple forms but only one verified payment/);
+  assert.match(screen, /Same phone number and amount appear more than once/);
+  assert.match(screen, /Duplicate Review \(\{duplicateFlatCount\} flats\)/);
+  assert.match(screen, /Genuine additional donations should be retained/);
+  assert.match(styles, /\.duplicate-review-alert/);
+  assert.match(styles, /\.duplicate-review-label/);
+});
+
 test("occupied-flat map and block-wise CSV import preserve collection history", async () => {
   const [mapRoute, flatsRoute, importRoute, screen, contribution, registration, chrome, migration, occupancyMigration] = await Promise.all([
     source("app/api/flats/map/route.ts"), source("app/api/flats/route.ts"),
