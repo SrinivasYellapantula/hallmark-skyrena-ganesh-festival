@@ -455,6 +455,7 @@ test("mobile app metadata and compact controls are present", async () => {
   assert.match(styles, /@media \(max-width: 480px\)/);
   assert.match(styles, /@media \(max-width: 1500px\)/);
   assert.match(styles, /\.brand-copy \{[^}]*white-space: nowrap/);
+  assert.match(styles, /\.nav-wrap \{[^}]*width: min\(1500px, calc\(100% - 40px\)\)/);
   assert.match(chrome, /className="admin-chevron"/);
   assert.match(styles, /\.admin-chevron\{/);
   assert.match(styles, /\.admin-menu\[open\] \.admin-chevron/);

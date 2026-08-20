@@ -24,7 +24,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .compact { width: min(900px, calc(100% - 40px)); }
 
 .site-header { position: relative; z-index: 20; border-bottom: 1px solid var(--line); background: rgba(248, 242, 231, .92); backdrop-filter: blur(16px); }
-.nav-wrap { min-height: 82px; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
+.nav-wrap { width: min(1500px, calc(100% - 40px)); min-height: 82px; margin-inline: auto; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
 .brand { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 .brand-logo { width: 112px; height: 64px; object-fit: contain; }
 .brand-copy { padding-left: 9px; border-left: 1px solid var(--line); white-space: nowrap; }
