@@ -83,6 +83,9 @@ export function PendingFlats() {
     await load(block);
   }
 
+  const visitQueue = flats.filter((flat) => flat.visitStatus !== "opted_out");
+  const optedOut = flats.filter((flat) => flat.visitStatus === "opted_out");
+
   return (
     <section className="wrap pending-shell">
       {error && <p className="form-error">{error}</p>}
@@ -101,26 +104,32 @@ export function PendingFlats() {
           <input name="residentName" placeholder="Resident name (optional)" />
           <button className="button primary">Add to visit list</button>
         </form>
-        <div className="flat-grid">
-          {flats.map((flat) => <FlatCard key={flat.id} flat={flat} save={update} />)}
+        <div className="visit-queue-summary">
+          <div><strong>{visitQueue.length}</strong><span>Door-to-door pending</span></div>
+          <div><strong>{optedOut.length}</strong><span>Opted out · do not visit</span></div>
         </div>
-        {!flats.length && <div className="empty-state"><p>No pending or revisit flats in this block. Add the official flat list when available.</p></div>}
+        <div className="flat-grid">
+          {visitQueue.map((flat) => <FlatCard key={flat.id} flat={flat} save={update} />)}
+        </div>
+        {!visitQueue.length && <div className="empty-state"><p>No flats currently need a door-to-door visit in this block.</p></div>}
+        {Boolean(optedOut.length) && <section className="opted-out-section"><header><div><span className="card-kicker">Do not visit</span><h3>Opted-out flats ({optedOut.length})</h3></div><p>Kept separately from the collection queue. Restore a flat if the resident changes their mind.</p></header><div className="flat-grid">{optedOut.map((flat) => <FlatCard key={flat.id} flat={flat} save={update} optedOut />)}</div></section>}
       </div>
     </section>
   );
 }
 
-function FlatCard({ flat, save }: { flat: Flat; save: (id: string, status: string, notes: string) => void }) {
+function FlatCard({ flat, save, optedOut = false }: { flat: Flat; save: (id: string, status: string, notes: string) => void; optedOut?: boolean }) {
   const [notes, setNotes] = useState(flat.visitNotes);
   return (
-    <article>
+    <article className={optedOut ? "opted-out-card" : ""}>
       <div><strong>Flat {flat.flatNo}</strong><small>{flat.residentName || "Resident not recorded"}</small></div>
-      <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Visit notes" />
-      <div className="row-actions">
+      <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder={optedOut ? "Reason or note (optional)" : "Visit notes"} />
+      {optedOut ? <div className="row-actions"><button onClick={() => save(flat.id, "pending", notes)}>Return to pending</button></div> : <div className="row-actions">
         <button onClick={() => save(flat.id, "visited", notes)}>Visited</button>
         <button onClick={() => save(flat.id, "visit_again", notes)}>Visit again</button>
         <button className="danger" onClick={() => save(flat.id, "pending", notes)}>Pending</button>
-      </div>
+        <button className="opt-out" onClick={() => save(flat.id, "opted_out", notes)}>Mark opted out</button>
+      </div>}
     </article>
   );
 }

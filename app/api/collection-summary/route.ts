@@ -3,7 +3,7 @@ import { ensureDatabase } from "../../../db/initialize";
 import { authorize } from "../../lib/auth";
 import { BLOCKS, EVENT_ID } from "../../lib/constants";
 
-type OccupancyRow = { blockNo: string; occupiedFlats: number; donatedOccupiedFlats: number };
+type OccupancyRow = { blockNo: string; occupiedFlats: number; donatedOccupiedFlats: number; optedOutFlats: number };
 type CollectionRow = {
   blockNo: string;
   donatedFlats: number;
@@ -33,7 +33,8 @@ export async function GET(request: Request) {
              AND SUBSTR(REPLACE(REPLACE(UPPER(TRIM(f.flat_no)),'-',''),' ',''),2,1) BETWEEN '0' AND '9'
            THEN SUBSTR(REPLACE(REPLACE(UPPER(TRIM(f.flat_no)),'-',''),' ',''),2)
            ELSE REPLACE(REPLACE(UPPER(TRIM(f.flat_no)),'-',''),' ','')
-         END flatNo
+         END flatNo,
+         MAX(CASE WHEN f.visit_status='opted_out' THEN 1 ELSE 0 END) optedOut
        FROM flats f WHERE f.event_id=? AND f.occupied=1 ${blockFilter}
        GROUP BY blockNo,flatNo
      ), donated_flat_keys AS (
@@ -49,7 +50,8 @@ export async function GET(request: Request) {
        GROUP BY blockNo,flatNo
      )
      SELECT o.blockNo,COUNT(*) occupiedFlats,
-       SUM(CASE WHEN d.flatNo IS NOT NULL THEN 1 ELSE 0 END) donatedOccupiedFlats
+       SUM(CASE WHEN d.flatNo IS NOT NULL THEN 1 ELSE 0 END) donatedOccupiedFlats,
+       SUM(CASE WHEN d.flatNo IS NULL AND o.optedOut=1 THEN 1 ELSE 0 END) optedOutFlats
      FROM occupied_flat_keys o LEFT JOIN donated_flat_keys d ON d.blockNo=o.blockNo AND d.flatNo=o.flatNo
      GROUP BY o.blockNo ORDER BY o.blockNo`,
   );
@@ -103,14 +105,16 @@ export async function GET(request: Request) {
     const collection = collectionByBlock.get(blockNo);
     const occupiedFlats = Number(occupied?.occupiedFlats ?? 0);
     const occupiedDonatedFlats = Number(occupied?.donatedOccupiedFlats ?? 0);
+    const optedOutFlats = Number(occupied?.optedOutFlats ?? 0);
     const donatingFlats = Number(collection?.donatedFlats ?? 0);
     return {
       blockNo,
       occupiedFlats,
       occupiedDonatedFlats,
+      optedOutFlats,
       donatingFlats,
       outsideMasterDonatingFlats: Math.max(donatingFlats - occupiedDonatedFlats, 0),
-      pendingFlats: Math.max(occupiedFlats - occupiedDonatedFlats, 0),
+      pendingFlats: Math.max(occupiedFlats - occupiedDonatedFlats - optedOutFlats, 0),
       totalCollection: Number(collection?.totalCollection ?? 0),
       verifiedCollection: Number(collection?.verifiedCollection ?? 0),
       festivalCollection: Number(collection?.festivalCollection ?? 0),
@@ -124,14 +128,16 @@ export async function GET(request: Request) {
   const totalOccupied = blocks.reduce((sum, block) => sum + block.occupiedFlats, 0);
   const totalOccupiedDonated = blocks.reduce((sum, block) => sum + block.occupiedDonatedFlats, 0);
   const totalDonatingFlats = blocks.reduce((sum, block) => sum + block.donatingFlats, 0);
+  const totalOptedOut = blocks.reduce((sum, block) => sum + block.optedOutFlats, 0);
   const totalCollection = blocks.reduce((sum, block) => sum + block.totalCollection, 0);
   const overall = {
     blockNo: "Overall",
     occupiedFlats: totalOccupied,
     occupiedDonatedFlats: totalOccupiedDonated,
+    optedOutFlats: totalOptedOut,
     donatingFlats: totalDonatingFlats,
     outsideMasterDonatingFlats: blocks.reduce((sum, block) => sum + block.outsideMasterDonatingFlats, 0),
-    pendingFlats: Math.max(totalOccupied - totalOccupiedDonated, 0),
+    pendingFlats: Math.max(totalOccupied - totalOccupiedDonated - totalOptedOut, 0),
     totalCollection,
     verifiedCollection: blocks.reduce((sum, block) => sum + block.verifiedCollection, 0),
     festivalCollection: blocks.reduce((sum, block) => sum + block.festivalCollection, 0),

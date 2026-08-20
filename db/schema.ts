@@ -136,7 +136,7 @@ export const flats = sqliteTable(
     residentName: text("resident_name").notNull().default(""),
     occupancy: text("occupancy", { enum: ["owner", "tenant", ""] }).notNull().default(""),
     occupied: integer("occupied", { mode: "boolean" }).notNull().default(true),
-    visitStatus: text("visit_status", { enum: ["pending", "visited", "visit_again", "donated"] }).notNull().default("pending"),
+    visitStatus: text("visit_status", { enum: ["pending", "visited", "visit_again", "opted_out", "donated"] }).notNull().default("pending"),
     visitNotes: text("visit_notes").notNull().default(""),
     lastVisitedAt: text("last_visited_at"),
     updatedBy: text("updated_by").notNull().default("committee"),

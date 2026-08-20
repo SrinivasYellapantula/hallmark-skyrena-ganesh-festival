@@ -478,6 +478,8 @@ test("role-scoped collection summary shows block and overall donation metrics", 
   assert.match(route, /verifiedCollection/);
   assert.match(route, /maximumDonation/);
   assert.match(route, /averageDonation/);
+  assert.match(route, /optedOutFlats/);
+  assert.match(route, /f\.visit_status='opted_out'/);
   assert.match(route, /occupied_flat_keys AS/);
   assert.match(route, /donated_flat_keys AS/);
   assert.match(route, /SUBSTR\(REPLACE\(REPLACE\(UPPER\(TRIM\(r\.flat_no\)\)/);
@@ -489,7 +491,8 @@ test("role-scoped collection summary shows block and overall donation metrics", 
   assert.match(screen, /Blocks A–E/);
   assert.match(screen, /Overall Summary/);
   assert.ok(screen.indexOf("Overall Summary") < screen.indexOf("Blocks A–E"));
-  assert.match(screen, /Pending flats/);
+  assert.match(screen, /Door-to-door pending/);
+  assert.match(screen, /Opted out/);
   assert.match(screen, /Maximum flat donation/);
   assert.ok(screen.indexOf("Total donating flats") < screen.indexOf("Main festival donation"));
   assert.ok(screen.indexOf("Main festival donation") < screen.indexOf("Donating flats outside occupied master"));
@@ -499,6 +502,25 @@ test("role-scoped collection summary shows block and overall donation metrics", 
   assert.match(page, /CollectionSummary/);
   assert.match(chrome, /href="\/collection-summary">Collection Summary/);
   assert.match(styles, /\.block-summary-grid/);
+});
+
+test("volunteers can exclude opted-out flats from the door-to-door queue and restore them", async () => {
+  const [route, pending, map, styles] = await Promise.all([
+    source("app/api/flats/route.ts"),
+    source("app/pending/PendingFlats.tsx"),
+    source("app/flat-status/FlatStatusMap.tsx"),
+    source("app/globals.css"),
+  ]);
+  assert.match(route, /'opted_out'/);
+  assert.match(route, /\["pending","visited","visit_again","opted_out"\]/);
+  assert.match(pending, /Mark opted out/);
+  assert.match(pending, /Return to pending/);
+  assert.match(pending, /Door-to-door pending/);
+  assert.match(pending, /Opted-out flats/);
+  assert.match(map, /optedOutCount/);
+  assert.match(map, /Opted out · do not visit/);
+  assert.match(styles, /\.flat-tile\.opted-out/);
+  assert.match(styles, /\.visit-queue-summary/);
 });
 
 test("flat numbers are canonicalized so block-prefixed repeat donations count once", async () => {

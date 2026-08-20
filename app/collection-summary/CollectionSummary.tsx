@@ -7,6 +7,7 @@ type Summary = {
   blockNo: string;
   occupiedFlats: number;
   occupiedDonatedFlats: number;
+  optedOutFlats: number;
   donatingFlats: number;
   outsideMasterDonatingFlats: number;
   pendingFlats: number;
@@ -59,7 +60,8 @@ function SummaryCard({ summary, featured = false }: { summary: Summary; featured
     <header><div><span>{summary.blockNo === "Overall" ? "All five blocks" : `Block ${summary.blockNo}`}</span><strong>{coverage}% covered</strong></div><div className="coverage-track" aria-label={`${coverage}% of occupied flats donated`}><i style={{ width: `${coverage}%` }} /></div></header>
     <div className="collection-core-metrics">
       <div><span>Occupied flats donated</span><strong>{summary.occupiedDonatedFlats}</strong><small>of {summary.occupiedFlats} occupied</small></div>
-      <div><span>Pending flats</span><strong>{summary.pendingFlats}</strong><small>still to collect</small></div>
+      <div><span>Door-to-door pending</span><strong>{summary.pendingFlats}</strong><small>still to approach</small></div>
+      <div><span>Opted out</span><strong>{summary.optedOutFlats}</strong><small>do not visit</small></div>
       <div className="collection-total"><span>Recorded collection</span><strong>{currency(summary.totalCollection)}</strong><small>including verification pending</small></div>
     </div>
     <dl className="collection-detail-metrics">
