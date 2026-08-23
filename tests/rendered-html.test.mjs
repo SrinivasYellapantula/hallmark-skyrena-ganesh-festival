@@ -459,8 +459,8 @@ test("residents and volunteers share a structured cultural registration workflow
   assert.match(page, /Residents can submit directly/);
   assert.match(form, /Solo/); assert.match(form, /Group/); assert.match(form, /Add Participant/);
   assert.match(form, /Contact Person/); assert.match(form, /Background Music Required/);
-  assert.match(form, /Audio Track/); assert.match(form, /Approximate Setup Time/);
-  assert.doesNotMatch(form, /Chairs, Tables or Other Stage Setup|Props or Special Arrangements/);
+  assert.match(form, /Audio Track/);
+  assert.doesNotMatch(form, /Approximate Setup Time|Chairs, Tables or Other Stage Setup|Props or Special Arrangements/);
   assert.doesNotMatch(form, /Additional Information|Notes/);
   assert.match(route, /resident-self-service/); assert.match(route, /source = user \? "volunteer" : "resident"/);
   assert.match(route, /request\.formData\(\)/); assert.match(route, /MAX_AUDIO_BYTES/);

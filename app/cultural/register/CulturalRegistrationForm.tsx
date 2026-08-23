@@ -60,7 +60,6 @@ export function CulturalRegistrationForm() {
 
       <fieldset><h2 className="cultural-section-heading"><span>4</span>Programme Requirements</h2><div className="field-grid">
         <label><span className="cultural-field-label">Background Music Required? <b>*</b></span><select value={backgroundMusic} onChange={(event)=>setBackgroundMusic(event.target.value)}><option value="false">No</option><option value="true">Yes</option></select></label>
-        <label><span className="cultural-field-label">Approximate Setup Time (minutes) <b>*</b></span><input name="setupMinutes" required type="number" min="0" max="60" inputMode="numeric" defaultValue="0"/></label>
         {backgroundMusic==="true"&&<label className="wide proof-picker">Audio Track <span className="optional">optional</span><input name="audioTrack" type="file" accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/wav"/><small>MP3, M4A or WAV up to 8 MB. You may submit now and share the final track with the committee later.</small></label>}
       </div></fieldset>
       {error&&<p className="form-error" role="alert">{error}</p>}

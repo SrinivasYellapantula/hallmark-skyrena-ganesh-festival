@@ -55,7 +55,7 @@ export async function POST(request: Request) {
   const backgroundMusic = body.get("backgroundMusic") === "true";
   const stageRequirements = cleanText(body.get("stageRequirements"), 1000);
   const propsRequirements = cleanText(body.get("propsRequirements"), 1000);
-  const setupMinutes = wholeNumber(body.get("setupMinutes"), 0, 60);
+  const setupMinutes = 0;
   const audio = body.get("audioTrack");
 
   if (!["solo", "group"].includes(performanceType)) return Response.json({ error: "Choose Solo or Group." }, { status: 400 });
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
   if (performanceType === "solo" && participants.length !== 1) return Response.json({ error: "A solo entry must contain one participant." }, { status: 400 });
   if (performanceType === "group" && participants.length < 2) return Response.json({ error: "Add at least two participants for a group entry." }, { status: 400 });
   if (!contactName || !/^\d{10}$/.test(contactPhone)) return Response.json({ error: "Enter the contact person's name and a valid 10-digit mobile number." }, { status: 400 });
-  if (durationMinutes === null || setupMinutes === null) return Response.json({ error: "Enter a valid duration and setup time." }, { status: 400 });
+  if (durationMinutes === null) return Response.json({ error: "Enter a valid duration." }, { status: 400 });
   const hasAudio = audio instanceof File && audio.size > 0;
   if (hasAudio && (!AUDIO_TYPES.has(audio.type) || audio.size > MAX_AUDIO_BYTES))
     return Response.json({ error: "Upload an MP3, M4A or WAV audio track up to 8 MB." }, { status: 400 });
