@@ -11,17 +11,19 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const path = window.location.pathname;
     const publicDonationForm = path === "/contribute" || path === "/contribute/";
+    const publicCulturalForm = path === "/cultural/register" || path === "/cultural/register/";
+    const publicForm = publicDonationForm || publicCulturalForm;
     fetch("/api/auth/me", { cache: "no-store" })
       .then(async (response) => {
-        if (!response.ok) { setState(publicDonationForm ? "allowed" : "login"); return; }
+        if (!response.ok) { setState(publicForm ? "allowed" : "login"); return; }
         const user = await response.json() as { role: "admin" | "block" | "cultural" };
         const adminOnly = path.startsWith("/admin") || path.startsWith("/meetings");
-        const culturalOnly = path.startsWith("/cultural");
-        if (user.role === "cultural" && !culturalOnly) { window.location.replace("/cultural"); return; }
+        const culturalOnly = path.startsWith("/cultural") && !publicCulturalForm;
+        if (user.role === "cultural" && !culturalOnly && !publicCulturalForm) { window.location.replace("/cultural"); return; }
         if (user.role === "block" && (adminOnly || culturalOnly)) { window.location.replace("/"); return; }
         setState("allowed");
       })
-      .catch(() => setState(publicDonationForm ? "allowed" : "login"));
+      .catch(() => setState(publicForm ? "allowed" : "login"));
   }, []);
 
   async function login(event: FormEvent<HTMLFormElement>) {

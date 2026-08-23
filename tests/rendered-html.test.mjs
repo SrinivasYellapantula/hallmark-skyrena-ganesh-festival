@@ -448,6 +448,30 @@ test("role-specific workspaces are enforced and clearly named", async () => {
   assert.match(migration, /block_a_coordinator/);
 });
 
+test("residents and volunteers share a structured cultural registration workflow", async () => {
+  const [form, page, route, audioRoute, workspace, authGate, chrome, culturalConstants, migration] = await Promise.all([
+    source("app/cultural/register/CulturalRegistrationForm.tsx"), source("app/cultural/register/page.tsx"),
+    source("app/api/cultural/programmes/route.ts"), source("app/api/cultural/audio/[id]/route.ts"),
+    source("app/cultural/CulturalProgramme.tsx"), source("app/components/AuthGate.tsx"),
+    source("app/components/SiteChrome.tsx"), source("app/lib/cultural.ts"),
+    source("drizzle/0011_cultural_registrations.sql"),
+  ]);
+  assert.match(page, /Residents can submit directly/);
+  assert.match(form, /Solo/); assert.match(form, /Group/); assert.match(form, /Add Participant/);
+  assert.match(form, /Contact Person/); assert.match(form, /Background Music Required/);
+  assert.match(form, /Audio Track/); assert.match(form, /Chairs, Tables or Other Stage Setup/);
+  assert.match(form, /Props or Special Arrangements/); assert.match(form, /Approximate Setup Time/);
+  assert.doesNotMatch(form, /Additional Information|Notes/);
+  assert.match(route, /resident-self-service/); assert.match(route, /source = user \? "volunteer" : "resident"/);
+  assert.match(route, /request\.formData\(\)/); assert.match(route, /MAX_AUDIO_BYTES/);
+  assert.match(route, /status='withdrawn'/); assert.match(audioRoute, /private, no-store/);
+  assert.match(workspace, /Review \/ Schedule/); assert.match(workspace, /Cultural Registrations/);
+  assert.match(authGate, /publicCulturalForm/); assert.match(chrome, /\/cultural\/register/);
+  assert.match(culturalConstants, /clarification_required/); assert.match(culturalConstants, /waitlisted/);
+  assert.match(culturalConstants, /scheduled/); assert.match(migration, /reference_no/);
+  assert.match(migration, /audio_key/); assert.match(migration, /source/);
+});
+
 test("meeting minutes support structured actions and PDF-ready printing", async () => {
   const [route, screen, migration, styles] = await Promise.all([
     source("app/api/admin/meetings/route.ts"), source("app/meetings/MeetingMinutes.tsx"),
