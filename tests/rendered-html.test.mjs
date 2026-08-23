@@ -449,12 +449,12 @@ test("role-specific workspaces are enforced and clearly named", async () => {
 });
 
 test("residents and volunteers share a structured cultural registration workflow", async () => {
-  const [form, page, route, audioRoute, workspace, authGate, chrome, culturalConstants, migration] = await Promise.all([
+  const [form, page, route, audioRoute, workspace, authGate, chrome, culturalConstants, migration, editMigration] = await Promise.all([
     source("app/cultural/register/CulturalRegistrationForm.tsx"), source("app/cultural/register/page.tsx"),
     source("app/api/cultural/programmes/route.ts"), source("app/api/cultural/audio/[id]/route.ts"),
     source("app/cultural/CulturalProgramme.tsx"), source("app/components/AuthGate.tsx"),
     source("app/components/SiteChrome.tsx"), source("app/lib/cultural.ts"),
-    source("drizzle/0011_cultural_registrations.sql"),
+    source("drizzle/0011_cultural_registrations.sql"), source("drizzle/0012_cultural_resident_edits.sql"),
   ]);
   assert.match(page, /Residents can submit directly/);
   assert.match(form, /Solo/); assert.match(form, /Group/); assert.match(form, /Add Participant/);
@@ -468,6 +468,9 @@ test("residents and volunteers share a structured cultural registration workflow
   assert.match(workspace, /Review \/ Schedule/); assert.match(workspace, /Cultural Registrations/); assert.match(workspace, /Move to Recycle Bin/);
   assert.match(workspace, /Day-wise Schedule/); assert.match(workspace, /All scheduled dates/);
   assert.match(workspace, /Cultural Programme — Run of Show/); assert.match(workspace, /Print \/ Save as PDF/);
+  assert.match(workspace, /Edit Entry Details/); assert.match(form, /Copy Edit Link/);
+  assert.match(form, /method:initial\?"PUT":"POST"/); assert.match(route, /export async function PUT/);
+  assert.match(route, /edit_token_hash/); assert.match(route, /entry_updated/); assert.match(editMigration, /edit_token_hash/);
   assert.match(authGate, /publicCulturalForm/); assert.match(chrome, /\/cultural\/register/);
   assert.match(culturalConstants, /clarification_required/); assert.match(culturalConstants, /waitlisted/);
   assert.match(culturalConstants, /scheduled/); assert.match(migration, /reference_no/);
