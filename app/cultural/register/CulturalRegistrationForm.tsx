@@ -62,8 +62,6 @@ export function CulturalRegistrationForm() {
         <label><span className="cultural-field-label">Background Music Required? <b>*</b></span><select value={backgroundMusic} onChange={(event)=>setBackgroundMusic(event.target.value)}><option value="false">No</option><option value="true">Yes</option></select></label>
         <label><span className="cultural-field-label">Approximate Setup Time (minutes) <b>*</b></span><input name="setupMinutes" required type="number" min="0" max="60" inputMode="numeric" defaultValue="0"/></label>
         {backgroundMusic==="true"&&<label className="wide proof-picker">Audio Track <span className="optional">optional</span><input name="audioTrack" type="file" accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/wav"/><small>MP3, M4A or WAV up to 8 MB. You may submit now and share the final track with the committee later.</small></label>}
-        <label className="wide">Chairs, Tables or Other Stage Setup <span className="optional">optional</span><textarea name="stageRequirements" rows={3} maxLength={1000} placeholder="Mention the number of chairs/tables or any stage arrangement required"/></label>
-        <label className="wide">Props or Special Arrangements <span className="optional">optional</span><textarea name="propsRequirements" rows={3} maxLength={1000} placeholder="Mention props, space or any special arrangement required"/></label>
       </div></fieldset>
       {error&&<p className="form-error" role="alert">{error}</p>}
       <button className="button primary cultural-submit" disabled={busy}>{busy?"Submitting…":"Submit Cultural Registration"}</button>

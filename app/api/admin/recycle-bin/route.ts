@@ -5,7 +5,7 @@ import { authorize, isPortalOwner } from "../../../lib/auth";
 import { EVENT_ID } from "../../../lib/constants";
 import { cleanText } from "../../../lib/server";
 
-type TrashRow={id:string;entityType:"expense"|"meeting"|"registration";entityId:string;entityLabel:string;restoreData:string;deletedBy:string;deletedAt:string;ageDays:number};
+type TrashRow={id:string;entityType:"expense"|"meeting"|"registration"|"cultural_programme";entityId:string;entityLabel:string;restoreData:string;deletedBy:string;deletedAt:string;ageDays:number};
 
 async function owner(request:Request){
   const auth=await authorize(request,["admin"]);if("response" in auth)return auth;
@@ -33,6 +33,10 @@ export async function PATCH(request:Request){
   }else if(row.entityType==="meeting"){
     if(!await d1.prepare("SELECT id FROM meeting_minutes WHERE id=? AND event_id=?").bind(row.entityId,EVENT_ID).first())return Response.json({error:"The meeting no longer exists and cannot be restored."},{status:409});
     const status=["draft","final"].includes(String(data.status))?String(data.status):"draft";statements.push(d1.prepare("UPDATE meeting_minutes SET status=?,updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND event_id=?").bind(status,auth.user.username,row.entityId,EVENT_ID));
+  }else if(row.entityType==="cultural_programme"){
+    if(!await d1.prepare("SELECT id FROM cultural_programmes WHERE id=? AND event_id=?").bind(row.entityId,EVENT_ID).first())return Response.json({error:"The cultural registration no longer exists and cannot be restored."},{status:409});
+    const status=["submitted","under_review","clarification_required","approved","waitlisted","scheduled","completed","withdrawn"].includes(String(data.status))?String(data.status):"submitted";
+    statements.push(d1.prepare("UPDATE cultural_programmes SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND event_id=?").bind(status,row.entityId,EVENT_ID));
   }else{
     const registration=await d1.prepare("SELECT block_no blockNo,flat_no flatNo FROM registrations WHERE id=? AND event_id=?").bind(row.entityId,EVENT_ID).first<{blockNo:string;flatNo:string}>();
     if(!registration)return Response.json({error:"The donation no longer exists and cannot be restored."},{status:409});
@@ -57,6 +61,8 @@ export async function DELETE(request:Request){
     const expense=await d1.prepare("SELECT receipt_proof_key proofKey FROM expenses WHERE id=? AND event_id=?").bind(row.entityId,EVENT_ID).first<{proofKey:string|null}>();if(expense?.proofKey)storedKeys.push(expense.proofKey);statements.push(d1.prepare("DELETE FROM expenses WHERE id=? AND event_id=?").bind(row.entityId,EVENT_ID));
   }else if(row.entityType==="meeting"){
     statements.push(d1.prepare("DELETE FROM meeting_action_items WHERE meeting_id=?").bind(row.entityId),d1.prepare("DELETE FROM meeting_minutes WHERE id=? AND event_id=?").bind(row.entityId,EVENT_ID));
+  }else if(row.entityType==="cultural_programme"){
+    const programme=await d1.prepare("SELECT audio_key audioKey FROM cultural_programmes WHERE id=? AND event_id=?").bind(row.entityId,EVENT_ID).first<{audioKey:string|null}>();if(programme?.audioKey)storedKeys.push(programme.audioKey);statements.push(d1.prepare("DELETE FROM cultural_programmes WHERE id=? AND event_id=?").bind(row.entityId,EVENT_ID));
   }else{
     const proofs=await d1.prepare("SELECT payment_proof_key proofKey FROM donations WHERE registration_id=? AND payment_proof_key IS NOT NULL").bind(row.entityId).all<{proofKey:string}>();storedKeys.push(...proofs.results.map((item)=>item.proofKey));statements.push(d1.prepare("DELETE FROM donations WHERE registration_id=?").bind(row.entityId),d1.prepare("DELETE FROM registrations WHERE id=? AND event_id=?").bind(row.entityId,EVENT_ID));
   }

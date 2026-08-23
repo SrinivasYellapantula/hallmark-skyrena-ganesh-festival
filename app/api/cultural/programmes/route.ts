@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { getD1 } from "../../../../db";
 import { ensureDatabase } from "../../../../db/initialize";
-import { getAppUser, authorize } from "../../../lib/auth";
+import { getAppUser, authorize, isPortalOwner } from "../../../lib/auth";
 import { BLOCKS, EVENT_ID } from "../../../lib/constants";
 import { CULTURAL_CATEGORIES, CULTURAL_STATUSES } from "../../../lib/cultural";
 import { cleanText, isValidFlatNo, normalizeFlatNo, wholeNumber } from "../../../lib/server";
@@ -34,12 +34,12 @@ export async function GET(request: Request) {
     status,background_music backgroundMusic,audio_key IS NOT NULL hasAudio,audio_name audioName,
     stage_requirements stageRequirements,props_requirements propsRequirements,setup_minutes setupMinutes,
     source,created_by createdBy,created_at createdAt
-    FROM cultural_programmes WHERE event_id=?
+    FROM cultural_programmes WHERE event_id=? AND status<>'recycled'
     ORDER BY CASE status WHEN 'scheduled' THEN 0 WHEN 'approved' THEN 1 WHEN 'under_review' THEN 2
       WHEN 'submitted' THEN 3 WHEN 'clarification_required' THEN 4 WHEN 'waitlisted' THEN 5
       WHEN 'completed' THEN 6 ELSE 7 END,
       CASE WHEN programme_date='' THEN 1 ELSE 0 END,programme_date,start_time,created_at DESC`).bind(EVENT_ID).all();
-  return Response.json({ programmes: rows.results, user: auth.user });
+  return Response.json({ programmes: rows.results, user: { ...auth.user, portalOwner: isPortalOwner(auth.user) } });
 }
 
 export async function POST(request: Request) {
@@ -131,10 +131,25 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   const auth = await authorize(request,["admin","cultural"]);
   if ("response" in auth) return auth.response;
-  const id = cleanText(new URL(request.url).searchParams.get("id"), 80);
+  const url = new URL(request.url);
+  const id = cleanText(url.searchParams.get("id"), 80);
   if (!id) return Response.json({ error: "Programme id required." }, { status: 400 });
   await ensureDatabase();
   const d1 = getD1();
+  if (url.searchParams.get("recycle") === "true") {
+    if (!isPortalOwner(auth.user)) return Response.json({ error: "Portal Admin access required." }, { status: 403 });
+    const existing = await d1.prepare("SELECT reference_no referenceNo,title,status FROM cultural_programmes WHERE id=? AND event_id=? AND status<>'recycled'")
+      .bind(id,EVENT_ID).first<{referenceNo:string;title:string;status:string}>();
+    if (!existing) return Response.json({ error: "Cultural registration not found." }, { status: 404 });
+    await d1.batch([
+      d1.prepare(`INSERT INTO recycle_bin(id,event_id,entity_type,entity_id,entity_label,restore_data,deleted_by)
+        VALUES(?,?,'cultural_programme',?,?,?,?)`).bind(crypto.randomUUID(),EVENT_ID,id,`${existing.referenceNo} · ${existing.title}`,JSON.stringify({status:existing.status}),auth.user.username),
+      d1.prepare("UPDATE cultural_programmes SET status='recycled',updated_at=CURRENT_TIMESTAMP WHERE id=? AND event_id=?").bind(id,EVENT_ID),
+      d1.prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor,details)
+        VALUES(?,'cultural_programme',?,'moved_to_recycle_bin',?,'{}')`).bind(crypto.randomUUID(),id,auth.user.username),
+    ]);
+    return Response.json({ ok: true, recycled: true });
+  }
   await d1.batch([
     d1.prepare("UPDATE cultural_programmes SET status='withdrawn',updated_at=CURRENT_TIMESTAMP WHERE id=? AND event_id=?").bind(id,EVENT_ID),
     d1.prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor,details)

@@ -459,13 +459,13 @@ test("residents and volunteers share a structured cultural registration workflow
   assert.match(page, /Residents can submit directly/);
   assert.match(form, /Solo/); assert.match(form, /Group/); assert.match(form, /Add Participant/);
   assert.match(form, /Contact Person/); assert.match(form, /Background Music Required/);
-  assert.match(form, /Audio Track/); assert.match(form, /Chairs, Tables or Other Stage Setup/);
-  assert.match(form, /Props or Special Arrangements/); assert.match(form, /Approximate Setup Time/);
+  assert.match(form, /Audio Track/); assert.match(form, /Approximate Setup Time/);
+  assert.doesNotMatch(form, /Chairs, Tables or Other Stage Setup|Props or Special Arrangements/);
   assert.doesNotMatch(form, /Additional Information|Notes/);
   assert.match(route, /resident-self-service/); assert.match(route, /source = user \? "volunteer" : "resident"/);
   assert.match(route, /request\.formData\(\)/); assert.match(route, /MAX_AUDIO_BYTES/);
-  assert.match(route, /status='withdrawn'/); assert.match(audioRoute, /private, no-store/);
-  assert.match(workspace, /Review \/ Schedule/); assert.match(workspace, /Cultural Registrations/);
+  assert.match(route, /status='withdrawn'/); assert.match(route, /moved_to_recycle_bin/); assert.match(route, /isPortalOwner/); assert.match(audioRoute, /private, no-store/);
+  assert.match(workspace, /Review \/ Schedule/); assert.match(workspace, /Cultural Registrations/); assert.match(workspace, /Move to Recycle Bin/);
   assert.match(authGate, /publicCulturalForm/); assert.match(chrome, /\/cultural\/register/);
   assert.match(culturalConstants, /clarification_required/); assert.match(culturalConstants, /waitlisted/);
   assert.match(culturalConstants, /scheduled/); assert.match(migration, /reference_no/);
