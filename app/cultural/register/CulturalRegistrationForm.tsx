@@ -37,30 +37,30 @@ export function CulturalRegistrationForm() {
     <form className="cultural-registration-form" onSubmit={submit}>
       <div className="cultural-form-note"><strong>{user?"Volunteer entry":"Resident registration"}</strong><span>{user?`Signed in as ${user.displayName}. This registration will be marked as entered by a volunteer.`:"No login is required. Please enter one performance per submission."}</span></div>
 
-      <fieldset><legend><span>1</span>Performance Details</legend><div className="field-grid">
-        <label>Type <b>*</b><select value={performanceType} onChange={(event)=>changeType(event.target.value)}><option value="solo">Solo</option><option value="group">Group</option></select></label>
-        <label>Category <b>*</b><select name="category" required defaultValue=""><option value="" disabled>Select category</option>{CULTURAL_CATEGORIES.map((category)=><option key={category}>{category}</option>)}</select></label>
-        <label className="wide">Performance Title <b>*</b><input name="title" required maxLength={160} placeholder="Name of the song, dance, skit or performance"/></label>
-        <label>Duration in Minutes <b>*</b><input name="durationMinutes" required type="number" min="1" max="30" inputMode="numeric" placeholder="e.g. 5"/></label>
+      <fieldset><h2 className="cultural-section-heading"><span>1</span>Performance Details</h2><div className="field-grid">
+        <label><span className="cultural-field-label">Type <b>*</b></span><select value={performanceType} onChange={(event)=>changeType(event.target.value)}><option value="solo">Solo</option><option value="group">Group</option></select></label>
+        <label><span className="cultural-field-label">Category <b>*</b></span><select name="category" required defaultValue=""><option value="" disabled>Select category</option>{CULTURAL_CATEGORIES.map((category)=><option key={category}>{category}</option>)}</select></label>
+        <label className="wide"><span className="cultural-field-label">Performance Title <b>*</b></span><input name="title" required maxLength={160} placeholder="Name of the song, dance, skit or performance"/></label>
+        <label><span className="cultural-field-label">Duration in Minutes <b>*</b></span><input name="durationMinutes" required type="number" min="1" max="30" inputMode="numeric" placeholder="e.g. 5"/></label>
       </div></fieldset>
 
-      <fieldset><legend><span>2</span>Participant Details</legend><p className="fieldset-help">Add every participant separately. Flat numbers should not include the block letter.</p><div className="participant-editor">
+      <fieldset><h2 className="cultural-section-heading"><span>2</span>Participant Details</h2><p className="fieldset-help">Add every participant separately. Flat numbers should not include the block letter.</p><div className="participant-editor">
         {participants.map((participant,index)=><article key={index}><header><strong>Participant {index+1}</strong>{performanceType==="group"&&participants.length>2&&<button type="button" onClick={()=>removeParticipant(index)}>Remove</button>}</header><div className="participant-fields">
-          <label>Name <b>*</b><input required value={participant.name} maxLength={100} onChange={(event)=>updateParticipant(index,"name",event.target.value)}/></label>
-          <label>Age <b>*</b><input required type="number" min="1" max="100" inputMode="numeric" value={participant.age} onChange={(event)=>updateParticipant(index,"age",event.target.value)}/></label>
-          <label>Block <b>*</b><select required value={participant.blockNo} onChange={(event)=>updateParticipant(index,"blockNo",event.target.value)}><option value="" disabled>Select</option>{BLOCKS.map((block)=><option key={block}>{block}</option>)}</select></label>
-          <label>Flat Number <b>*</b><input required value={participant.flatNo} maxLength={10} placeholder="e.g. 505 or 1505" onChange={(event)=>updateParticipant(index,"flatNo",event.target.value.toUpperCase())}/></label>
+          <label><span className="cultural-field-label">Name <b>*</b></span><input required value={participant.name} maxLength={100} onChange={(event)=>updateParticipant(index,"name",event.target.value)}/></label>
+          <label><span className="cultural-field-label">Age <b>*</b></span><input required type="number" min="1" max="100" inputMode="numeric" value={participant.age} onChange={(event)=>updateParticipant(index,"age",event.target.value)}/></label>
+          <label><span className="cultural-field-label">Block <b>*</b></span><select required value={participant.blockNo} onChange={(event)=>updateParticipant(index,"blockNo",event.target.value)}><option value="" disabled>Select</option>{BLOCKS.map((block)=><option key={block}>{block}</option>)}</select></label>
+          <label><span className="cultural-field-label">Flat Number <b>*</b></span><input required value={participant.flatNo} maxLength={10} placeholder="e.g. 505 or 1505" onChange={(event)=>updateParticipant(index,"flatNo",event.target.value.toUpperCase())}/></label>
         </div></article>)}
       </div>{performanceType==="group"&&<button type="button" className="button quiet add-participant" onClick={addParticipant}>+ Add Participant</button>}</fieldset>
 
-      <fieldset><legend><span>3</span>Primary Contact</legend><div className="field-grid">
-        <label>Contact Person&apos;s Name <b>*</b><input name="contactName" required maxLength={100}/></label>
-        <label>Mobile Number <b>*</b><span className="phone-field"><i>+91</i><input name="contactPhone" required type="tel" inputMode="numeric" pattern="[0-9]{10}" minLength={10} maxLength={10} placeholder="10-digit number" onInput={(event)=>{event.currentTarget.value=event.currentTarget.value.replace(/\D/g,"").slice(0,10);}}/></span></label>
+      <fieldset><h2 className="cultural-section-heading"><span>3</span>Primary Contact</h2><div className="field-grid">
+        <label><span className="cultural-field-label">Contact Person&apos;s Name <b>*</b></span><input name="contactName" required maxLength={100}/></label>
+        <label><span className="cultural-field-label">Mobile Number <b>*</b></span><span className="phone-field"><i>+91</i><input name="contactPhone" required type="tel" inputMode="numeric" pattern="[0-9]{10}" minLength={10} maxLength={10} placeholder="10-digit number" onInput={(event)=>{event.currentTarget.value=event.currentTarget.value.replace(/\D/g,"").slice(0,10);}}/></span></label>
       </div></fieldset>
 
-      <fieldset><legend><span>4</span>Programme Requirements</legend><div className="field-grid">
-        <label>Background Music Required? <b>*</b><select value={backgroundMusic} onChange={(event)=>setBackgroundMusic(event.target.value)}><option value="false">No</option><option value="true">Yes</option></select></label>
-        <label>Approximate Setup Time (minutes) <b>*</b><input name="setupMinutes" required type="number" min="0" max="60" inputMode="numeric" defaultValue="0"/></label>
+      <fieldset><h2 className="cultural-section-heading"><span>4</span>Programme Requirements</h2><div className="field-grid">
+        <label><span className="cultural-field-label">Background Music Required? <b>*</b></span><select value={backgroundMusic} onChange={(event)=>setBackgroundMusic(event.target.value)}><option value="false">No</option><option value="true">Yes</option></select></label>
+        <label><span className="cultural-field-label">Approximate Setup Time (minutes) <b>*</b></span><input name="setupMinutes" required type="number" min="0" max="60" inputMode="numeric" defaultValue="0"/></label>
         {backgroundMusic==="true"&&<label className="wide proof-picker">Audio Track <span className="optional">optional</span><input name="audioTrack" type="file" accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/wav"/><small>MP3, M4A or WAV up to 8 MB. You may submit now and share the final track with the committee later.</small></label>}
         <label className="wide">Chairs, Tables or Other Stage Setup <span className="optional">optional</span><textarea name="stageRequirements" rows={3} maxLength={1000} placeholder="Mention the number of chairs/tables or any stage arrangement required"/></label>
         <label className="wide">Props or Special Arrangements <span className="optional">optional</span><textarea name="propsRequirements" rows={3} maxLength={1000} placeholder="Mention props, space or any special arrangement required"/></label>
