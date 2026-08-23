@@ -466,6 +466,8 @@ test("residents and volunteers share a structured cultural registration workflow
   assert.match(route, /request\.formData\(\)/); assert.match(route, /MAX_AUDIO_BYTES/);
   assert.match(route, /status='withdrawn'/); assert.match(route, /moved_to_recycle_bin/); assert.match(route, /isPortalOwner/); assert.match(audioRoute, /private, no-store/);
   assert.match(workspace, /Review \/ Schedule/); assert.match(workspace, /Cultural Registrations/); assert.match(workspace, /Move to Recycle Bin/);
+  assert.match(workspace, /Day-wise Schedule/); assert.match(workspace, /All scheduled dates/);
+  assert.match(workspace, /Cultural Programme — Run of Show/); assert.match(workspace, /Print \/ Save as PDF/);
   assert.match(authGate, /publicCulturalForm/); assert.match(chrome, /\/cultural\/register/);
   assert.match(culturalConstants, /clarification_required/); assert.match(culturalConstants, /waitlisted/);
   assert.match(culturalConstants, /scheduled/); assert.match(migration, /reference_no/);
