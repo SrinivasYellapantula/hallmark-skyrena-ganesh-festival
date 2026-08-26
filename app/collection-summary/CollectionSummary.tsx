@@ -18,6 +18,9 @@ type Summary = {
   mahaprasadamCollection: number;
   maximumDonation: number;
   averageDonation: number;
+  adults: number;
+  kids: number;
+  attendees: number;
 };
 type Payload = { user: { role: "admin" | "block"; blockNo: string | null }; blocks: Summary[]; competitionBlocks: Summary[]; overall: Summary };
 
@@ -45,14 +48,19 @@ export function CollectionSummary() {
       <div className="summary-definition"><strong>Recorded collection</strong><span>Includes active payments awaiting verification.</span><strong>Verified collection</strong><span>Payments confirmed by an administrator.</span></div>
     </header>
 
-    {blockUser ? <><SummaryCard summary={data.blocks[0] ?? data.overall} featured /><BlockChallenge summaries={data.competitionBlocks} /></> : <>
+    {blockUser ? <><SummaryCard summary={data.blocks[0] ?? data.overall} featured /><AttendanceSummary summaries={data.blocks} /><BlockChallenge summaries={data.competitionBlocks} /></> : <>
       <div className="section-title overall-title"><span className="card-kicker">Festival-wide position</span><h2>Overall Summary</h2></div>
       <SummaryCard summary={data.overall} featured />
+      <AttendanceSummary summaries={data.competitionBlocks} overall={data.overall} />
       <BlockChallenge summaries={data.competitionBlocks} />
       <div className="section-title"><span className="card-kicker">Block-wise progress</span><h2>Blocks A–E</h2></div>
       <div className="block-summary-grid">{data.blocks.map((block) => <SummaryCard key={block.blockNo} summary={block} />)}</div>
     </>}
   </section>;
+}
+
+function AttendanceSummary({summaries,overall}:{summaries:Summary[];overall?:Summary}){
+  return <section className="mahaprasadam-attendance-summary"><div className="section-title"><span className="card-kicker">Lunch Mahaprasadam planning</span><h2>Expected Attendees</h2><p>Each flat is counted once, preventing repeat donation entries from inflating the meal count.</p></div><div className="table-wrap"><table><thead><tr><th>Block</th><th>Adults</th><th>Kids below 10</th><th>Total attendees</th></tr></thead><tbody>{summaries.map((summary)=><tr key={summary.blockNo}><td><strong>Block {summary.blockNo}</strong></td><td>{summary.adults}</td><td>{summary.kids}</td><td><strong>{summary.attendees}</strong></td></tr>)}{overall&&<tr className="attendance-overall"><td><strong>All Blocks</strong></td><td>{overall.adults}</td><td>{overall.kids}</td><td><strong>{overall.attendees}</strong></td></tr>}</tbody></table></div></section>;
 }
 
 function BlockChallenge({ summaries }: { summaries: Summary[] }) {

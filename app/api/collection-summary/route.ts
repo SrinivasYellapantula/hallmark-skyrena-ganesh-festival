@@ -15,6 +15,7 @@ type CollectionRow = {
   maximumDonation: number;
   averageDonation: number;
 };
+type AttendanceRow = { blockNo: string; adults: number; kids: number };
 
 export async function GET(request: Request) {
   const auth = await authorize(request, ["admin", "block"]);
@@ -88,13 +89,32 @@ export async function GET(request: Request) {
      FROM flat_totals GROUP BY blockNo ORDER BY blockNo`,
   );
 
-  const [occupancy, collections] = await Promise.all([
+  const attendanceStatement = d1.prepare(
+    `WITH household_attendance AS (
+       SELECT UPPER(TRIM(block_no)) blockNo,
+         CASE
+           WHEN SUBSTR(REPLACE(REPLACE(UPPER(TRIM(flat_no)),'-',''),' ',''),1,1)=UPPER(TRIM(block_no))
+             AND SUBSTR(REPLACE(REPLACE(UPPER(TRIM(flat_no)),'-',''),' ',''),2,1) BETWEEN '0' AND '9'
+           THEN SUBSTR(REPLACE(REPLACE(UPPER(TRIM(flat_no)),'-',''),' ',''),2)
+           ELSE REPLACE(REPLACE(UPPER(TRIM(flat_no)),'-',''),' ','')
+         END flatNo,
+         MAX(adult_count) adults,MAX(child_count) kids
+       FROM registrations WHERE event_id=? AND status!='cancelled'
+       GROUP BY blockNo,flatNo
+     )
+     SELECT blockNo,COALESCE(SUM(adults),0) adults,COALESCE(SUM(kids),0) kids
+     FROM household_attendance GROUP BY blockNo ORDER BY blockNo`,
+  );
+
+  const [occupancy, collections, attendance] = await Promise.all([
     occupancyStatement.bind(EVENT_ID, EVENT_ID).all<OccupancyRow>(),
     collectionStatement.bind(EVENT_ID).all<CollectionRow>(),
+    attendanceStatement.bind(EVENT_ID).all<AttendanceRow>(),
   ]);
 
   const occupancyByBlock = new Map(occupancy.results.map((row) => [row.blockNo, row]));
   const collectionByBlock = new Map(collections.results.map((row) => [row.blockNo, row]));
+  const attendanceByBlock = new Map(attendance.results.map((row) => [row.blockNo, row]));
   const competitionBlocks = [...BLOCKS].map((blockNo) => {
     const occupied = occupancyByBlock.get(blockNo);
     const collection = collectionByBlock.get(blockNo);
@@ -102,6 +122,7 @@ export async function GET(request: Request) {
     const occupiedDonatedFlats = Number(occupied?.donatedOccupiedFlats ?? 0);
     const optedOutFlats = Number(occupied?.optedOutFlats ?? 0);
     const donatingFlats = Number(collection?.donatedFlats ?? 0);
+    const attendanceTotals = attendanceByBlock.get(blockNo);
     return {
       blockNo,
       occupiedFlats,
@@ -117,6 +138,9 @@ export async function GET(request: Request) {
       mahaprasadamCollection: Number(collection?.mahaprasadamCollection ?? 0),
       maximumDonation: Number(collection?.maximumDonation ?? 0),
       averageDonation: Number(collection?.averageDonation ?? 0),
+      adults: Number(attendanceTotals?.adults ?? 0),
+      kids: Number(attendanceTotals?.kids ?? 0),
+      attendees: Number(attendanceTotals?.adults ?? 0) + Number(attendanceTotals?.kids ?? 0),
     };
   });
   const blocks = auth.user.role === "block" ? competitionBlocks.filter((block) => block.blockNo === auth.user.blockNo) : competitionBlocks;
@@ -141,6 +165,9 @@ export async function GET(request: Request) {
     mahaprasadamCollection: competitionBlocks.reduce((sum, block) => sum + block.mahaprasadamCollection, 0),
     maximumDonation: Math.max(0, ...competitionBlocks.map((block) => block.maximumDonation)),
     averageDonation: totalDonatingFlats ? Math.round(totalCollection / totalDonatingFlats) : 0,
+    adults: competitionBlocks.reduce((sum, block) => sum + block.adults, 0),
+    kids: competitionBlocks.reduce((sum, block) => sum + block.kids, 0),
+    attendees: competitionBlocks.reduce((sum, block) => sum + block.attendees, 0),
   };
 
   return Response.json({ user: auth.user, blocks, competitionBlocks, overall });

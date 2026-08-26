@@ -547,6 +547,8 @@ test("role-scoped collection summary shows block and overall donation metrics", 
   assert.match(screen, /Door-to-door pending/);
   assert.match(screen, /Opted out/);
   assert.match(screen, /Maximum flat donation/);
+  assert.match(screen, /Expected Attendees/); assert.match(screen, /Kids below 10/);
+  assert.match(route, /MAX\(adult_count\)/); assert.match(route, /MAX\(child_count\)/);
   assert.match(screen, /Participation Leaderboard/);
   assert.match(screen, /Ranked by the percentage of occupied flats/);
   assert.match(screen, /Collection Split by Block/);
