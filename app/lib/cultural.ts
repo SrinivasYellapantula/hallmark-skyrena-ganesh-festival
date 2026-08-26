@@ -1,6 +1,7 @@
 export const CULTURAL_CATEGORIES = [
   "Singing",
   "Dance",
+  "Kolatam",
   "Skit / Drama",
   "Musical Instrument",
   "Poem / Sloka / Story",
