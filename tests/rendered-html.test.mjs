@@ -461,7 +461,9 @@ test("residents and volunteers share a structured cultural registration workflow
   assert.match(form, /Contact Person/); assert.match(form, /Background Music Required/);
   assert.match(form, /Audio Track/);
   assert.doesNotMatch(form, /Approximate Setup Time|Chairs, Tables or Other Stage Setup|Props or Special Arrangements/);
-  assert.doesNotMatch(form, /Additional Information|Notes/);
+  assert.doesNotMatch(form, /Additional Information/);
+  assert.match(form, /Important Participation Guidelines/); assert.match(form, /Group Notes/);
+  assert.match(form, /devotional or God-related songs/); assert.match(form, /final selection/);
   assert.match(route, /resident-self-service/); assert.match(route, /source = user \? "volunteer" : "resident"/);
   assert.match(route, /request\.formData\(\)/); assert.match(route, /MAX_AUDIO_BYTES/);
   assert.match(route, /status='withdrawn'/); assert.match(route, /moved_to_recycle_bin/); assert.match(route, /isPortalOwner/); assert.match(audioRoute, /private, no-store/);

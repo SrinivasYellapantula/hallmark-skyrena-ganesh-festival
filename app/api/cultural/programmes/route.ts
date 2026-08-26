@@ -33,7 +33,7 @@ export async function GET(request: Request) {
   if (editToken) {
     const programme = await getD1().prepare(`SELECT id,reference_no referenceNo,title,performance_type performanceType,
       category,participant_details participantDetails,contact_name contactName,contact_phone contactPhone,
-      duration_minutes durationMinutes,status,background_music backgroundMusic,audio_key IS NOT NULL hasAudio,audio_name audioName
+      duration_minutes durationMinutes,status,background_music backgroundMusic,audio_key IS NOT NULL hasAudio,audio_name audioName,notes
       FROM cultural_programmes WHERE event_id=? AND edit_token_hash=? AND status<>'recycled'`)
       .bind(EVENT_ID,await hashSessionToken(editToken)).first();
     if (!programme) return Response.json({ error: "This edit link is invalid or no longer available." }, { status: 404 });
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
   if (requestedId) {
     const programme = await getD1().prepare(`SELECT id,reference_no referenceNo,title,performance_type performanceType,
       category,participant_details participantDetails,contact_name contactName,contact_phone contactPhone,
-      duration_minutes durationMinutes,status,background_music backgroundMusic,audio_key IS NOT NULL hasAudio,audio_name audioName
+      duration_minutes durationMinutes,status,background_music backgroundMusic,audio_key IS NOT NULL hasAudio,audio_name audioName,notes
       FROM cultural_programmes WHERE id=? AND event_id=? AND status<>'recycled'`).bind(requestedId,EVENT_ID).first();
     if (!programme) return Response.json({ error: "Cultural registration not found." }, { status: 404 });
     return Response.json({ programme, user: { ...auth.user, portalOwner: isPortalOwner(auth.user) } });
@@ -54,7 +54,7 @@ export async function GET(request: Request) {
     block_no blockNo,flat_no flatNo,programme_date programmeDate,start_time startTime,duration_minutes durationMinutes,
     status,background_music backgroundMusic,audio_key IS NOT NULL hasAudio,audio_name audioName,
     stage_requirements stageRequirements,props_requirements propsRequirements,setup_minutes setupMinutes,
-    source,created_by createdBy,created_at createdAt
+    source,created_by createdBy,created_at createdAt,notes
     FROM cultural_programmes WHERE event_id=? AND status<>'recycled'
     ORDER BY CASE status WHEN 'scheduled' THEN 0 WHEN 'approved' THEN 1 WHEN 'under_review' THEN 2
       WHEN 'submitted' THEN 3 WHEN 'clarification_required' THEN 4 WHEN 'waitlisted' THEN 5
@@ -77,6 +77,7 @@ export async function POST(request: Request) {
   const stageRequirements = cleanText(body.get("stageRequirements"), 1000);
   const propsRequirements = cleanText(body.get("propsRequirements"), 1000);
   const setupMinutes = 0;
+  const notes = cleanText(body.get("notes"), 600);
   const audio = body.get("audioTrack");
 
   if (!["solo", "group"].includes(performanceType)) return Response.json({ error: "Choose Solo or Group." }, { status: 400 });
@@ -85,6 +86,7 @@ export async function POST(request: Request) {
   if (!participants) return Response.json({ error: "Enter a valid name, age, block and flat number for every participant." }, { status: 400 });
   if (performanceType === "solo" && participants.length !== 1) return Response.json({ error: "A solo entry must contain one participant." }, { status: 400 });
   if (performanceType === "group" && participants.length < 2) return Response.json({ error: "Add at least two participants for a group entry." }, { status: 400 });
+  if (performanceType === "group" && !notes) return Response.json({ error: "Enter the expected participant total in Group Notes." }, { status: 400 });
   if (!contactName || !/^\d{10}$/.test(contactPhone)) return Response.json({ error: "Enter the contact person's name and a valid 10-digit mobile number." }, { status: 400 });
   if (durationMinutes === null) return Response.json({ error: "Enter a valid duration." }, { status: 400 });
   const hasAudio = audio instanceof File && audio.size > 0;
@@ -112,12 +114,12 @@ export async function POST(request: Request) {
       d1.prepare(`INSERT INTO cultural_programmes
         (id,event_id,reference_no,title,performance_type,category,participant_details,coordinator,
          contact_name,contact_phone,block_no,flat_no,duration_minutes,status,background_music,
-         audio_key,audio_name,audio_type,stage_requirements,props_requirements,setup_minutes,source,edit_token_hash,created_by)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'submitted',?,?,?,?,?,?,?,?,?,?)`)
+         audio_key,audio_name,audio_type,stage_requirements,props_requirements,setup_minutes,source,edit_token_hash,created_by,notes)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'submitted',?,?,?,?,?,?,?,?,?,?,?)`)
         .bind(id,EVENT_ID,referenceNo,title,performanceType,category,JSON.stringify(participants),"",
           contactName,contactPhone,first.blockNo,first.flatNo,durationMinutes,backgroundMusic ? 1 : 0,
           audioKey,hasAudio ? audio.name : null,hasAudio ? audio.type : null,stageRequirements,propsRequirements,
-          setupMinutes,source,editTokenHash,actor),
+          setupMinutes,source,editTokenHash,actor,notes),
       d1.prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor,details)
         VALUES(?,'cultural_programme',?,'submitted',?,?)`)
         .bind(crypto.randomUUID(),id,actor,JSON.stringify({referenceNo,source,performanceType,category,participantCount:participants.length})),
@@ -156,6 +158,7 @@ export async function PUT(request: Request) {
   const contactPhone=cleanText(body.get("contactPhone"),20).replace(/\D/g,"");
   const durationMinutes=wholeNumber(body.get("durationMinutes"),1,30);
   const backgroundMusic=body.get("backgroundMusic")==="true";
+  const notes=cleanText(body.get("notes"),600);
   const audio=body.get("audioTrack");
   if(!["solo","group"].includes(performanceType))return Response.json({error:"Choose Solo or Group."},{status:400});
   if(!CULTURAL_CATEGORIES.includes(category as never))return Response.json({error:"Choose a valid performance category."},{status:400});
@@ -163,6 +166,7 @@ export async function PUT(request: Request) {
   if(!participantDetails)return Response.json({error:"Enter a valid name, age, block and flat number for every participant."},{status:400});
   if(performanceType==="solo"&&participantDetails.length!==1)return Response.json({error:"A solo entry must contain one participant."},{status:400});
   if(performanceType==="group"&&participantDetails.length<2)return Response.json({error:"Add at least two participants for a group entry."},{status:400});
+  if(performanceType==="group"&&!notes)return Response.json({error:"Enter the expected participant total in Group Notes."},{status:400});
   if(!contactName||!/^\d{10}$/.test(contactPhone))return Response.json({error:"Enter the contact person's name and a valid 10-digit mobile number."},{status:400});
   if(durationMinutes===null)return Response.json({error:"Enter a valid duration."},{status:400});
   const hasNewAudio=audio instanceof File&&audio.size>0;
@@ -174,7 +178,7 @@ export async function PUT(request: Request) {
   const nextStatus=residentEdit?"submitted":existing.status;
   try{
     await d1.batch([
-      d1.prepare(`UPDATE cultural_programmes SET title=?,performance_type=?,category=?,participant_details=?,contact_name=?,contact_phone=?,block_no=?,flat_no=?,duration_minutes=?,background_music=?,audio_key=?,audio_name=?,audio_type=?,status=?,programme_date=CASE WHEN ? THEN '' ELSE programme_date END,start_time=CASE WHEN ? THEN '' ELSE start_time END,updated_at=CURRENT_TIMESTAMP WHERE id=? AND event_id=?`).bind(title,performanceType,category,JSON.stringify(participantDetails),contactName,contactPhone,first.blockNo,first.flatNo,durationMinutes,backgroundMusic?1:0,newAudioKey??existing.audioKey,hasNewAudio?audio.name:existing.audioName,hasNewAudio?audio.type:existing.audioType,nextStatus,residentEdit?1:0,residentEdit?1:0,existing.id,EVENT_ID),
+      d1.prepare(`UPDATE cultural_programmes SET title=?,performance_type=?,category=?,participant_details=?,contact_name=?,contact_phone=?,block_no=?,flat_no=?,duration_minutes=?,background_music=?,audio_key=?,audio_name=?,audio_type=?,notes=?,status=?,programme_date=CASE WHEN ? THEN '' ELSE programme_date END,start_time=CASE WHEN ? THEN '' ELSE start_time END,updated_at=CURRENT_TIMESTAMP WHERE id=? AND event_id=?`).bind(title,performanceType,category,JSON.stringify(participantDetails),contactName,contactPhone,first.blockNo,first.flatNo,durationMinutes,backgroundMusic?1:0,newAudioKey??existing.audioKey,hasNewAudio?audio.name:existing.audioName,hasNewAudio?audio.type:existing.audioType,notes,nextStatus,residentEdit?1:0,residentEdit?1:0,existing.id,EVENT_ID),
       d1.prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor,details) VALUES(?,'cultural_programme',?,'entry_updated',?,?)`).bind(crypto.randomUUID(),existing.id,actor,JSON.stringify({residentEdit,referenceNo:existing.referenceNo})),
     ]);
     if(newAudioKey&&existing.audioKey)await proofStore?.delete(existing.audioKey).catch(()=>undefined);

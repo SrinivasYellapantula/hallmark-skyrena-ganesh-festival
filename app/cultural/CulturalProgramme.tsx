@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { CULTURAL_STATUSES, CULTURAL_STATUS_LABELS } from "../lib/cultural";
 
 type Participant={name:string;age:number;blockNo:string;flatNo:string};
-type Programme={id:string;referenceNo:string;title:string;performanceType:string;category:string;participantDetails:string;coordinator:string;contactName:string;contactPhone:string;programmeDate:string;startTime:string;durationMinutes:number;status:string;backgroundMusic:number;hasAudio:number;audioName:string|null;stageRequirements:string;propsRequirements:string;setupMinutes:number;source:string;createdBy:string;createdAt:string};
+type Programme={id:string;referenceNo:string;title:string;performanceType:string;category:string;participantDetails:string;coordinator:string;contactName:string;contactPhone:string;programmeDate:string;startTime:string;durationMinutes:number;status:string;backgroundMusic:number;hasAudio:number;audioName:string|null;stageRequirements:string;propsRequirements:string;setupMinutes:number;source:string;createdBy:string;createdAt:string;notes:string};
 type ProgrammeUser={portalOwner?:boolean};
 
 function participants(item:Programme):Participant[]{try{const parsed=JSON.parse(item.participantDetails);return Array.isArray(parsed)?parsed:[];}catch{return item.participantDetails?[{name:item.participantDetails,age:0,blockNo:"",flatNo:""}]:[];}}
