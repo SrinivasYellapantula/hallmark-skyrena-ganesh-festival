@@ -33,7 +33,7 @@ export async function GET(request: Request) {
   if (editToken) {
     const programme = await getD1().prepare(`SELECT id,reference_no referenceNo,title,performance_type performanceType,
       category,participant_details participantDetails,contact_name contactName,contact_phone contactPhone,
-      duration_minutes durationMinutes,status,background_music backgroundMusic,audio_key IS NOT NULL hasAudio,audio_name audioName,notes
+      duration_minutes durationMinutes,status,background_music backgroundMusic,audio_key IS NOT NULL hasAudio,audio_name audioName,audio_arrangement audioArrangement,device_details deviceDetails,notes
       FROM cultural_programmes WHERE event_id=? AND edit_token_hash=? AND status<>'recycled'`)
       .bind(EVENT_ID,await hashSessionToken(editToken)).first();
     if (!programme) return Response.json({ error: "This edit link is invalid or no longer available." }, { status: 404 });
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
   if (requestedId) {
     const programme = await getD1().prepare(`SELECT id,reference_no referenceNo,title,performance_type performanceType,
       category,participant_details participantDetails,contact_name contactName,contact_phone contactPhone,
-      duration_minutes durationMinutes,status,background_music backgroundMusic,audio_key IS NOT NULL hasAudio,audio_name audioName,notes
+      duration_minutes durationMinutes,status,background_music backgroundMusic,audio_key IS NOT NULL hasAudio,audio_name audioName,audio_arrangement audioArrangement,device_details deviceDetails,notes
       FROM cultural_programmes WHERE id=? AND event_id=? AND status<>'recycled'`).bind(requestedId,EVENT_ID).first();
     if (!programme) return Response.json({ error: "Cultural registration not found." }, { status: 404 });
     return Response.json({ programme, user: { ...auth.user, portalOwner: isPortalOwner(auth.user) } });
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
   const rows = await getD1().prepare(`SELECT id,reference_no referenceNo,title,performance_type performanceType,
     category,participant_details participantDetails,coordinator,contact_name contactName,contact_phone contactPhone,
     block_no blockNo,flat_no flatNo,programme_date programmeDate,start_time startTime,duration_minutes durationMinutes,
-    status,background_music backgroundMusic,audio_key IS NOT NULL hasAudio,audio_name audioName,
+    status,background_music backgroundMusic,audio_key IS NOT NULL hasAudio,audio_name audioName,audio_arrangement audioArrangement,device_details deviceDetails,
     stage_requirements stageRequirements,props_requirements propsRequirements,setup_minutes setupMinutes,
     source,created_by createdBy,created_at createdAt,notes
     FROM cultural_programmes WHERE event_id=? AND status<>'recycled'
@@ -73,7 +73,8 @@ export async function POST(request: Request) {
   const contactName = cleanText(body.get("contactName"), 100);
   const contactPhone = cleanText(body.get("contactPhone"), 20).replace(/\D/g, "");
   const durationMinutes = wholeNumber(body.get("durationMinutes"), 1, 30);
-  const backgroundMusic = body.get("backgroundMusic") === "true";
+  const audioArrangement = cleanText(body.get("audioArrangement"), 30);
+  const deviceDetails = cleanText(body.get("deviceDetails"), 500);
   const stageRequirements = cleanText(body.get("stageRequirements"), 1000);
   const propsRequirements = cleanText(body.get("propsRequirements"), 1000);
   const setupMinutes = 0;
@@ -89,7 +90,10 @@ export async function POST(request: Request) {
   if (performanceType === "group" && !notes) return Response.json({ error: "Enter the expected participant total in Group Notes." }, { status: 400 });
   if (!contactName || !/^\d{10}$/.test(contactPhone)) return Response.json({ error: "Enter the point of contact name and a valid 10-digit mobile number." }, { status: 400 });
   if (durationMinutes === null) return Response.json({ error: "Enter a valid duration." }, { status: 400 });
+  if (!["upload", "own_device"].includes(audioArrangement)) return Response.json({ error: "Choose how the performance audio will be provided." }, { status: 400 });
+  if (audioArrangement === "own_device" && !deviceDetails) return Response.json({ error: "Enter the performer’s device and connection details." }, { status: 400 });
   const hasAudio = audio instanceof File && audio.size > 0;
+  if (audioArrangement === "upload" && !hasAudio) return Response.json({ error: "Upload the song file." }, { status: 400 });
   if (hasAudio && (!AUDIO_TYPES.has(audio.type) || audio.size > MAX_AUDIO_BYTES))
     return Response.json({ error: "Upload an MP3, M4A or WAV audio track up to 8 MB." }, { status: 400 });
 
@@ -114,11 +118,11 @@ export async function POST(request: Request) {
       d1.prepare(`INSERT INTO cultural_programmes
         (id,event_id,reference_no,title,performance_type,category,participant_details,coordinator,
          contact_name,contact_phone,block_no,flat_no,duration_minutes,status,background_music,
-         audio_key,audio_name,audio_type,stage_requirements,props_requirements,setup_minutes,source,edit_token_hash,created_by,notes)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'submitted',?,?,?,?,?,?,?,?,?,?,?)`)
+         audio_key,audio_name,audio_type,audio_arrangement,device_details,stage_requirements,props_requirements,setup_minutes,source,edit_token_hash,created_by,notes)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'submitted',?,?,?,?,?,?,?,?,?,?,?,?,?)`)
         .bind(id,EVENT_ID,referenceNo,title,performanceType,category,JSON.stringify(participants),"",
-          contactName,contactPhone,first.blockNo,first.flatNo,durationMinutes,backgroundMusic ? 1 : 0,
-          audioKey,hasAudio ? audio.name : null,hasAudio ? audio.type : null,stageRequirements,propsRequirements,
+          contactName,contactPhone,first.blockNo,first.flatNo,durationMinutes,1,
+          audioKey,hasAudio ? audio.name : null,hasAudio ? audio.type : null,audioArrangement,deviceDetails,stageRequirements,propsRequirements,
           setupMinutes,source,editTokenHash,actor,notes),
       d1.prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor,details)
         VALUES(?,'cultural_programme',?,'submitted',?,?)`)
@@ -157,7 +161,8 @@ export async function PUT(request: Request) {
   const contactName=cleanText(body.get("contactName"),100);
   const contactPhone=cleanText(body.get("contactPhone"),20).replace(/\D/g,"");
   const durationMinutes=wholeNumber(body.get("durationMinutes"),1,30);
-  const backgroundMusic=body.get("backgroundMusic")==="true";
+  const audioArrangement=cleanText(body.get("audioArrangement"),30);
+  const deviceDetails=cleanText(body.get("deviceDetails"),500);
   const notes=cleanText(body.get("notes"),600);
   const audio=body.get("audioTrack");
   if(!["solo","group"].includes(performanceType))return Response.json({error:"Choose Solo or Group."},{status:400});
@@ -169,19 +174,25 @@ export async function PUT(request: Request) {
   if(performanceType==="group"&&!notes)return Response.json({error:"Enter the expected participant total in Group Notes."},{status:400});
   if(!contactName||!/^\d{10}$/.test(contactPhone))return Response.json({error:"Enter the point of contact name and a valid 10-digit mobile number."},{status:400});
   if(durationMinutes===null)return Response.json({error:"Enter a valid duration."},{status:400});
+  if(!["upload","own_device"].includes(audioArrangement))return Response.json({error:"Choose how the performance audio will be provided."},{status:400});
+  if(audioArrangement==="own_device"&&!deviceDetails)return Response.json({error:"Enter the performer’s device and connection details."},{status:400});
   const hasNewAudio=audio instanceof File&&audio.size>0;
+  if(audioArrangement==="upload"&&!hasNewAudio&&!existing.audioKey)return Response.json({error:"Upload the song file."},{status:400});
   if(hasNewAudio&&(!AUDIO_TYPES.has(audio.type)||audio.size>MAX_AUDIO_BYTES))return Response.json({error:"Upload an MP3, M4A or WAV audio track up to 8 MB."},{status:400});
   const proofStore=(env as unknown as{PAYMENT_PROOFS?:KVNamespace}).PAYMENT_PROOFS;
   let newAudioKey:string|null=null;
   if(hasNewAudio){if(!proofStore)return Response.json({error:"Audio storage is temporarily unavailable."},{status:503});newAudioKey=`${EVENT_ID}/cultural/${existing.id}/${crypto.randomUUID()}`;await proofStore.put(newAudioKey,await audio.arrayBuffer(),{metadata:{originalName:audio.name,contentType:audio.type,uploadedBy:actor}});}
   const first=participantDetails[0];
   const nextStatus=residentEdit?"submitted":existing.status;
+  const finalAudioKey=audioArrangement==="upload"?(newAudioKey??existing.audioKey):null;
+  const finalAudioName=audioArrangement==="upload"?(hasNewAudio?audio.name:existing.audioName):null;
+  const finalAudioType=audioArrangement==="upload"?(hasNewAudio?audio.type:existing.audioType):null;
   try{
     await d1.batch([
-      d1.prepare(`UPDATE cultural_programmes SET title=?,performance_type=?,category=?,participant_details=?,contact_name=?,contact_phone=?,block_no=?,flat_no=?,duration_minutes=?,background_music=?,audio_key=?,audio_name=?,audio_type=?,notes=?,status=?,programme_date=CASE WHEN ? THEN '' ELSE programme_date END,start_time=CASE WHEN ? THEN '' ELSE start_time END,updated_at=CURRENT_TIMESTAMP WHERE id=? AND event_id=?`).bind(title,performanceType,category,JSON.stringify(participantDetails),contactName,contactPhone,first.blockNo,first.flatNo,durationMinutes,backgroundMusic?1:0,newAudioKey??existing.audioKey,hasNewAudio?audio.name:existing.audioName,hasNewAudio?audio.type:existing.audioType,notes,nextStatus,residentEdit?1:0,residentEdit?1:0,existing.id,EVENT_ID),
+      d1.prepare(`UPDATE cultural_programmes SET title=?,performance_type=?,category=?,participant_details=?,contact_name=?,contact_phone=?,block_no=?,flat_no=?,duration_minutes=?,background_music=1,audio_key=?,audio_name=?,audio_type=?,audio_arrangement=?,device_details=?,notes=?,status=?,programme_date=CASE WHEN ? THEN '' ELSE programme_date END,start_time=CASE WHEN ? THEN '' ELSE start_time END,updated_at=CURRENT_TIMESTAMP WHERE id=? AND event_id=?`).bind(title,performanceType,category,JSON.stringify(participantDetails),contactName,contactPhone,first.blockNo,first.flatNo,durationMinutes,finalAudioKey,finalAudioName,finalAudioType,audioArrangement,deviceDetails,notes,nextStatus,residentEdit?1:0,residentEdit?1:0,existing.id,EVENT_ID),
       d1.prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor,details) VALUES(?,'cultural_programme',?,'entry_updated',?,?)`).bind(crypto.randomUUID(),existing.id,actor,JSON.stringify({residentEdit,referenceNo:existing.referenceNo})),
     ]);
-    if(newAudioKey&&existing.audioKey)await proofStore?.delete(existing.audioKey).catch(()=>undefined);
+    if(existing.audioKey&&(newAudioKey||audioArrangement==="own_device"))await proofStore?.delete(existing.audioKey).catch(()=>undefined);
     return Response.json({ok:true,referenceNo:existing.referenceNo,editToken:editToken||null});
   }catch(error){if(newAudioKey)await proofStore?.delete(newAudioKey).catch(()=>undefined);throw error;}
 }

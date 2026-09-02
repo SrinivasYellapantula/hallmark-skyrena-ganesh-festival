@@ -171,6 +171,8 @@ async function initialize() {
       audio_key TEXT,
       audio_name TEXT,
       audio_type TEXT,
+      audio_arrangement TEXT NOT NULL DEFAULT 'upload',
+      device_details TEXT NOT NULL DEFAULT '',
       stage_requirements TEXT NOT NULL DEFAULT '',
       props_requirements TEXT NOT NULL DEFAULT '',
       setup_minutes INTEGER NOT NULL DEFAULT 0,
