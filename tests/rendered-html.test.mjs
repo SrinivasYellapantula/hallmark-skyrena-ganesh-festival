@@ -461,6 +461,10 @@ test("residents and volunteers share a structured cultural registration workflow
   assert.match(form, /Participant \/ Group Point of Contact/); assert.match(form, /Music \/ Audio Arrangement/);
   assert.match(form, /Upload the song file/); assert.match(form, /Performer will play from their own device/);
   assert.match(form, /downloaded for offline playback/); assert.match(form, /sound check/);
+  assert.match(form, /Automatically set to Group for Kolatam/); assert.match(form, /Kolatam Representative/);
+  assert.match(form, /category!=="Kolatam"&&performanceType==="group"/); assert.match(form, /category!=="Kolatam"&&<fieldset/);
+  assert.match(route, /isKolatam/); assert.match(route, /A Kolatam entry must contain one representative/);
+  assert.match(route, /isKolatam\?"not_required"/); assert.match(route, /durationMinutes=isKolatam\?0/);
   assert.doesNotMatch(form, /Approximate Setup Time|Chairs, Tables or Other Stage Setup|Props or Special Arrangements/);
   assert.doesNotMatch(form, /Additional Information/);
   assert.match(form, /Important Participation Guidelines/); assert.match(form, /Group Notes/);

@@ -46,8 +46,8 @@ export async function GET(request: Request) {
   });
   const rows = programmes.map((item) => {
     const people = parseParticipants(item.participantDetails);
-    const arrangement = item.audioArrangement === "own_device" ? "Performer’s own device" : "Uploaded song";
-    const audioDetails = item.audioArrangement === "own_device" ? item.deviceDetails : (item.audioName ?? "Uploaded file");
+    const arrangement = item.audioArrangement === "not_required" ? "Not required" : item.audioArrangement === "own_device" ? "Performer’s own device" : "Uploaded song";
+    const audioDetails = item.audioArrangement === "not_required" ? "" : item.audioArrangement === "own_device" ? item.deviceDetails : (item.audioName ?? "Uploaded file");
     return [item.referenceNo,statusLabel(item.status),titleCase(item.performanceType),item.category,item.title,item.durationMinutes,
       people.map((person)=>person.name ?? "").join("\n"),people.map((person)=>person.age ?? "").join("\n"),
       people.map((person)=>`${person.blockNo ?? ""}-${person.flatNo ?? ""}`).join("\n"),item.contactName,item.contactPhone,
