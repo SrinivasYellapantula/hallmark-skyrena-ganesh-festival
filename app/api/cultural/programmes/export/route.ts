@@ -29,6 +29,7 @@ export async function GET(request: Request) {
   const status = (url.searchParams.get("status") ?? "active").trim();
   const query = (url.searchParams.get("q") ?? "").trim().toLowerCase();
   const date = (url.searchParams.get("date") ?? "").trim();
+  const category = (url.searchParams.get("category") ?? "").trim();
   const scheduledOnly = url.searchParams.get("scheduled") === "true";
   const result = await getD1().prepare(`SELECT reference_no referenceNo,title,performance_type performanceType,
     category,participant_details participantDetails,contact_name contactName,contact_phone contactPhone,
@@ -41,8 +42,9 @@ export async function GET(request: Request) {
     const statusMatches = scheduledOnly ? item.status === "scheduled" : status === "all" ||
       (status === "active" ? !["withdrawn","completed"].includes(item.status) : item.status === status);
     const dateMatches = !date || item.programmeDate === date;
+    const categoryMatches = !category || item.category === category;
     const searchable = `${item.referenceNo} ${item.title} ${item.category} ${item.participantDetails} ${item.contactName} ${item.contactPhone}`.toLowerCase();
-    return statusMatches && dateMatches && searchable.includes(query);
+    return statusMatches && dateMatches && categoryMatches && searchable.includes(query);
   });
   const rows = programmes.map((item) => {
     const people = parseParticipants(item.participantDetails);
