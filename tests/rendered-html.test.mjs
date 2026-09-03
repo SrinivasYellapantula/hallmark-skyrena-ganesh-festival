@@ -483,6 +483,8 @@ test("residents and volunteers share a structured cultural registration workflow
   assert.match(exportRoute, /writeXlsxFile/); assert.match(exportRoute, /participantDetails/); assert.match(exportRoute, /scheduledOnly/);
   assert.match(workspace, /Filter cultural registrations by category/); assert.match(workspace, /All Categories/);
   assert.match(exportRoute, /categoryMatches/); assert.match(workspace, /categoryFilter/);
+  assert.match(workspace, /Filter cultural registrations by performance type/); assert.match(workspace, /All Types/);
+  assert.match(exportRoute, /typeMatches/); assert.match(workspace, /typeFilter/);
   assert.match(workspace, /!isKolatam&&<div><dt>Duration/); assert.match(workspace, /!isKolatam&&<div><dt>Audio arrangement/);
   assert.match(authGate, /publicCulturalForm/); assert.match(chrome, /\/cultural\/register/);
   assert.match(culturalConstants, /clarification_required/); assert.match(culturalConstants, /waitlisted/);

@@ -265,5 +265,5 @@ label small { color: var(--muted); font-weight: 500; }.field-error{color:var(--r
 @media(max-width:900px){.donation-list-actions,.records-shell:not(.records-shell-wide) .donation-list-actions{grid-template-columns:1fr}.donation-list-actions input,.donation-list-actions .attendance-filter,.donation-list-actions .duplicate-filter,.records-shell:not(.records-shell-wide) .donation-list-actions input,.records-shell:not(.records-shell-wide) .donation-export{grid-column:auto;width:100%;min-width:0}}
 
 /* Cultural registration exports */
-.cultural-toolbar{grid-template-columns:minmax(230px,1fr) 190px 190px auto auto}.cultural-toolbar .button{white-space:nowrap}.cultural-schedule-toolbar>label{width:min(250px,100%)}
+.cultural-toolbar{grid-template-columns:minmax(220px,1fr) repeat(3,minmax(135px,170px)) auto auto}.cultural-toolbar .button{white-space:nowrap}.cultural-schedule-toolbar>label{width:min(220px,100%)}
 @media(max-width:980px){.cultural-toolbar{display:flex}.cultural-toolbar .button{width:100%}.cultural-schedule-toolbar>div{flex-wrap:wrap}}
