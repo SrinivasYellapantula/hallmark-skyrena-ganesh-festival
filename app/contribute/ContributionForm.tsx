@@ -387,7 +387,7 @@ export function ContributionForm() {
           <div className="form-section-heading" id="household-section-title"><span>{isResident ? "1" : "2"}</span><h2>{isVendor ? "Vendor / Sponsor Details" : "Household Details"}</h2></div>
           <p className="fieldset-help">{isVendor ? "Record enough information to identify and contact the contributing organisation." : isResident ? "Please enter your household details." : "All household details are mandatory."}</p>
           <div className="field-grid">
-            <label>{isVendor ? "Volunteer Block" : isResident ? <span className="field-label">Block<span className="required-mark">*</span></span> : "Block"}
+            <label>{isVendor ? <span className="field-label">Volunteer Block<span className="required-mark">*</span></span> : isResident ? <span className="field-label">Block<span className="required-mark">*</span></span> : "Block"}
               <select required name="blockNo" disabled={user?.role === "block"} value={form.blockNo} onChange={(event) => update(event.target.name, event.target.value)}>
                 <option value="">Select block</option>
                 {BLOCKS.map((block) => <option key={block} value={block}>Block {block}</option>)}
@@ -402,18 +402,18 @@ export function ContributionForm() {
               </select>
             </label>}
             {isVendor ? <>
-              <label>Vendor Type<span className="required-mark">*</span>
+              <label><span className="field-label">Vendor Type<span className="required-mark">*</span></span>
                 <select required name="vendorCategory" value={form.vendorCategory} onChange={(event) => update(event.target.name, event.target.value)}>
                   <option value="">Select vendor type</option><option value="bank">Bank</option><option value="showroom">Showroom</option><option value="shop">Shop / Retailer</option><option value="business">Company / Business</option><option value="institution">Institution</option><option value="other">Other</option>
                 </select>
               </label>
-              <label className="wide">Vendor / Organisation Name<span className="required-mark">*</span>
+              <label className="wide"><span className="field-label">Vendor / Organisation Name<span className="required-mark">*</span></span>
                 <input required name="residentName" value={form.residentName} onChange={(event) => update(event.target.name, event.target.value)} placeholder="Registered or commonly known name" />
               </label>
-              <label className="wide">Contact Person<span className="required-mark">*</span>
+              <label className="wide"><span className="field-label">Contact Person<span className="required-mark">*</span></span>
                 <input required name="contactPerson" autoComplete="name" value={form.contactPerson} onChange={(event) => update(event.target.name, event.target.value)} />
               </label>
-              <label className="wide">Location / Address <span className="optional">optional</span>
+              <label className="wide"><span className="field-label">Location / Address <span className="optional">optional</span></span>
                 <textarea name="vendorAddress" rows={3} value={form.vendorAddress} onChange={(event) => update(event.target.name, event.target.value)} placeholder="Branch, showroom or business address" />
               </label>
             </> : isResident ? <label><span className="field-label">Flat Number<span className="required-mark">*</span></span>
