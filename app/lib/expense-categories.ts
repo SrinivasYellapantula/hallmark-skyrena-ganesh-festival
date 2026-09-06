@@ -18,6 +18,7 @@ export const EXPENSE_CATEGORIES = [
   "Cleaning & Waste",
   "Utilities",
   "Licences & Permissions",
+  "Laddoos",
   "Gifts & Prasadam",
   "Other",
 ] as const;
