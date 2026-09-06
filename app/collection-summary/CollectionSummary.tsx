@@ -21,6 +21,8 @@ type Summary = {
   adults: number;
   kids: number;
   attendees: number;
+  vendorDonations: number;
+  vendorCollection: number;
 };
 type Payload = { user: { role: "admin" | "block"; blockNo: string | null }; blocks: Summary[]; competitionBlocks: Summary[]; overall: Summary };
 
@@ -113,6 +115,8 @@ function SummaryCard({ summary, featured = false }: { summary: Summary; featured
     <dl className="collection-detail-metrics">
       <div><dt>Total donating flats</dt><dd>{summary.donatingFlats}</dd></div>
       <div><dt>Main festival donation</dt><dd>{currency(summary.festivalCollection)}</dd></div>
+      <div><dt>Outside vendor donations</dt><dd>{summary.vendorDonations}</dd></div>
+      <div><dt>Outside vendor collection</dt><dd>{currency(summary.vendorCollection)}</dd></div>
       <div><dt>Donating flats outside occupied master</dt><dd>{summary.outsideMasterDonatingFlats}</dd></div>
       <div><dt>Idol donation</dt><dd>{currency(summary.idolCollection)}</dd></div>
       <div><dt>Average per donated flat</dt><dd>{currency(summary.averageDonation)}</dd></div>

@@ -8,6 +8,10 @@ import { normalizeFlatNo } from "../../../lib/server";
 type DonationRecord = {
   referenceNo: string;
   residentName: string;
+  donorType: "resident" | "vendor";
+  vendorCategory: string;
+  contactPerson: string;
+  vendorAddress: string;
   blockNo: string;
   flatNo: string;
   occupancy: string;
@@ -50,6 +54,7 @@ export async function GET(request: Request) {
   const d1 = getD1();
   const blockClause = auth.user.role === "block" ? "AND r.block_no=?" : "";
   const statement = d1.prepare(`SELECT r.reference_no referenceNo, r.resident_name residentName,
+    r.donor_type donorType,r.vendor_category vendorCategory,r.contact_person contactPerson,r.vendor_address vendorAddress,
     r.block_no blockNo, r.flat_no flatNo, r.occupancy, r.phone, r.status, r.created_at createdAt,
     SUM(CASE WHEN d.category='festival' THEN d.amount ELSE 0 END) festivalAmount,
     SUM(CASE WHEN d.category='idol' THEN d.amount ELSE 0 END) idolAmount,
@@ -76,14 +81,16 @@ export async function GET(request: Request) {
     ? await statement.bind(EVENT_ID, auth.user.blockNo).all<DonationRecord>()
     : await statement.bind(EVENT_ID).all<DonationRecord>();
 
-  const byBlock = groupByDonatedFlat(query.results ?? []);
+  const records = query.results ?? [];
+  const byBlock = groupByDonatedFlat(records.filter((record) => record.donorType !== "vendor"));
   const exportBlocks = auth.user.role === "block"
     ? [auth.user.blockNo as (typeof BLOCKS)[number]]
     : [...BLOCKS];
-  const sheets = exportBlocks.map((block) => createSheet(block, byBlock.get(block) ?? []));
-  const columns = exportBlocks.map(() => COLUMN_WIDTHS);
+  const vendorRecords = records.filter((record) => record.donorType === "vendor");
+  const sheets = [...exportBlocks.map((block) => createSheet(block, byBlock.get(block) ?? [])), createVendorSheet(vendorRecords)];
+  const columns = [...exportBlocks.map(() => COLUMN_WIDTHS), VENDOR_COLUMN_WIDTHS];
   const workbook = await writeXlsxFile(sheets, {
-    sheets: exportBlocks.map((block) => `Block ${block}`),
+    sheets: [...exportBlocks.map((block) => `Block ${block}`), "Outside Vendors"],
     columns,
     stickyRowsCount: 4,
     fontFamily: "Arial",
@@ -101,6 +108,23 @@ export async function GET(request: Request) {
       "cache-control": "private, no-store",
     },
   });
+}
+
+const VENDOR_COLUMN_WIDTHS = [28, 18, 24, 15, 34, 14, 17, 17, 20, 18, 20, 24].map((width) => ({ width }));
+
+function createVendorSheet(records: DonationRecord[]) {
+  const headers = ["Vendor / Organisation", "Vendor Type", "Contact Person", "Phone", "Location / Address", "Volunteer Block", "Festival Donation", "Idol Donation", "Mahaprasadam Support", "Total Contribution", "Verification Status", "Reference Number"];
+  const rows = records.map((record) => [
+    textCell(record.residentName), textCell(titleCase(record.vendorCategory)), textCell(record.contactPerson), textCell(record.phone || "Not recorded"),
+    textCell(record.vendorAddress || "Not recorded"), textCell(record.blockNo), numberCell(record.festivalAmount), numberCell(record.idolAmount),
+    numberCell(record.mahaprasadamAmount), numberCell(record.totalAmount), textCell(titleCase(record.status)), textCell(record.referenceNo),
+  ]);
+  if (!rows.length) rows.push([{ value: "No outside-vendor donations recorded.", span: headers.length, color: "#746B61", fontStyle: "italic" }, ...Array(headers.length - 1).fill(null)]);
+  return [
+    [{ value: "Outside Vendor Donations", span: headers.length, backgroundColor: "#B43120", color: "#FFFFFF", fontWeight: "bold", fontSize: 16, height: 30 }, ...Array(headers.length - 1).fill(null)],
+    [{ value: `Generated: ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} · ${records.length} donation record(s).`, span: headers.length, backgroundColor: "#FFF4DA", color: "#554638", fontSize: 9, height: 24 }, ...Array(headers.length - 1).fill(null)],
+    Array(headers.length).fill(null), headers.map((value) => ({ value, ...HEADER_STYLE, height: 32 })), ...rows,
+  ];
 }
 
 function groupByDonatedFlat(records: DonationRecord[]) {

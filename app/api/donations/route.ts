@@ -7,7 +7,8 @@ export async function GET(request: Request) {
   const auth = await authorize(request); if ("response" in auth) return auth.response;
   await ensureDatabase(); const d1=getD1(); const blockClause=auth.user.role === "block" ? "AND r.block_no = ?" : "";
   const statement=d1.prepare(`SELECT r.id, r.reference_no referenceNo, r.resident_name residentName,
-    r.block_no blockNo, r.flat_no flatNo, r.gotram, r.occupancy, r.phone, r.adult_count adultCount,
+    r.donor_type donorType, r.vendor_category vendorCategory, r.contact_person contactPerson,
+    r.vendor_address vendorAddress, r.block_no blockNo, r.flat_no flatNo, r.gotram, r.occupancy, r.phone, r.adult_count adultCount,
     r.child_count childCount, r.notes, r.status, r.created_at createdAt,
     SUM(d.amount) amount,
     SUM(CASE WHEN d.category = 'festival' THEN d.amount ELSE 0 END) festivalAmount,
@@ -15,7 +16,7 @@ export async function GET(request: Request) {
     SUM(CASE WHEN d.category = 'annadaanam' THEN d.amount ELSE 0 END) annadaanamAmount,
     MAX(d.payment_reference) paymentReference,
     MAX(CASE WHEN d.payment_proof_key IS NOT NULL THEN 1 ELSE 0 END) hasProof,
-    CASE WHEN EXISTS (
+    CASE WHEN r.donor_type='resident' AND EXISTS (
       SELECT 1 FROM flats f WHERE f.event_id=r.event_id AND f.occupied=1
         AND UPPER(TRIM(f.block_no))=UPPER(TRIM(r.block_no))
         AND CASE

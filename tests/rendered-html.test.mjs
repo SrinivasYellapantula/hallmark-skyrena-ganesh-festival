@@ -221,7 +221,7 @@ test("residents can use an unrestricted flat field without changing the voluntee
   assert.match(form, /Select occupied flat/);
   assert.match(registration, /getAppUser\(request\)/);
   assert.match(registration, /resident-self-service/);
-  assert.match(registration, /if \(user\) \{/);
+  assert.match(registration, /if \(user && donorType === "resident"\) \{/);
   assert.match(registration, /occupancy && !\['owner', 'tenant'\]\.includes\(occupancy\)/);
   assert.match(registration, /excluded\.occupancy<>'' THEN excluded\.occupancy ELSE flats\.occupancy/);
   assert.doesNotMatch(registration, /const auth = await authorize\(request\)/);
@@ -643,13 +643,14 @@ test("resident donations remain separate from occupied-flat coverage", async () 
     source("app/donations/DonationsDashboard.tsx"),
     source("app/globals.css"),
   ]);
-  assert.match(registration, /if \(user\) statements\.push/);
-  assert.match(registration, /else statements\.push\(d1\.prepare\(`UPDATE flats SET/);
+  assert.match(registration, /if \(user && donorType === "resident"\) statements\.push/);
+  assert.match(registration, /else if \(donorType === "resident"\) statements\.push\(d1\.prepare\(`UPDATE flats SET/);
   assert.match(registration, /WHERE event_id=\? AND block_no=\? AND flat_no=\? AND occupied=1/);
   assert.doesNotMatch(registration, /occupied=1, visit_status='donated'/);
   assert.match(summaryRoute, /occupiedDonatedFlats/);
   assert.match(summaryRoute, /outsideMasterDonatingFlats/);
-  assert.match(summaryRoute, /totalDonatingFlats \? Math\.round\(totalCollection \/ totalDonatingFlats\)/);
+  assert.match(summaryRoute, /r\.donor_type='resident'/);
+  assert.match(summaryRoute, /vendorCollection/);
   assert.match(summaryScreen, /Occupied flats donated/);
   assert.match(summaryScreen, /Donating flats outside occupied master/);
   assert.match(donationsRoute, /inOccupiedMaster/);

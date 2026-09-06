@@ -93,6 +93,7 @@ h1 em, h2 em { color: var(--red); font-style: italic; }
 .form-main, .form-summary, .success-panel, .dashboard-card, .admin-card { background: rgba(255,250,241,.88); border: 1px solid var(--line); box-shadow: var(--shadow); }
 .form-main { padding: 12px 40px 36px; }
 .resident-form-note { margin: 24px 0 0; padding: 14px 16px; border-left: 4px solid var(--green); background: #edf7e9; color: #315c36; font-size: 12px; line-height: 1.55; }
+.donor-type-options{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0 0 42px}.donor-type-options label{display:flex;align-items:flex-start;gap:12px;padding:16px;border:1px solid var(--line);border-radius:6px;background:#fffdfa;cursor:pointer}.donor-type-options label.selected{border-color:var(--red);box-shadow:0 0 0 3px rgba(180,49,32,.08);background:#fff8ec}.donor-type-options input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--red)}.donor-type-options span,.donor-type-options strong,.donor-type-options small{display:block}.donor-type-options small{margin-top:4px;color:var(--muted);font-weight:500;line-height:1.4}
 .required-mark { color: var(--red); font-weight: 900; }
 .donation-form-loading { min-height: 280px; }
 fieldset { margin: 0; padding: 35px 0; border: 0; }
@@ -203,6 +204,7 @@ label small { color: var(--muted); font-weight: 500; }.field-error{color:var(--r
 }
 
 @media (max-width: 620px) {
+  .donor-type-options { grid-template-columns: 1fr; margin-left: 0; }
   .wrap, .compact { width: min(100% - 24px, 1180px); }.site-header .nav-wrap { min-height:68px; }.brand-logo{width:92px;height:52px}.brand-copy{display:none}.site-nav{left:-1px;right:-1px}.nav-toggle{min-height:40px;padding-inline:12px}.brand strong { font-size: 14px; }.admin-link { display: none; }
   .hero { min-height: 0; gap: 25px; padding-block: 45px; }.hero h1 { font-size: 48px; }.hero-lede { font-size: 16px; }.hero-actions { align-items: stretch; flex-direction: column; }.hero-art { min-height: 330px; }.sun-disc { width: 280px; }.arch-one { width: 310px; height: 275px; top: 35px; }.arch-two { width: 335px; height: 300px; top: 10px; }.festival-mark strong { font-size: 34px; }.garland { bottom: 28px; font-size: 10px; }
   .trust-grid { grid-template-columns: 1fr; }.trust-grid > div, .trust-grid > div:nth-child(2), .trust-grid > div:last-child { grid-column: auto; border: 0; border-bottom: 1px solid rgba(255,255,255,.17); }.section { padding-block: 60px; }.home-grid { gap: 35px; }.home-grid h2 { font-size: 38px; }.steps-list article { grid-template-columns: 100px 1fr; gap: 15px; }

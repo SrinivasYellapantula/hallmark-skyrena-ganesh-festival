@@ -16,6 +16,7 @@ type CollectionRow = {
   averageDonation: number;
 };
 type AttendanceRow = { blockNo: string; adults: number; kids: number };
+type VendorCollectionRow = { blockNo: string; vendorDonations: number; vendorCollection: number; verifiedVendorCollection: number; festivalCollection: number; idolCollection: number; mahaprasadamCollection: number };
 
 export async function GET(request: Request) {
   const auth = await authorize(request, ["admin", "block"]);
@@ -45,7 +46,7 @@ export async function GET(request: Request) {
            ELSE REPLACE(REPLACE(UPPER(TRIM(r.flat_no)),'-',''),' ','')
          END flatNo
        FROM registrations r JOIN donations d ON d.registration_id=r.id
-       WHERE r.event_id=? AND r.status!='cancelled' AND d.status!='reversed' AND d.amount>0
+       WHERE r.event_id=? AND r.donor_type='resident' AND r.status!='cancelled' AND d.status!='reversed' AND d.amount>0
        GROUP BY blockNo,flatNo
      )
      SELECT o.blockNo,COUNT(*) occupiedFlats,
@@ -70,7 +71,7 @@ export async function GET(request: Request) {
          SUM(CASE WHEN d.status!='reversed' AND d.category='idol' THEN d.amount ELSE 0 END) idolCollection,
          SUM(CASE WHEN d.status!='reversed' AND d.category='annadaanam' THEN d.amount ELSE 0 END) mahaprasadamCollection
        FROM registrations r JOIN donations d ON d.registration_id=r.id
-       WHERE r.event_id=? AND r.status!='cancelled'
+       WHERE r.event_id=? AND r.donor_type='resident' AND r.status!='cancelled'
        GROUP BY r.id
      ), flat_totals AS (
        SELECT blockNo,flatNo,SUM(totalCollection) totalCollection,
@@ -106,18 +107,32 @@ export async function GET(request: Request) {
      FROM household_attendance GROUP BY blockNo ORDER BY blockNo`,
   );
 
-  const [occupancy, collections, attendance] = await Promise.all([
+  const vendorStatement = d1.prepare(`SELECT UPPER(TRIM(r.block_no)) blockNo,
+    COUNT(DISTINCT r.id) vendorDonations,
+    COALESCE(SUM(CASE WHEN d.status!='reversed' THEN d.amount ELSE 0 END),0) vendorCollection,
+    COALESCE(SUM(CASE WHEN r.status='verified' AND d.status='verified' THEN d.amount ELSE 0 END),0) verifiedVendorCollection,
+    COALESCE(SUM(CASE WHEN d.status!='reversed' AND d.category='festival' THEN d.amount ELSE 0 END),0) festivalCollection,
+    COALESCE(SUM(CASE WHEN d.status!='reversed' AND d.category='idol' THEN d.amount ELSE 0 END),0) idolCollection,
+    COALESCE(SUM(CASE WHEN d.status!='reversed' AND d.category='annadaanam' THEN d.amount ELSE 0 END),0) mahaprasadamCollection
+    FROM registrations r JOIN donations d ON d.registration_id=r.id
+    WHERE r.event_id=? AND r.donor_type='vendor' AND r.status!='cancelled'
+    GROUP BY UPPER(TRIM(r.block_no))`);
+
+  const [occupancy, collections, attendance, vendors] = await Promise.all([
     occupancyStatement.bind(EVENT_ID, EVENT_ID).all<OccupancyRow>(),
     collectionStatement.bind(EVENT_ID).all<CollectionRow>(),
     attendanceStatement.bind(EVENT_ID).all<AttendanceRow>(),
+    vendorStatement.bind(EVENT_ID).all<VendorCollectionRow>(),
   ]);
 
   const occupancyByBlock = new Map(occupancy.results.map((row) => [row.blockNo, row]));
   const collectionByBlock = new Map(collections.results.map((row) => [row.blockNo, row]));
   const attendanceByBlock = new Map(attendance.results.map((row) => [row.blockNo, row]));
+  const vendorByBlock = new Map(vendors.results.map((row) => [row.blockNo, row]));
   const competitionBlocks = [...BLOCKS].map((blockNo) => {
     const occupied = occupancyByBlock.get(blockNo);
     const collection = collectionByBlock.get(blockNo);
+    const vendor = vendorByBlock.get(blockNo);
     const occupiedFlats = Number(occupied?.occupiedFlats ?? 0);
     const occupiedDonatedFlats = Number(occupied?.donatedOccupiedFlats ?? 0);
     const optedOutFlats = Number(occupied?.optedOutFlats ?? 0);
@@ -131,11 +146,13 @@ export async function GET(request: Request) {
       donatingFlats,
       outsideMasterDonatingFlats: Math.max(donatingFlats - occupiedDonatedFlats, 0),
       pendingFlats: Math.max(occupiedFlats - occupiedDonatedFlats - optedOutFlats, 0),
-      totalCollection: Number(collection?.totalCollection ?? 0),
-      verifiedCollection: Number(collection?.verifiedCollection ?? 0),
-      festivalCollection: Number(collection?.festivalCollection ?? 0),
-      idolCollection: Number(collection?.idolCollection ?? 0),
-      mahaprasadamCollection: Number(collection?.mahaprasadamCollection ?? 0),
+      vendorDonations: Number(vendor?.vendorDonations ?? 0),
+      vendorCollection: Number(vendor?.vendorCollection ?? 0),
+      totalCollection: Number(collection?.totalCollection ?? 0) + Number(vendor?.vendorCollection ?? 0),
+      verifiedCollection: Number(collection?.verifiedCollection ?? 0) + Number(vendor?.verifiedVendorCollection ?? 0),
+      festivalCollection: Number(collection?.festivalCollection ?? 0) + Number(vendor?.festivalCollection ?? 0),
+      idolCollection: Number(collection?.idolCollection ?? 0) + Number(vendor?.idolCollection ?? 0),
+      mahaprasadamCollection: Number(collection?.mahaprasadamCollection ?? 0) + Number(vendor?.mahaprasadamCollection ?? 0),
       maximumDonation: Number(collection?.maximumDonation ?? 0),
       averageDonation: Number(collection?.averageDonation ?? 0),
       adults: Number(attendanceTotals?.adults ?? 0),
@@ -164,7 +181,9 @@ export async function GET(request: Request) {
     idolCollection: competitionBlocks.reduce((sum, block) => sum + block.idolCollection, 0),
     mahaprasadamCollection: competitionBlocks.reduce((sum, block) => sum + block.mahaprasadamCollection, 0),
     maximumDonation: Math.max(0, ...competitionBlocks.map((block) => block.maximumDonation)),
-    averageDonation: totalDonatingFlats ? Math.round(totalCollection / totalDonatingFlats) : 0,
+    vendorDonations: competitionBlocks.reduce((sum, block) => sum + block.vendorDonations, 0),
+    vendorCollection: competitionBlocks.reduce((sum, block) => sum + block.vendorCollection, 0),
+    averageDonation: totalDonatingFlats ? Math.round((totalCollection - competitionBlocks.reduce((sum, block) => sum + block.vendorCollection, 0)) / totalDonatingFlats) : 0,
     adults: competitionBlocks.reduce((sum, block) => sum + block.adults, 0),
     kids: competitionBlocks.reduce((sum, block) => sum + block.kids, 0),
     attendees: competitionBlocks.reduce((sum, block) => sum + block.attendees, 0),

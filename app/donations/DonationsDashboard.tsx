@@ -6,6 +6,7 @@ import { optimizeImageUpload } from "../lib/client-image";
 
 type Row = {
   id: string; referenceNo: string; residentName: string; blockNo: string; flatNo: string;
+  donorType: "resident" | "vendor"; vendorCategory: string; contactPerson: string; vendorAddress: string;
   gotram: string; occupancy: string; phone: string | null; amount: number;
   festivalAmount: number; idolAmount: number; annadaanamAmount: number; status: string; paymentReference: string;
   createdAt: string; hasProof: number; adultCount: number; childCount: number; notes: string;
@@ -64,7 +65,7 @@ export function DonationsDashboard() {
   const duplicateFlatCount = useMemo(() => new Set(duplicateReview.values()).size, [duplicateReview]);
 
   const visible = useMemo(() => rows.filter((row) => {
-    const matchesQuery = `${row.residentName} ${row.blockNo} ${row.flatNo} ${row.referenceNo} ${row.phone ?? ""}`
+    const matchesQuery = `${row.residentName} ${row.vendorCategory ?? ""} ${row.contactPerson ?? ""} ${row.blockNo} ${row.flatNo} ${row.referenceNo} ${row.phone ?? ""}`
       .toLowerCase().includes(query.trim().toLowerCase());
     const totalAttendees = Number(row.adultCount) + Number(row.childCount);
     const matchesAttendance = attendanceFilter === "all"
@@ -109,6 +110,7 @@ export function DonationsDashboard() {
   }
 
   async function addToOccupiedMaster(row: Row) {
+    if (row.donorType === "vendor") return;
     if (!window.confirm(`Add Block ${row.blockNo} Flat ${row.flatNo} to the occupied-flat master? This will include it in occupied-flat coverage and pending calculations.`)) return;
     setMasterBusy(true); setError("");
     try {
@@ -145,7 +147,7 @@ export function DonationsDashboard() {
         <div className="record-list">
           {visible.map((row) => (
             <button key={row.id} onClick={() => { setSelected(row); setReplacementProof(null); }}>
-              <span><strong>{row.residentName}</strong><small>Block {row.blockNo} · Flat {row.flatNo} · {row.referenceNo}</small>{duplicateReview.has(row.id)&&<small className="duplicate-review-label">Duplicate Review · {duplicateReview.get(row.id)?.reason}</small>}<small className={row.adultCount + row.childCount === 0 ? "attendance-review" : ""}>{row.adultCount + row.childCount} Mahaprasadam attendee{row.adultCount + row.childCount === 1 ? "" : "s"}{row.adultCount + row.childCount === 0 ? " · please confirm" : ""}</small></span>
+              <span><strong>{row.residentName}</strong><small>{row.donorType === "vendor" ? `Outside Vendor · ${titleCase(row.vendorCategory)} · recorded by Block ${row.blockNo} team` : `Block ${row.blockNo} · Flat ${row.flatNo}`} · {row.referenceNo}</small>{duplicateReview.has(row.id)&&<small className="duplicate-review-label">Duplicate Review · {duplicateReview.get(row.id)?.reason}</small>}{row.donorType !== "vendor"&&<small className={row.adultCount + row.childCount === 0 ? "attendance-review" : ""}>{row.adultCount + row.childCount} Mahaprasadam attendee{row.adultCount + row.childCount === 1 ? "" : "s"}{row.adultCount + row.childCount === 0 ? " · please confirm" : ""}</small>}</span>
               <span><strong>{currency(Number(row.amount))}</strong><small className={`status ${row.status}`}>{row.status}</small></span>
             </button>
           ))}
@@ -158,37 +160,37 @@ export function DonationsDashboard() {
           <button className="dialog-close" onClick={() => { setSelected(null); setReplacementProof(null); }} aria-label="Close detailed view">×</button>
           <span className="card-kicker">Detailed view</span>
           <h2>{selected.residentName}</h2>
-          <p>Block {selected.blockNo} · Flat {selected.flatNo} · {selected.referenceNo}</p>
+          <p>{selected.donorType === "vendor" ? `Outside Vendor · recorded by Block ${selected.blockNo} team` : `Block ${selected.blockNo} · Flat ${selected.flatNo}`} · {selected.referenceNo}</p>
           {selectedDuplicate&&<div className="duplicate-review-alert"><strong>Duplicate Review</strong><span>{selectedDuplicate.count} active submissions were found for this block and flat.</span><span>{selectedDuplicate.reason}.</span><small>Review the payment reference and proof before moving any duplicate submission to the Recycle Bin. Genuine additional donations should be retained.</small></div>}
           {selected.status === "correction_requested" && <div className="correction-alert"><strong>Correction requested</strong><span>{selected.correctionReason || "Please review and correct this submission."}</span><small>Saving the corrected record will send it back for administrator verification.</small></div>}
           <dl>
             <div><dt>Status</dt><dd>{selected.status}</dd></div>
-            <div><dt>Occupied-flat master</dt><dd><span className={`master-membership ${selected.inOccupiedMaster ? "included" : "outside"}`}>{selected.inOccupiedMaster ? "Included" : "Not included"}</span></dd></div>
+            <div><dt>Donor type</dt><dd>{selected.donorType === "vendor" ? "Outside Vendor" : "Resident / Flat"}</dd></div>
+            {selected.donorType === "vendor" ? <><div><dt>Vendor type</dt><dd>{titleCase(selected.vendorCategory)}</dd></div><div><dt>Contact person</dt><dd>{selected.contactPerson}</dd></div><div><dt>Location / Address</dt><dd>{selected.vendorAddress || "Not recorded"}</dd></div></> : <div><dt>Occupied-flat master</dt><dd><span className={`master-membership ${selected.inOccupiedMaster ? "included" : "outside"}`}>{selected.inOccupiedMaster ? "Included" : "Not included"}</span></dd></div>}
             <div><dt>Festival donation</dt><dd>{currency(Number(selected.festivalAmount))}</dd></div>
             <div><dt>Idol donation</dt><dd>{currency(Number(selected.idolAmount))}</dd></div>
             <div><dt>Mahaprasadam donation</dt><dd>{currency(Number(selected.annadaanamAmount))}</dd></div>
             <div><dt>Total</dt><dd>{currency(Number(selected.amount))}</dd></div>
-            <div><dt>Gotram</dt><dd>{selected.gotram || "Not recorded"}</dd></div>
-            <div><dt>Resident type</dt><dd>{selected.occupancy}</dd></div>
+            {selected.donorType !== "vendor"&&<><div><dt>Gotram</dt><dd>{selected.gotram || "Not recorded"}</dd></div><div><dt>Resident type</dt><dd>{selected.occupancy || "Not recorded"}</dd></div></>}
             <div><dt>Phone</dt><dd>{selected.phone ? <a href={`tel:+91${selected.phone}`}>+91 {selected.phone}</a> : "Not recorded"}</dd></div>
-            <div><dt>Attendees</dt><dd>{selected.adultCount} adults · {selected.childCount} children</dd></div>
+            {selected.donorType !== "vendor"&&<div><dt>Attendees</dt><dd>{selected.adultCount} adults · {selected.childCount} children</dd></div>}
             <div><dt>UPI reference</dt><dd>{selected.paymentReference || "Not recorded"}</dd></div>
           </dl>
-          {!selected.inOccupiedMaster && <div className="master-review"><p>This donation is included in the collection total but the flat is not counted as occupied.</p><button type="button" className="button quiet full" disabled={masterBusy} onClick={() => void addToOccupiedMaster(selected)}>{masterBusy ? "Adding…" : "Add to Occupied-Flat Master"}</button></div>}
+          {selected.donorType !== "vendor"&&!selected.inOccupiedMaster && <div className="master-review"><p>This donation is included in the collection total but the flat is not counted as occupied.</p><button type="button" className="button quiet full" disabled={masterBusy} onClick={() => void addToOccupiedMaster(selected)}>{masterBusy ? "Adding…" : "Add to Occupied-Flat Master"}</button></div>}
           {selected.hasProof ? (
             <a className="button quiet full" target="_blank" rel="noreferrer" href={`/api/payment-proofs/${selected.id}`}>View payment proof</a>
           ) : <p className="notice">No proof attached.</p>}
           <form onSubmit={save}>
-            {user?.role === "admin" && <label>Flat number<input required name="flatNo" autoCapitalize="characters" maxLength={20} pattern={selected.blockNo === "C" ? "(?:G0?[1-6]|(?:[1-9]|1[01245])0[1-6])" : "(?:G(?:0?[1-9]|10)|(?:[1-9]|1[01245])(?:0[1-9]|10))"} title={`Enter a valid Block ${selected.blockNo} flat. ${selected.blockNo === "C" ? "Use flat sequence 01–06." : "Use flat sequence 01–10."}`} defaultValue={selected.flatNo} /><small>Administrator correction. The block remains {selected.blockNo}.</small></label>}
+            {user?.role === "admin" && selected.donorType !== "vendor" && <label>Flat number<input required name="flatNo" autoCapitalize="characters" maxLength={20} pattern={selected.blockNo === "C" ? "(?:G0?[1-6]|(?:[1-9]|1[01245])0[1-6])" : "(?:G(?:0?[1-9]|10)|(?:[1-9]|1[01245])(?:0[1-9]|10))"} title={`Enter a valid Block ${selected.blockNo} flat. ${selected.blockNo === "C" ? "Use flat sequence 01–06." : "Use flat sequence 01–10."}`} defaultValue={selected.flatNo} /><small>Administrator correction. The block remains {selected.blockNo}.</small></label>}
             <label>Festival amount<input name="mainDonation" type="number" min="0" defaultValue={selected.festivalAmount} /></label>
             <label>Idol donation amount<input name="idolDonation" type="number" min="0" defaultValue={selected.idolAmount} /></label>
             <label>Mahaprasadam donation amount<input name="annadaanamDonation" type="number" min="0" defaultValue={selected.annadaanamAmount} /></label>
             <label>UPI reference<input name="paymentReference" defaultValue={selected.paymentReference} /></label>
             <label className="proof-picker">Replace Payment Proof <span className="optional">optional</span><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event)=>void selectReplacementProof(event.target.files?.[0]??null)}/><small>{optimizingProof?"Preparing image…":replacementProof?`Ready: ${replacementProof.name}`:"Leave empty to keep the current payment proof."}</small></label>
-            <div className="field-grid">
+            {selected.donorType !== "vendor"&&<div className="field-grid">
               <label>Adults<input name="adultCount" type="number" min="0" max="7" defaultValue={selected.adultCount} /></label>
               <label>Kids below 10<input name="childCount" type="number" min="0" max="7" defaultValue={selected.childCount} /></label>
-            </div>
+            </div>}
             <label>Notes<textarea name="notes" defaultValue={selected.notes} /></label>
             <button className="button primary full" disabled={optimizingProof}>{selected.status === "correction_requested" ? "Save & Resubmit for Verification" : "Save Permitted Changes"}</button>
           </form>
@@ -202,6 +204,7 @@ export function DonationsDashboard() {
 function buildDuplicateReview(rows: Row[]) {
   const groups = new Map<string, Row[]>();
   for (const row of rows) {
+    if (row.donorType === "vendor") continue;
     const key = `${row.blockNo.trim().toUpperCase()}:${canonicalFlatNo(row.flatNo, row.blockNo)}`;
     groups.set(key, [...(groups.get(key) ?? []), row]);
   }
@@ -230,4 +233,8 @@ function canonicalFlatNo(flatNo: string, blockNo: string) {
 
 function normalizePaymentReference(reference: string) {
   return reference.trim().toUpperCase().replace(/[\s-]+/g, "");
+}
+
+function titleCase(value: string) {
+  return value ? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "Not recorded";
 }

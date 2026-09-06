@@ -9,7 +9,11 @@ type Success = { referenceNo: string };
 type MasterFlat = { flatNo: string; residentName?: string; occupancy?: string; donated?: number };
 
 const blank = {
+  donorType: "resident",
   residentName: "",
+  vendorCategory: "",
+  contactPerson: "",
+  vendorAddress: "",
   blockNo: "",
   floorNo: "",
   flatNo: "",
@@ -114,6 +118,7 @@ export function ContributionForm() {
     () => Number(form.mainDonation || 0) + Number(form.idolDonation || 0) + Number(form.annadaanamDonation || 0),
     [form.mainDonation, form.idolDonation, form.annadaanamDonation],
   );
+  const isVendor = Boolean(user) && form.donorType === "vendor";
   const upiIntentUrl = useMemo(() => {
     const paymentNote = `Ganesh Chaturthi 2026${form.blockNo ? ` - Block ${form.blockNo}` : ""}${form.flatNo ? ` Flat ${form.flatNo}` : ""}`;
     const parameters = new URLSearchParams({
@@ -131,6 +136,20 @@ export function ContributionForm() {
   function update(name: string, value: string) {
     if (name === "blockNo") { setMasterFlats([]); setFlatsLoading(Boolean(value) && Boolean(user)); }
     setForm((current) => {
+      if (name === "donorType") return {
+        ...current,
+        donorType: value,
+        floorNo: "",
+        flatNo: "",
+        residentName: "",
+        vendorCategory: "",
+        contactPerson: "",
+        vendorAddress: "",
+        gotram: "",
+        occupancy: "",
+        adultCount: "0",
+        childCount: "0",
+      };
       if (name === "blockNo") return { ...current, blockNo: value, floorNo: "", flatNo: "", residentName: "", occupancy: "" };
       if (name === "floorNo") return { ...current, floorNo: value, flatNo: "", residentName: "", occupancy: "" };
       if (name === "flatNo" && user) {
@@ -289,7 +308,7 @@ export function ContributionForm() {
       {(!isResident || form.paymentMethod === "upi") && <section className="wide payment-qr-card" aria-labelledby="payment-qr-title">
         <div className="payment-qr-copy">
           <span className="card-kicker">Official festival UPI</span>
-          <h3 id="payment-qr-title">Scan to make the resident’s payment</h3>
+          <h3 id="payment-qr-title">{isResident ? "Scan to make your payment" : isVendor ? "Scan to make the vendor’s payment" : "Scan to make the resident’s payment"}</h3>
           <p>Use this QR code only for Hallmark Skyrena Ganesh Chaturthi 2026 contributions.</p>
           {isResident && <div className="upi-intent-panel">
             <a href={upiIntentUrl} className="button primary full upi-intent-button" onClick={validateUpiLink}>
@@ -356,24 +375,48 @@ export function ContributionForm() {
     <form className="wrap form-shell" onSubmit={submit}>
       <div className="form-main">
         {isResident && <p className="resident-form-note"><strong>Resident self-entry:</strong> Submit your household and payment details here. Fields marked <span className="required-mark">*</span> are mandatory.</p>}
+        {!isResident && <fieldset className="donor-type-fieldset" aria-labelledby="donor-type-title">
+          <div className="form-section-heading" id="donor-type-title"><span>1</span><h2>Donation Source</h2></div>
+          <p className="fieldset-help">Choose whether this contribution is from a Hallmark Skyrena household or an outside vendor.</p>
+          <div className="donor-type-options">
+            <label className={form.donorType === "resident" ? "selected" : ""}><input type="radio" name="donorType" value="resident" checked={form.donorType === "resident"} onChange={(event) => update(event.target.name, event.target.value)} /><span><strong>Resident / Flat</strong><small>Donation from a Hallmark Skyrena household</small></span></label>
+            <label className={form.donorType === "vendor" ? "selected" : ""}><input type="radio" name="donorType" value="vendor" checked={form.donorType === "vendor"} onChange={(event) => update(event.target.name, event.target.value)} /><span><strong>Outside Vendor</strong><small>Bank, showroom, shop, company or other sponsor</small></span></label>
+          </div>
+        </fieldset>}
         <fieldset aria-labelledby="household-section-title">
-          <div className="form-section-heading" id="household-section-title"><span>1</span><h2>Household Details</h2></div>
-          <p className="fieldset-help">{isResident ? "Please enter your household details." : "All household details are mandatory."}</p>
+          <div className="form-section-heading" id="household-section-title"><span>{isResident ? "1" : "2"}</span><h2>{isVendor ? "Vendor / Sponsor Details" : "Household Details"}</h2></div>
+          <p className="fieldset-help">{isVendor ? "Record enough information to identify and contact the contributing organisation." : isResident ? "Please enter your household details." : "All household details are mandatory."}</p>
           <div className="field-grid">
-            <label>{isResident ? <span className="field-label">Block<span className="required-mark">*</span></span> : "Block"}
+            <label>{isVendor ? "Volunteer Block" : isResident ? <span className="field-label">Block<span className="required-mark">*</span></span> : "Block"}
               <select required name="blockNo" disabled={user?.role === "block"} value={form.blockNo} onChange={(event) => update(event.target.name, event.target.value)}>
                 <option value="">Select block</option>
                 {BLOCKS.map((block) => <option key={block} value={block}>Block {block}</option>)}
               </select>
               {user?.role === "block" && <small>Locked to Block {user.blockNo}</small>}
+              {isVendor && <small>Used only to identify the volunteer team that recorded this donation.</small>}
             </label>
-            {!isResident && <label>Floor
+            {!isResident && !isVendor && <label>Floor
               <select required name="floorNo" value={form.floorNo} disabled={!form.blockNo || flatsLoading} onChange={(event) => update(event.target.name, event.target.value)}>
                 <option value="">{flatsLoading ? "Loading floors…" : "Select floor"}</option>
                 {FLOOR_OPTIONS.map((floor) => <option key={floor} value={floor}>Floor {floor}</option>)}
               </select>
             </label>}
-            {isResident ? <label><span className="field-label">Flat Number<span className="required-mark">*</span></span>
+            {isVendor ? <>
+              <label>Vendor Type<span className="required-mark">*</span>
+                <select required name="vendorCategory" value={form.vendorCategory} onChange={(event) => update(event.target.name, event.target.value)}>
+                  <option value="">Select vendor type</option><option value="bank">Bank</option><option value="showroom">Showroom</option><option value="shop">Shop / Retailer</option><option value="business">Company / Business</option><option value="institution">Institution</option><option value="other">Other</option>
+                </select>
+              </label>
+              <label className="wide">Vendor / Organisation Name<span className="required-mark">*</span>
+                <input required name="residentName" value={form.residentName} onChange={(event) => update(event.target.name, event.target.value)} placeholder="Registered or commonly known name" />
+              </label>
+              <label className="wide">Contact Person<span className="required-mark">*</span>
+                <input required name="contactPerson" autoComplete="name" value={form.contactPerson} onChange={(event) => update(event.target.name, event.target.value)} />
+              </label>
+              <label className="wide">Location / Address <span className="optional">optional</span>
+                <textarea name="vendorAddress" rows={3} value={form.vendorAddress} onChange={(event) => update(event.target.name, event.target.value)} placeholder="Branch, showroom or business address" />
+              </label>
+            </> : isResident ? <label><span className="field-label">Flat Number<span className="required-mark">*</span></span>
               <input required name="flatNo" autoCapitalize="characters" maxLength={20} pattern={flatPattern(form.blockNo)} title={flatRule(form.blockNo)} value={form.flatNo} onChange={(event) => update(event.target.name, event.target.value)} onBlur={() => update("flatNo", normalizeResidentFlatNo(form.flatNo, form.blockNo))} placeholder="e.g. 1006 or G01 (E1006 accepted)" />
               <small>Enter the flat number without the block letter. If you include the selected block, such as <strong>E1006</strong>, it will be removed automatically.</small>
               {form.flatNo && form.blockNo && !residentFlatNoValid && <small className="field-error">For Block {form.blockNo}, enter a valid flat such as 1006 or {form.blockNo}1006.</small>}
@@ -384,22 +427,22 @@ export function ContributionForm() {
               </select>
               <small>The list comes from the occupied-flat master. The resident name entered below updates the master when this donation is saved.</small>
             </label>}
-            <label className="wide">{isResident ? <span className="field-label">Resident Name<span className="required-mark">*</span></span> : "Resident Name"}
+            {!isVendor && <label className="wide">{isResident ? <span className="field-label">Resident Name<span className="required-mark">*</span></span> : "Resident Name"}
               <input required name="residentName" autoComplete="name" value={form.residentName} onChange={(event) => update(event.target.name, event.target.value)} />
               {user && <small>Prefilled from the flat master when available. Correcting it here updates the master after saving.</small>}
-            </label>
-            <label><span className="field-label">Gotram<span className="optional">optional</span></span>
+            </label>}
+            {!isVendor && <label><span className="field-label">Gotram<span className="optional">optional</span></span>
               <input name="gotram" value={form.gotram} onChange={(event) => update(event.target.name, event.target.value)} />
-            </label>
-            <label><span className="field-label">Occupancy<span className="optional">optional</span></span>
+            </label>}
+            {!isVendor && <label><span className="field-label">Occupancy<span className="optional">optional</span></span>
               <select name="occupancy" value={form.occupancy} onChange={(event) => update(event.target.name, event.target.value)}>
                 <option value="">Not specified</option>
                 <option value="owner">Owner</option>
                 <option value="tenant">Tenant</option>
               </select>
               {user && <small>Prefilled from the occupied-flat master when available.</small>}
-            </label>
-            <label className="wide">{isResident ? <span className="field-label">Phone No.<span className="required-mark">*</span></span> : "Phone No."}
+            </label>}
+            <label className="wide">{isVendor ? <span className="field-label">Contact Phone No.<span className="required-mark">*</span></span> : isResident ? <span className="field-label">Phone No.<span className="required-mark">*</span></span> : "Phone No."}
               <span className="phone-input-group">
                 <span className="phone-prefix" aria-hidden="true">+91</span>
                 <input aria-label="10-digit Indian mobile number" required name="phone" type="tel" inputMode="numeric" autoComplete="tel-national" minLength={10} maxLength={10} pattern="[0-9]{10}" value={form.phone} onChange={(event) => update(event.target.name, event.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="10-digit mobile number" />
@@ -410,7 +453,7 @@ export function ContributionForm() {
         </fieldset>
 
         <fieldset aria-labelledby="contributions-section-title">
-          <div className="form-section-heading" id="contributions-section-title"><span>2</span><h2>Contributions</h2></div>
+          <div className="form-section-heading" id="contributions-section-title"><span>{isResident ? "2" : "3"}</span><h2>Contributions</h2></div>
           <div className="field-grid">
             <label>{isResident ? <span className="field-label">Donation Amount<span className="required-mark">*</span></span> : "Donation Amount"}
               <input required name="mainDonation" type="number" inputMode="numeric" min={MINIMUM_DONATION} step="1" value={form.mainDonation} onFocus={() => clearDefaultAmount("mainDonation")} onBlur={() => restoreEmptyAmount("mainDonation")} onChange={(event) => update(event.target.name, event.target.value)} />
@@ -428,8 +471,8 @@ export function ContributionForm() {
           </div>
         </fieldset>
 
-        <fieldset aria-labelledby="attendance-section-title">
-          <div className="form-section-heading" id="attendance-section-title"><span>3</span><h2>Lunch Mahaprasadam Attendance</h2></div>
+        {!isVendor && <fieldset aria-labelledby="attendance-section-title">
+          <div className="form-section-heading" id="attendance-section-title"><span>{isResident ? "3" : "4"}</span><h2>Lunch Mahaprasadam Attendance</h2></div>
           <p className="mahaprasadam-note"><strong>Please note:</strong> Lunch Mahaprasadam will be served on the day of Visarjan.</p>
           {isResident && <p className="mahaprasadam-note"><strong>Daily prasadam:</strong> Daily prasadam will be served in the evening after pooja. We will prepare it in suitable quantities and request everyone’s understanding that distribution will be subject to availability.</p>}
           <div className="field-grid">
@@ -444,7 +487,7 @@ export function ContributionForm() {
               </select>
             </label>
           </div>
-        </fieldset>
+        </fieldset>}
 
         {isResident && <fieldset aria-labelledby="payment-section-title">
           <div className="form-section-heading" id="payment-section-title"><span>4</span><h2>Payment &amp; Confirmation</h2></div>
@@ -462,7 +505,7 @@ export function ContributionForm() {
         <div><span>Mahaprasadam</span><strong>{currency(Number(form.annadaanamDonation) || 0)}</strong></div>
         <div className="summary-total"><span>Total</span><strong>{currency(total)}</strong></div>
         {!isResident && <button className="button primary full" disabled={busy || optimizing}>{optimizing ? "Optimizing image…" : busy ? "Saving…" : "Save Donation"}</button>}
-        <p>{isResident ? "Pay using UPI, IMPS or NEFT." : "UPI only. Payment remains pending until an admin verifies it."}</p>
+        <p>{isResident ? "Pay using UPI, IMPS or NEFT." : `${isVendor ? "Vendor" : "Resident"} payment remains pending until an admin verifies it.`}</p>
       </aside>
     </form>
   );

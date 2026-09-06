@@ -15,9 +15,13 @@ export async function POST(request: Request) {
     if (user?.role === "cultural") return Response.json({ error: "You do not have access to donation entry." }, { status: 403 });
     const actor = user?.username ?? "resident-self-service";
     const body = await request.formData();
+    const donorType = user && cleanText(body.get("donorType"), 20) === "vendor" ? "vendor" : "resident";
     const residentName = cleanText(body.get("residentName"), 100);
-    const blockNo = user ? scopedBlock(user, body.get("blockNo")) : cleanText(body.get("blockNo"), 2).toUpperCase();
-    const flatNo = normalizeFlatNo(body.get("flatNo"), blockNo);
+    const vendorCategory = donorType === "vendor" ? cleanText(body.get("vendorCategory"), 40).toLowerCase() : "";
+    const contactPerson = donorType === "vendor" ? cleanText(body.get("contactPerson"), 100) : "";
+    const vendorAddress = donorType === "vendor" ? cleanText(body.get("vendorAddress"), 300) : "";
+    const blockNo = (user ? scopedBlock(user, body.get("blockNo")) : cleanText(body.get("blockNo"), 2).toUpperCase()) ?? "";
+    const flatNo = donorType === "vendor" ? "" : normalizeFlatNo(body.get("flatNo"), blockNo);
     const gotram = cleanText(body.get("gotram"), 100);
     const occupancy = cleanText(body.get("occupancy"), 10);
     const phone = cleanText(body.get("phone"), 20).replace(/\D/g, "");
@@ -31,9 +35,11 @@ export async function POST(request: Request) {
     const notes = cleanText(body.get("notes"), 500);
     const proof = body.get("paymentProof");
 
-    if (!residentName || !flatNo || !BLOCKS.includes(blockNo as (typeof BLOCKS)[number]))
-      return Response.json({ error: "Resident name, block, flat and phone number are required." }, { status: 400 });
-    if (!isValidFlatNo(flatNo, blockNo))
+    if (!residentName || !BLOCKS.includes(blockNo as (typeof BLOCKS)[number]) || (donorType === "resident" && !flatNo))
+      return Response.json({ error: donorType === "vendor" ? "Vendor name, volunteer block, contact person and phone number are required." : "Resident name, block, flat and phone number are required." }, { status: 400 });
+    if (donorType === "vendor" && (!contactPerson || !vendorCategory))
+      return Response.json({ error: "Choose the vendor type and enter a contact person." }, { status: 400 });
+    if (donorType === "resident" && !isValidFlatNo(flatNo, blockNo))
       return Response.json({ error: `Enter a valid Block ${blockNo} flat, such as 1006 or ${blockNo}1006. Floor G, 1–12, 14 or 15; flat sequence ${blockNo === "C" ? "01–06" : "01–10"}.` }, { status: 400 });
     if (!/^\d{10}$/.test(phone)) return Response.json({ error: "Enter a valid 10-digit Indian mobile number." }, { status: 400 });
     if (occupancy && !['owner', 'tenant'].includes(occupancy))
@@ -52,7 +58,7 @@ export async function POST(request: Request) {
     if (!proofStore) throw new Error("Workers KV binding `PAYMENT_PROOFS` is unavailable.");
     await ensureDatabase();
     const d1 = getD1();
-    if (user) {
+    if (user && donorType === "resident") {
       const masterFlat = await d1.prepare(`SELECT id FROM flats WHERE event_id=? AND block_no=? AND flat_no=? AND occupied=1 LIMIT 1`).bind(EVENT_ID, blockNo, flatNo).first();
       if (!masterFlat) return Response.json({ error: "Choose an occupied flat from the flat master." }, { status: 400 });
     }
@@ -66,11 +72,12 @@ export async function POST(request: Request) {
     try {
       const statements = [
         d1.prepare(`INSERT INTO registrations
-          (id, reference_no, event_id, resident_name, block_no, flat_no, gotram, occupancy, phone,
-           adult_count, child_count, public_name_consent, notes, created_by)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-          .bind(registrationId, referenceNo, EVENT_ID, residentName, blockNo, flatNo, gotram, occupancy, phone || null,
-            adultCount, childCount, body.get("publicNameConsent") === "true" ? 1 : 0, notes, actor),
+          (id, reference_no, event_id, resident_name, donor_type, vendor_category, contact_person, vendor_address,
+           block_no, flat_no, gotram, occupancy, phone, adult_count, child_count, public_name_consent, notes, created_by)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+          .bind(registrationId, referenceNo, EVENT_ID, residentName, donorType, vendorCategory, contactPerson, vendorAddress,
+            blockNo, flatNo, gotram, occupancy, phone || null, adultCount, childCount,
+            body.get("publicNameConsent") === "true" ? 1 : 0, notes, actor),
         d1.prepare(`INSERT INTO donations
           (id, registration_id, category, amount, payment_method, payment_reference, status,
            payment_proof_key, payment_proof_name, payment_proof_type)
@@ -78,15 +85,15 @@ export async function POST(request: Request) {
           .bind(donationId, registrationId, mainDonation, paymentMethod, paymentReference, proofKey, proof.name, proof.type),
         d1.prepare(`INSERT INTO audit_log (id, entity_type, entity_id, action, actor, details)
           VALUES (?, 'registration', ?, 'submitted', ?, ?)`)
-          .bind(crypto.randomUUID(), registrationId, actor, JSON.stringify({ blockNo, flatNo, proofKey, source: user ? "committee" : "resident" })),
+          .bind(crypto.randomUUID(), registrationId, actor, JSON.stringify({ blockNo, flatNo, proofKey, donorType, source: donorType === "vendor" ? "vendor" : user ? "committee" : "resident" })),
       ];
-      if (user) statements.push(d1.prepare(`INSERT INTO flats (id, event_id, block_no, flat_no, resident_name, occupancy, occupied, visit_status, updated_by)
+      if (user && donorType === "resident") statements.push(d1.prepare(`INSERT INTO flats (id, event_id, block_no, flat_no, resident_name, occupancy, occupied, visit_status, updated_by)
         VALUES (?, ?, ?, ?, ?, ?, 1, 'donated', ?)
         ON CONFLICT(event_id, block_no, flat_no) DO UPDATE SET resident_name=excluded.resident_name,
         occupancy=CASE WHEN excluded.occupancy<>'' THEN excluded.occupancy ELSE flats.occupancy END,
         visit_status='donated', updated_by=excluded.updated_by, updated_at=CURRENT_TIMESTAMP`)
         .bind(crypto.randomUUID(), EVENT_ID, blockNo, flatNo, residentName, occupancy, actor));
-      else statements.push(d1.prepare(`UPDATE flats SET
+      else if (donorType === "resident") statements.push(d1.prepare(`UPDATE flats SET
         resident_name=CASE WHEN ?<>'' THEN ? ELSE resident_name END,
         occupancy=CASE WHEN ?<>'' THEN ? ELSE occupancy END,
         visit_status='donated',updated_by=?,updated_at=CURRENT_TIMESTAMP
@@ -105,9 +112,10 @@ export async function POST(request: Request) {
         await notifyPortalAdminOfDonation({
           blockNo,
           flatNo,
+          donorName: residentName,
           amount: mainDonation + idolDonation + annadaanamDonation,
           referenceNo,
-          source: user ? "committee" : "resident",
+          source: donorType === "vendor" ? "vendor" : user ? "committee" : "resident",
         });
       } catch (notificationError) {
         console.error("Telegram donation notification failed", notificationError);

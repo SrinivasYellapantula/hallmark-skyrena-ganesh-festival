@@ -8,9 +8,10 @@ type TelegramEnvironment = {
 type DonationNotification = {
   blockNo: string;
   flatNo: string;
+  donorName?: string;
   amount: number;
   referenceNo: string;
-  source: "resident" | "committee";
+  source: "resident" | "committee" | "vendor";
 };
 
 export async function notifyPortalAdminOfDonation(notification: DonationNotification) {
@@ -21,11 +22,11 @@ export async function notifyPortalAdminOfDonation(notification: DonationNotifica
 
   const message = [
     "🪔 New donation recorded",
-    `Block: ${notification.blockNo}`,
-    `Flat: ${notification.flatNo}`,
+    notification.source === "vendor" ? `Vendor: ${notification.donorName}` : `Block: ${notification.blockNo}`,
+    notification.source === "vendor" ? `Recorded by: Block ${notification.blockNo} team` : `Flat: ${notification.flatNo}`,
     `Amount: ₹${notification.amount.toLocaleString("en-IN")}`,
     `Reference: ${notification.referenceNo}`,
-    `Source: ${notification.source === "resident" ? "Resident form" : "Committee entry"}`,
+    `Source: ${notification.source === "resident" ? "Resident form" : notification.source === "vendor" ? "Outside vendor" : "Committee entry"}`,
     "Review: https://ganeshfestival2026.hallmarkskyrena.workers.dev/admin",
   ].join("\n");
 

@@ -41,6 +41,7 @@ export async function GET(request: Request) {
   const registrations = await d1
       .prepare(
         `SELECT r.id, r.reference_no referenceNo, r.resident_name residentName,
+          r.donor_type donorType, r.vendor_category vendorCategory, r.contact_person contactPerson,
           r.block_no blockNo, r.flat_no flatNo, r.adult_count adultCount,
           r.child_count childCount, r.status, r.created_at createdAt,
           COALESCE(SUM(d.amount), 0) amount,

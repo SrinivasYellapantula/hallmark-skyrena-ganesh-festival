@@ -21,6 +21,10 @@ export const registrations = sqliteTable(
       .notNull()
       .references(() => events.id),
     residentName: text("resident_name").notNull(),
+    donorType: text("donor_type", { enum: ["resident", "vendor"] }).notNull().default("resident"),
+    vendorCategory: text("vendor_category").notNull().default(""),
+    contactPerson: text("contact_person").notNull().default(""),
+    vendorAddress: text("vendor_address").notNull().default(""),
     blockNo: text("block_no").notNull(),
     flatNo: text("flat_no").notNull(),
     gotram: text("gotram").notNull(),
@@ -48,6 +52,7 @@ export const registrations = sqliteTable(
       table.flatNo,
     ),
     index("idx_registrations_status_created").on(table.status, table.createdAt),
+    index("idx_registrations_donor_type").on(table.eventId, table.donorType),
   ],
 );
 

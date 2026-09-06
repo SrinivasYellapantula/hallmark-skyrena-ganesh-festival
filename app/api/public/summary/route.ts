@@ -22,7 +22,7 @@ export async function GET(request: Request) {
            SELECT COALESCE(SUM(d.festival), 0) festival,
              COALESCE(SUM(d.idol), 0) idol,
              COALESCE(SUM(d.annadaanam), 0) annadaanam,
-             COUNT(r.id) households,
+             COUNT(CASE WHEN r.donor_type='resident' THEN r.id END) households,
              COALESCE(SUM(r.adult_count), 0) adults,
              COALESCE(SUM(r.child_count), 0) children
            FROM registrations r JOIN verified_donations d ON d.registration_id = r.id
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
         .prepare(
           `SELECT r.block_no block,
             COALESCE(SUM(d.amount), 0) amount,
-            COUNT(DISTINCT r.id) households
+            COUNT(DISTINCT CASE WHEN r.donor_type='resident' THEN r.id END) households
            FROM registrations r
            JOIN donations d ON d.registration_id = r.id AND d.status = 'verified'
            WHERE r.event_id = ? AND r.status = 'verified'
