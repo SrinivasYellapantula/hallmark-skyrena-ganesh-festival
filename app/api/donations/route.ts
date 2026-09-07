@@ -16,6 +16,7 @@ export async function GET(request: Request) {
     SUM(CASE WHEN d.category = 'laddoos' THEN d.amount ELSE 0 END) laddooAmount,
     SUM(CASE WHEN d.category = 'annadaanam' THEN d.amount ELSE 0 END) annadaanamAmount,
     MAX(d.payment_reference) paymentReference,
+    COUNT(DISTINCT d.payment_reference || '|' || d.received_at) paymentCount,
     MAX(CASE WHEN d.payment_proof_key IS NOT NULL THEN 1 ELSE 0 END) hasProof,
     CASE WHEN r.donor_type='resident' AND EXISTS (
       SELECT 1 FROM flats f WHERE f.event_id=r.event_id AND f.occupied=1

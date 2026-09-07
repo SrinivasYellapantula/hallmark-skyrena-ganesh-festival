@@ -7,7 +7,7 @@ type Registration = {
   id: string; referenceNo: string; residentName: string; blockNo: string; flatNo: string;
   donorType: "resident" | "vendor"; vendorCategory: string; contactPerson: string;
   adultCount: number; childCount: number; status: string; amount: number; paymentStatus: string;
-  paymentMethod: string; paymentReference: string; createdAt: string; hasProof: number; correctionReason: string;
+  paymentMethod: string; paymentReference: string; paymentCount: number; createdAt: string; hasProof: number; correctionReason: string;
 };
 type RecycleItem={id:string;entityType:"expense"|"meeting"|"registration";entityId:string;entityLabel:string;deletedBy:string;deletedAt:string;ageDays:number};
 type VerificationStatus = "all" | "submitted" | "verified" | "correction_requested";

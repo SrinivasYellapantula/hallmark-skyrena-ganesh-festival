@@ -47,6 +47,7 @@ export async function GET(request: Request) {
           COALESCE(SUM(d.amount), 0) amount,
           MIN(d.status) paymentStatus, MAX(d.payment_method) paymentMethod,
           MAX(d.payment_reference) paymentReference,
+          COUNT(DISTINCT d.payment_reference || '|' || d.received_at) paymentCount,
           MAX(CASE WHEN d.payment_proof_key IS NOT NULL THEN 1 ELSE 0 END) hasProof,
           COALESCE((SELECT json_extract(a.details, '$.reason') FROM audit_log a
             WHERE a.entity_type='registration' AND a.entity_id=r.id AND a.action='correction_requested'

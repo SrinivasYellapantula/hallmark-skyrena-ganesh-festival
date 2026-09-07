@@ -329,9 +329,31 @@ test("payment verification supports proof review and recoverable corrections", a
   assert.match(donationDetail, /request\.formData\(\)/);
   assert.match(donationDetail, /payment_proof_key=\?/);
   assert.match(donationDetail, /resubmitted/);
-  assert.match(donationsScreen, /Replace Payment Proof/);
+  assert.match(donationsScreen, /Replace Original Payment Proof/);
   assert.match(donationsScreen, /Save & Resubmit for Verification/);
   assert.match(proofRoute, /auth\.user\.role === "block" && row\.blockNo !== auth\.user\.blockNo/);
+});
+
+test("additional payments retain earlier proofs and return to verification", async () => {
+  const [route, listRoute, screen, proofRoute, dashboardRoute] = await Promise.all([
+    source("app/api/donations/[id]/route.ts"), source("app/api/donations/route.ts"),
+    source("app/donations/DonationsDashboard.tsx"), source("app/api/payment-proofs/[id]/route.ts"),
+    source("app/api/admin/dashboard/route.ts"),
+  ]);
+  assert.match(route, /export async function POST/);
+  assert.match(route, /additional_payment/);
+  assert.match(route, /VALUES\(\?,\?,\?,\?,\?,\?,'pending',\?,\?,\?,\?\)/);
+  assert.match(route, /UPDATE registrations SET status='submitted'/);
+  assert.match(route, /payment_proof_key/);
+  assert.doesNotMatch(route, /additional_payment[\s\S]{0,500}delete\(existing\.proofKey/);
+  assert.match(listRoute, /paymentCount/);
+  assert.match(dashboardRoute, /paymentCount/);
+  assert.match(screen, /Add Another Payment/);
+  assert.match(screen, /Add Payment & Keep Existing Proof/);
+  assert.match(screen, /View payment history &amp; proofs/);
+  assert.match(proofRoute, /PAYMENT HISTORY/);
+  assert.match(proofRoute, /Laddoos/);
+  assert.match(proofRoute, /payment=\$\{encodeURIComponent/);
 });
 
 test("accidental deletions are protected by a Portal Admin recycle bin", async () => {

@@ -9,7 +9,7 @@ type Row = {
   donorType: "resident" | "vendor"; vendorCategory: string; contactPerson: string; vendorAddress: string;
   gotram: string; occupancy: string; phone: string | null; amount: number;
   festivalAmount: number; idolAmount: number; laddooAmount: number; annadaanamAmount: number; status: string; paymentReference: string;
-  createdAt: string; hasProof: number; adultCount: number; childCount: number; notes: string;
+  createdAt: string; hasProof: number; paymentCount: number; adultCount: number; childCount: number; notes: string;
   correctionReason: string; inOccupiedMaster: number;
 };
 type User = { role: "admin" | "block"; blockNo: string | null };
@@ -25,7 +25,10 @@ export function DonationsDashboard() {
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
   const [selected, setSelected] = useState<Row | null>(null);
   const [replacementProof, setReplacementProof] = useState<File | null>(null);
+  const [additionalProof, setAdditionalProof] = useState<File | null>(null);
   const [optimizingProof, setOptimizingProof] = useState(false);
+  const [addingPayment, setAddingPayment] = useState(false);
+  const [paymentMessage, setPaymentMessage] = useState("");
   const [masterBusy, setMasterBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -100,6 +103,27 @@ export function DonationsDashboard() {
     finally { setOptimizingProof(false); }
   }
 
+  async function selectAdditionalProof(file: File | null) {
+    setAdditionalProof(null); setError("");
+    if (!file) return;
+    setOptimizingProof(true);
+    try { setAdditionalProof(await optimizeImageUpload(file, "payment-proof")); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : "Unable to prepare payment proof."); }
+    finally { setOptimizingProof(false); }
+  }
+
+  async function addPayment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); if (!selected || !additionalProof) { setError("Upload the confirmation image for this payment."); return; }
+    setAddingPayment(true); setError(""); setPaymentMessage("");
+    const form=new FormData(event.currentTarget); form.set("paymentProof",additionalProof);
+    try {
+      const response=await fetch(`/api/donations/${selected.id}`,{method:"POST",body:form}); const payload=await response.json();
+      if(!response.ok)throw new Error(payload.error??"Could not add the payment.");
+      event.currentTarget.reset(); setAdditionalProof(null); setPaymentMessage(`Additional payment of ${currency(Number(payload.total))} recorded and sent for verification.`); await load();
+    } catch(caught) { setError(caught instanceof Error?caught.message:"Could not add the payment."); }
+    finally { setAddingPayment(false); }
+  }
+
   async function archiveDonation(row:Row) {
     if(!window.confirm(`Move ${row.referenceNo} for ${row.residentName} to the Recycle Bin? The Portal Admin can restore it.`))return;
     setError("");
@@ -146,7 +170,7 @@ export function DonationsDashboard() {
         </header>
         <div className="record-list">
           {visible.map((row) => (
-            <button key={row.id} onClick={() => { setSelected(row); setReplacementProof(null); }}>
+            <button key={row.id} onClick={() => { setSelected(row); setReplacementProof(null); setAdditionalProof(null); setPaymentMessage(""); }}>
               <span><strong>{row.residentName}</strong><small>{row.donorType === "vendor" ? `Outside Vendor · ${titleCase(row.vendorCategory)} · recorded by Block ${row.blockNo} team` : `Block ${row.blockNo} · Flat ${row.flatNo}`} · {row.referenceNo}</small>{duplicateReview.has(row.id)&&<small className="duplicate-review-label">Duplicate Review · {duplicateReview.get(row.id)?.reason}</small>}{row.donorType !== "vendor"&&<small className={row.adultCount + row.childCount === 0 ? "attendance-review" : ""}>{row.adultCount + row.childCount} Mahaprasadam attendee{row.adultCount + row.childCount === 1 ? "" : "s"}{row.adultCount + row.childCount === 0 ? " · please confirm" : ""}</small>}</span>
               <span><strong>{currency(Number(row.amount))}</strong><small className={`status ${row.status}`}>{row.status}</small></span>
             </button>
@@ -157,7 +181,7 @@ export function DonationsDashboard() {
 
       {selected && (
         <aside className="detail-panel">
-          <button className="dialog-close" onClick={() => { setSelected(null); setReplacementProof(null); }} aria-label="Close detailed view">×</button>
+          <button className="dialog-close" onClick={() => { setSelected(null); setReplacementProof(null); setAdditionalProof(null); setPaymentMessage(""); }} aria-label="Close detailed view">×</button>
           <span className="card-kicker">Detailed view</span>
           <h2>{selected.residentName}</h2>
           <p>{selected.donorType === "vendor" ? `Outside Vendor · recorded by Block ${selected.blockNo} team` : `Block ${selected.blockNo} · Flat ${selected.flatNo}`} · {selected.referenceNo}</p>
@@ -179,16 +203,24 @@ export function DonationsDashboard() {
           </dl>
           {selected.donorType !== "vendor"&&!selected.inOccupiedMaster && <div className="master-review"><p>This donation is included in the collection total but the flat is not counted as occupied.</p><button type="button" className="button quiet full" disabled={masterBusy} onClick={() => void addToOccupiedMaster(selected)}>{masterBusy ? "Adding…" : "Add to Occupied-Flat Master"}</button></div>}
           {selected.hasProof ? (
-            <a className="button quiet full" target="_blank" rel="noreferrer" href={`/api/payment-proofs/${selected.id}`}>View payment proof</a>
+            <a className="button quiet full" target="_blank" rel="noreferrer" href={`/api/payment-proofs/${selected.id}`}>View payment history &amp; proofs</a>
           ) : <p className="notice">No proof attached.</p>}
+          <section className="additional-payment-card">
+            <span className="card-kicker">New transaction</span><h3>Add Another Payment</h3>
+            <p>Use this when the same resident or vendor pays again. The earlier payment and screenshot will be retained.</p>
+            {paymentMessage&&<p className="form-success">{paymentMessage}</p>}
+            <form onSubmit={addPayment}>
+              <div className="field-grid"><label>Main festival<input name="mainDonation" type="number" inputMode="numeric" min="0" defaultValue="0" onFocus={(event)=>event.currentTarget.select()} /></label><label>Idol<input name="idolDonation" type="number" inputMode="numeric" min="0" defaultValue="0" onFocus={(event)=>event.currentTarget.select()} /></label><label>Laddoos<input name="laddooDonation" type="number" inputMode="numeric" min="0" defaultValue="0" onFocus={(event)=>event.currentTarget.select()} /></label><label>Mahaprasadam<input name="annadaanamDonation" type="number" inputMode="numeric" min="0" defaultValue="0" onFocus={(event)=>event.currentTarget.select()} /></label></div>
+              <label>Payment method<select name="paymentMethod" defaultValue="upi"><option value="upi">UPI</option><option value="imps">IMPS</option><option value="neft">NEFT</option></select></label>
+              <label>Transaction reference <span className="optional">optional</span><input name="paymentReference" maxLength={80}/></label>
+              <label className="proof-picker">New Payment Confirmation Image<input required type="file" accept="image/jpeg,image/png,image/webp" onChange={(event)=>void selectAdditionalProof(event.target.files?.[0]??null)}/><small>{optimizingProof?"Preparing image…":additionalProof?`Ready: ${additionalProof.name}`:"Choose a photo from the camera or gallery."}</small></label>
+              <button className="button primary full" disabled={addingPayment||optimizingProof}>{addingPayment?"Adding Payment…":"Add Payment & Keep Existing Proof"}</button>
+            </form>
+          </section>
           <form onSubmit={save}>
+            <span className="card-kicker">Record corrections</span>
             {user?.role === "admin" && selected.donorType !== "vendor" && <label>Flat number<input required name="flatNo" autoCapitalize="characters" maxLength={20} pattern={selected.blockNo === "C" ? "(?:G0?[1-6]|(?:[1-9]|1[01245])0[1-6])" : "(?:G(?:0?[1-9]|10)|(?:[1-9]|1[01245])(?:0[1-9]|10))"} title={`Enter a valid Block ${selected.blockNo} flat. ${selected.blockNo === "C" ? "Use flat sequence 01–06." : "Use flat sequence 01–10."}`} defaultValue={selected.flatNo} /><small>Administrator correction. The block remains {selected.blockNo}.</small></label>}
-            <label>Festival amount<input name="mainDonation" type="number" min="0" defaultValue={selected.festivalAmount} /></label>
-            <label>Idol donation amount<input name="idolDonation" type="number" min="0" defaultValue={selected.idolAmount} /></label>
-            <label>Laddoo donation amount<input name="laddooDonation" type="number" min="0" defaultValue={selected.laddooAmount} /></label>
-            <label>Mahaprasadam donation amount<input name="annadaanamDonation" type="number" min="0" defaultValue={selected.annadaanamAmount} /></label>
-            <label>UPI reference<input name="paymentReference" defaultValue={selected.paymentReference} /></label>
-            <label className="proof-picker">Replace Payment Proof <span className="optional">optional</span><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event)=>void selectReplacementProof(event.target.files?.[0]??null)}/><small>{optimizingProof?"Preparing image…":replacementProof?`Ready: ${replacementProof.name}`:"Leave empty to keep the current payment proof."}</small></label>
+            {Number(selected.paymentCount)<=1?<><input type="hidden" name="editPayments" value="true"/><label>Festival amount<input name="mainDonation" type="number" min="0" defaultValue={selected.festivalAmount} /></label><label>Idol donation amount<input name="idolDonation" type="number" min="0" defaultValue={selected.idolAmount} /></label><label>Laddoo donation amount<input name="laddooDonation" type="number" min="0" defaultValue={selected.laddooAmount} /></label><label>Mahaprasadam donation amount<input name="annadaanamDonation" type="number" min="0" defaultValue={selected.annadaanamAmount} /></label><label>Transaction reference<input name="paymentReference" defaultValue={selected.paymentReference} /></label><label className="proof-picker">Replace Original Payment Proof <span className="optional">optional</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event)=>void selectReplacementProof(event.target.files?.[0]??null)}/><small>{optimizingProof?"Preparing image…":replacementProof?`Ready: ${replacementProof.name}`:"Use only to correct the original proof. Add Another Payment retains it."}</small></label></>:<p className="notice">This record has multiple payments. Their amounts and proofs are protected from bulk replacement.</p>}
             {selected.donorType !== "vendor"&&<div className="field-grid">
               <label>Adults<input name="adultCount" type="number" min="0" max="7" defaultValue={selected.adultCount} /></label>
               <label>Kids below 10<input name="childCount" type="number" min="0" max="7" defaultValue={selected.childCount} /></label>
