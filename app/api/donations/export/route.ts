@@ -20,6 +20,7 @@ type DonationRecord = {
   createdAt: string;
   festivalAmount: number;
   idolAmount: number;
+  laddooAmount: number;
   mahaprasadamAmount: number;
   totalAmount: number;
   inOccupiedMaster: number;
@@ -34,6 +35,7 @@ type FlatExport = {
   donationCount: number;
   festivalAmount: number;
   idolAmount: number;
+  laddooAmount: number;
   mahaprasadamAmount: number;
   totalAmount: number;
   statuses: Set<string>;
@@ -44,7 +46,7 @@ type FlatExport = {
 
 const HEADER_STYLE = { backgroundColor: "#466A4A", color: "#FFFFFF", fontWeight: "bold", align: "center" as const, alignVertical: "center" as const, wrap: true };
 const CURRENCY_FORMAT = "₹#,##0";
-const COLUMN_WIDTHS = [14, 25, 14, 16, 13, 14, 14, 18, 18, 20, 18, 30, 19].map((width) => ({ width }));
+const COLUMN_WIDTHS = [14, 25, 14, 16, 13, 14, 14, 16, 18, 18, 20, 18, 30, 19].map((width) => ({ width }));
 
 export async function GET(request: Request) {
   const auth = await authorize(request, ["admin", "block"]);
@@ -58,6 +60,7 @@ export async function GET(request: Request) {
     r.block_no blockNo, r.flat_no flatNo, r.occupancy, r.phone, r.status, r.created_at createdAt,
     SUM(CASE WHEN d.category='festival' THEN d.amount ELSE 0 END) festivalAmount,
     SUM(CASE WHEN d.category='idol' THEN d.amount ELSE 0 END) idolAmount,
+    SUM(CASE WHEN d.category='laddoos' THEN d.amount ELSE 0 END) laddooAmount,
     SUM(CASE WHEN d.category='annadaanam' THEN d.amount ELSE 0 END) mahaprasadamAmount,
     SUM(d.amount) totalAmount,
     CASE WHEN EXISTS (
@@ -110,14 +113,14 @@ export async function GET(request: Request) {
   });
 }
 
-const VENDOR_COLUMN_WIDTHS = [28, 18, 24, 15, 34, 14, 17, 17, 20, 18, 20, 24].map((width) => ({ width }));
+const VENDOR_COLUMN_WIDTHS = [28, 18, 24, 15, 34, 14, 17, 17, 17, 20, 18, 20, 24].map((width) => ({ width }));
 
 function createVendorSheet(records: DonationRecord[]) {
-  const headers = ["Vendor / Organisation", "Vendor Type", "Contact Person", "Phone", "Location / Address", "Volunteer Block", "Festival Donation", "Idol Donation", "Mahaprasadam Support", "Total Contribution", "Verification Status", "Reference Number"];
+  const headers = ["Vendor / Organisation", "Vendor Type", "Contact Person", "Phone", "Location / Address", "Volunteer Block", "Festival Donation", "Idol Donation", "Laddoo Donation", "Mahaprasadam Support", "Total Contribution", "Verification Status", "Reference Number"];
   const rows = records.map((record) => [
     textCell(record.residentName), textCell(titleCase(record.vendorCategory)), textCell(record.contactPerson), textCell(record.phone || "Not recorded"),
     textCell(record.vendorAddress || "Not recorded"), textCell(record.blockNo), numberCell(record.festivalAmount), numberCell(record.idolAmount),
-    numberCell(record.mahaprasadamAmount), numberCell(record.totalAmount), textCell(titleCase(record.status)), textCell(record.referenceNo),
+    numberCell(record.laddooAmount), numberCell(record.mahaprasadamAmount), numberCell(record.totalAmount), textCell(titleCase(record.status)), textCell(record.referenceNo),
   ]);
   if (!rows.length) rows.push([{ value: "No outside-vendor donations recorded.", span: headers.length, color: "#746B61", fontStyle: "italic" }, ...Array(headers.length - 1).fill(null)]);
   return [
@@ -138,6 +141,7 @@ function groupByDonatedFlat(records: DonationRecord[]) {
       current.donationCount += 1;
       current.festivalAmount += Number(record.festivalAmount) || 0;
       current.idolAmount += Number(record.idolAmount) || 0;
+      current.laddooAmount += Number(record.laddooAmount) || 0;
       current.mahaprasadamAmount += Number(record.mahaprasadamAmount) || 0;
       current.totalAmount += Number(record.totalAmount) || 0;
       current.statuses.add(record.status);
@@ -154,6 +158,7 @@ function groupByDonatedFlat(records: DonationRecord[]) {
       donationCount: 1,
       festivalAmount: Number(record.festivalAmount) || 0,
       idolAmount: Number(record.idolAmount) || 0,
+      laddooAmount: Number(record.laddooAmount) || 0,
       mahaprasadamAmount: Number(record.mahaprasadamAmount) || 0,
       totalAmount: Number(record.totalAmount) || 0,
       statuses: new Set([record.status]),
@@ -176,10 +181,10 @@ function groupByDonatedFlat(records: DonationRecord[]) {
 function createSheet(block: string, flats: FlatExport[]) {
   const title = `Donated Flats — Block ${block}`;
   const generated = `Generated: ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} · Unique donated flats: ${flats.length} · Includes active records awaiting verification.`;
-  const headers = ["Flat Number", "Resident Name", "Occupancy", "Phone", "Donation Entries", "Festival Donation", "Idol Donation", "Mahaprasadam Support", "Total Contribution", "Verification Status", "Latest Donation", "Reference Number(s)", "Occupied-Flat Master"];
+  const headers = ["Flat Number", "Resident Name", "Occupancy", "Phone", "Donation Entries", "Festival Donation", "Idol Donation", "Laddoo Donation", "Mahaprasadam Support", "Total Contribution", "Verification Status", "Latest Donation", "Reference Number(s)", "Occupied-Flat Master"];
   const rows = flats.map((flat) => [
     textCell(flat.flatNo), textCell(flat.residentName), textCell(titleCase(flat.occupancy)), textCell(flat.phone),
-    numberCell(flat.donationCount, "#,##0"), numberCell(flat.festivalAmount), numberCell(flat.idolAmount),
+    numberCell(flat.donationCount, "#,##0"), numberCell(flat.festivalAmount), numberCell(flat.idolAmount), numberCell(flat.laddooAmount),
     numberCell(flat.mahaprasadamAmount), numberCell(flat.totalAmount), textCell(verificationStatus(flat.statuses)),
     textCell(flat.latestDonation.slice(0, 10)), textCell(flat.references.join(", ")), textCell(flat.inOccupiedMaster ? "Included" : "Outside master"),
   ]);

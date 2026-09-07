@@ -63,7 +63,7 @@ export const donations = sqliteTable(
     registrationId: text("registration_id")
       .notNull()
       .references(() => registrations.id),
-    category: text("category", { enum: ["festival", "idol", "annadaanam"] }).notNull(),
+    category: text("category", { enum: ["festival", "idol", "annadaanam", "laddoos"] }).notNull(),
     amount: integer("amount").notNull(),
     paymentMethod: text("payment_method", {
       enum: ["upi", "cash", "bank_transfer", "imps", "neft"],

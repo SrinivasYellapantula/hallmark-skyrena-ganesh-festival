@@ -35,9 +35,10 @@ test("registration validation supports voluntary donations while rejecting a zer
   assert.match(form, /restoreEmptyAmount/);
   assert.match(form, /onFocus=\{\(\) => clearDefaultAmount\("mainDonation"\)\}/);
   assert.match(form, /onFocus=\{\(\) => clearDefaultAmount\("idolDonation"\)\}/);
+  assert.match(form, /onFocus=\{\(\) => clearDefaultAmount\("laddooDonation"\)\}/);
   assert.match(form, /onFocus=\{\(\) => clearDefaultAmount\("annadaanamDonation"\)\}/);
   assert.match(form, /Voluntary contribution/);
-  assert.match(route, /mainDonation \+ idolDonation \+ annadaanamDonation <= 0/);
+  assert.match(route, /mainDonation \+ idolDonation \+ laddooDonation \+ annadaanamDonation <= 0/);
   assert.match(route, /at least one donation amount greater than ₹0/);
   assert.match(home, /Voluntary contribution · UPI, IMPS or NEFT/);
   assert.doesNotMatch(home, /Minimum festival contribution/);
@@ -72,7 +73,7 @@ test("idol donation is captured, editable, and included in every collection tota
     source("app/api/public/summary/route.ts"), source("app/transparency/TransparencyDashboard.tsx"),
     source("app/api/collection-summary/route.ts"), source("app/collection-summary/CollectionSummary.tsx"),
   ]);
-  assert.match(schema, /\["festival", "idol", "annadaanam"\]/);
+  assert.match(schema, /\["festival", "idol", "annadaanam", "laddoos"\]/);
   assert.match(form, /Idol Donation Amount/);
   assert.match(form, /idolDonation: "0"/);
   assert.match(form, /Number\(form\.idolDonation/);
@@ -87,6 +88,27 @@ test("idol donation is captured, editable, and included in every collection tota
   assert.match(publicScreen, /Idol fund/);
   assert.match(summaryRoute, /idolCollection/);
   assert.match(summaryScreen, /<dt>Idol donation<\/dt>/);
+});
+
+test("laddoo donation is captured, editable, and included in reports", async () => {
+  const [form, createRoute, listRoute, detailRoute, donationScreen, publicRoute, publicScreen, summaryRoute, summaryScreen, exportRoute] = await Promise.all([
+    source("app/contribute/ContributionForm.tsx"), source("app/api/registrations/route.ts"),
+    source("app/api/donations/route.ts"), source("app/api/donations/[id]/route.ts"),
+    source("app/donations/DonationsDashboard.tsx"), source("app/api/public/summary/route.ts"),
+    source("app/transparency/TransparencyDashboard.tsx"), source("app/api/collection-summary/route.ts"),
+    source("app/collection-summary/CollectionSummary.tsx"), source("app/api/donations/export/route.ts"),
+  ]);
+  assert.match(form, /Laddoo Donation Amount/);
+  assert.match(form, /laddooDonation: "0"/);
+  assert.match(createRoute, /VALUES \(\?, \?, 'laddoos'/);
+  assert.match(listRoute, /d\.category = 'laddoos'.*laddooAmount/);
+  assert.match(detailRoute, /category:"laddoos"/);
+  assert.match(donationScreen, /<dt>Laddoo donation<\/dt>/);
+  assert.match(publicRoute, /category = 'laddoos'.*laddoos/);
+  assert.match(publicScreen, /Laddoo fund/);
+  assert.match(summaryRoute, /laddooCollection/);
+  assert.match(summaryScreen, /<dt>Laddoo donation<\/dt>/);
+  assert.match(exportRoute, /Laddoo Donation/);
 });
 
 test("donation form shows the official payment QR and Visarjan Mahaprasadam note", async () => {

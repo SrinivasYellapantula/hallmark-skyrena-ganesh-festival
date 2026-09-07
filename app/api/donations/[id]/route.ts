@@ -29,12 +29,12 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
   if(auth.user.role === "block" && !["submitted","correction_requested"].includes(current.status)) return Response.json({error:"Verified donations can only be changed by an admin."},{status:403});
   const body=await request.formData(); const amount=wholeNumber(body.get("mainDonation"),MINIMUM_DONATION);
   const requestedFlatNo=normalizeFlatNo(body.get("flatNo"),current.blockNo); const flatNo=current.donorType==="vendor"?"":auth.user.role==="admin"?requestedFlatNo:current.flatNo;
-  const idolDonation=wholeNumber(body.get("idolDonation"),0); const annadaanamDonation=wholeNumber(body.get("annadaanamDonation"),0);
+  const idolDonation=wholeNumber(body.get("idolDonation"),0); const laddooDonation=wholeNumber(body.get("laddooDonation"),0); const annadaanamDonation=wholeNumber(body.get("annadaanamDonation"),0);
   const paymentReference=cleanText(body.get("paymentReference"),80); const adults=wholeNumber(body.get("adultCount"),0,7); const children=wholeNumber(body.get("childCount"),0,7); const notes=cleanText(body.get("notes"),500);
   const proofEntry=body.get("paymentProof"); const proof=proofEntry instanceof File&&proofEntry.size>0?proofEntry:null;
-  if(amount===null||idolDonation===null||annadaanamDonation===null||adults===null||children===null)return Response.json({error:"Complete all required update fields."},{status:400});
+  if(amount===null||idolDonation===null||laddooDonation===null||annadaanamDonation===null||adults===null||children===null)return Response.json({error:"Complete all required update fields."},{status:400});
   if(current.donorType!=="vendor"&&auth.user.role==="admin"&&!isValidFlatNo(flatNo,current.blockNo))return Response.json({error:`Enter a valid Block ${current.blockNo} flat: floor G, 1–12, 14 or 15 and flat sequence ${current.blockNo==="C"?"01–06":"01–10"}.`},{status:400});
-  if(amount+idolDonation+annadaanamDonation<=0)return Response.json({error:"Enter at least one donation amount greater than ₹0."},{status:400});
+  if(amount+idolDonation+laddooDonation+annadaanamDonation<=0)return Response.json({error:"Enter at least one donation amount greater than ₹0."},{status:400});
   if(proof&&(!IMAGE_TYPES.has(proof.type)||proof.size>MAX_PROOF_BYTES))return Response.json({error:"Upload a JPG, PNG or WebP payment image up to 1 MB."},{status:400});
   const d1=getD1();
   const existingRows=await d1.prepare(`SELECT id,category,payment_proof_key proofKey FROM donations WHERE registration_id=?`).bind(id).all<{id:string;category:string;proofKey:string|null}>();
@@ -52,13 +52,13 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
         ? d1.prepare(`UPDATE donations SET amount=?,payment_proof_key=?,payment_proof_name=?,payment_proof_type=? WHERE registration_id=? AND category='festival'`).bind(amount,newProofKey,proof.name,proof.type,id)
         : d1.prepare(`UPDATE donations SET amount=? WHERE registration_id=? AND category='festival'`).bind(amount,id),
       d1.prepare(`UPDATE donations SET payment_reference=?,status=CASE WHEN status='verified' THEN status ELSE 'pending' END WHERE registration_id=?`).bind(paymentReference,id),
-      d1.prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor,details) VALUES (?,'registration',?,?,?,?)`).bind(crypto.randomUUID(),id,resubmitted?"resubmitted":"updated",auth.user.username,JSON.stringify({amount,idolDonation,annadaanamDonation,previousFlatNo:current.flatNo,flatNo,replacedProof:Boolean(proof)})),
+      d1.prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor,details) VALUES (?,'registration',?,?,?,?)`).bind(crypto.randomUUID(),id,resubmitted?"resubmitted":"updated",auth.user.username,JSON.stringify({amount,idolDonation,laddooDonation,annadaanamDonation,previousFlatNo:current.flatNo,flatNo,replacedProof:Boolean(proof)})),
     ];
     if(current.donorType!=="vendor"&&flatNo!==current.flatNo){
       statements.push(d1.prepare(`UPDATE flats SET visit_status=CASE WHEN EXISTS(SELECT 1 FROM registrations r JOIN donations d ON d.registration_id=r.id WHERE r.event_id=? AND r.block_no=? AND r.flat_no=? AND r.id!=? AND r.status!='cancelled' AND d.status!='reversed' AND d.amount>0) THEN 'donated' ELSE 'pending' END,updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE event_id=? AND block_no=? AND flat_no=?`).bind(EVENT_ID,current.blockNo,current.flatNo,id,auth.user.username,EVENT_ID,current.blockNo,current.flatNo));
       statements.push(d1.prepare(`UPDATE flats SET visit_status='donated',updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE event_id=? AND block_no=? AND flat_no=? AND occupied=1`).bind(auth.user.username,EVENT_ID,current.blockNo,flatNo));
     }
-    const additionalDonations=[{category:"idol",amount:idolDonation},{category:"annadaanam",amount:annadaanamDonation}];
+    const additionalDonations=[{category:"idol",amount:idolDonation},{category:"laddoos",amount:laddooDonation},{category:"annadaanam",amount:annadaanamDonation}];
     for(const additional of additionalDonations){
       const row=existingRows.results.find((donation)=>donation.category===additional.category);
       if(row)statements.push(d1.prepare(`UPDATE donations SET amount=? WHERE id=? AND registration_id=?`).bind(additional.amount,row.id,id));

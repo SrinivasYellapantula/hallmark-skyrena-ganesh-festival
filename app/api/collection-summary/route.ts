@@ -11,12 +11,13 @@ type CollectionRow = {
   verifiedCollection: number;
   festivalCollection: number;
   idolCollection: number;
+  laddooCollection: number;
   mahaprasadamCollection: number;
   maximumDonation: number;
   averageDonation: number;
 };
 type AttendanceRow = { blockNo: string; adults: number; kids: number };
-type VendorCollectionRow = { blockNo: string; vendorDonations: number; vendorCollection: number; verifiedVendorCollection: number; festivalCollection: number; idolCollection: number; mahaprasadamCollection: number };
+type VendorCollectionRow = { blockNo: string; vendorDonations: number; vendorCollection: number; verifiedVendorCollection: number; festivalCollection: number; idolCollection: number; laddooCollection: number; mahaprasadamCollection: number };
 
 export async function GET(request: Request) {
   const auth = await authorize(request, ["admin", "block"]);
@@ -69,6 +70,7 @@ export async function GET(request: Request) {
          SUM(CASE WHEN r.status='verified' AND d.status='verified' THEN d.amount ELSE 0 END) verifiedCollection,
          SUM(CASE WHEN d.status!='reversed' AND d.category='festival' THEN d.amount ELSE 0 END) festivalCollection,
          SUM(CASE WHEN d.status!='reversed' AND d.category='idol' THEN d.amount ELSE 0 END) idolCollection,
+         SUM(CASE WHEN d.status!='reversed' AND d.category='laddoos' THEN d.amount ELSE 0 END) laddooCollection,
          SUM(CASE WHEN d.status!='reversed' AND d.category='annadaanam' THEN d.amount ELSE 0 END) mahaprasadamCollection
        FROM registrations r JOIN donations d ON d.registration_id=r.id
        WHERE r.event_id=? AND r.donor_type='resident' AND r.status!='cancelled'
@@ -76,7 +78,7 @@ export async function GET(request: Request) {
      ), flat_totals AS (
        SELECT blockNo,flatNo,SUM(totalCollection) totalCollection,
          SUM(verifiedCollection) verifiedCollection,SUM(festivalCollection) festivalCollection,
-         SUM(idolCollection) idolCollection,SUM(mahaprasadamCollection) mahaprasadamCollection
+         SUM(idolCollection) idolCollection,SUM(laddooCollection) laddooCollection,SUM(mahaprasadamCollection) mahaprasadamCollection
        FROM registration_totals GROUP BY blockNo,flatNo HAVING SUM(totalCollection)>0
      )
      SELECT blockNo,COUNT(*) donatedFlats,
@@ -84,6 +86,7 @@ export async function GET(request: Request) {
        COALESCE(SUM(verifiedCollection),0) verifiedCollection,
        COALESCE(SUM(festivalCollection),0) festivalCollection,
        COALESCE(SUM(idolCollection),0) idolCollection,
+       COALESCE(SUM(laddooCollection),0) laddooCollection,
        COALESCE(SUM(mahaprasadamCollection),0) mahaprasadamCollection,
        COALESCE(MAX(totalCollection),0) maximumDonation,
        COALESCE(ROUND(AVG(totalCollection)),0) averageDonation
@@ -113,6 +116,7 @@ export async function GET(request: Request) {
     COALESCE(SUM(CASE WHEN r.status='verified' AND d.status='verified' THEN d.amount ELSE 0 END),0) verifiedVendorCollection,
     COALESCE(SUM(CASE WHEN d.status!='reversed' AND d.category='festival' THEN d.amount ELSE 0 END),0) festivalCollection,
     COALESCE(SUM(CASE WHEN d.status!='reversed' AND d.category='idol' THEN d.amount ELSE 0 END),0) idolCollection,
+    COALESCE(SUM(CASE WHEN d.status!='reversed' AND d.category='laddoos' THEN d.amount ELSE 0 END),0) laddooCollection,
     COALESCE(SUM(CASE WHEN d.status!='reversed' AND d.category='annadaanam' THEN d.amount ELSE 0 END),0) mahaprasadamCollection
     FROM registrations r JOIN donations d ON d.registration_id=r.id
     WHERE r.event_id=? AND r.donor_type='vendor' AND r.status!='cancelled'
@@ -152,6 +156,7 @@ export async function GET(request: Request) {
       verifiedCollection: Number(collection?.verifiedCollection ?? 0) + Number(vendor?.verifiedVendorCollection ?? 0),
       festivalCollection: Number(collection?.festivalCollection ?? 0) + Number(vendor?.festivalCollection ?? 0),
       idolCollection: Number(collection?.idolCollection ?? 0) + Number(vendor?.idolCollection ?? 0),
+      laddooCollection: Number(collection?.laddooCollection ?? 0) + Number(vendor?.laddooCollection ?? 0),
       mahaprasadamCollection: Number(collection?.mahaprasadamCollection ?? 0) + Number(vendor?.mahaprasadamCollection ?? 0),
       maximumDonation: Number(collection?.maximumDonation ?? 0),
       averageDonation: Number(collection?.averageDonation ?? 0),
@@ -179,6 +184,7 @@ export async function GET(request: Request) {
     verifiedCollection: competitionBlocks.reduce((sum, block) => sum + block.verifiedCollection, 0),
     festivalCollection: competitionBlocks.reduce((sum, block) => sum + block.festivalCollection, 0),
     idolCollection: competitionBlocks.reduce((sum, block) => sum + block.idolCollection, 0),
+    laddooCollection: competitionBlocks.reduce((sum, block) => sum + block.laddooCollection, 0),
     mahaprasadamCollection: competitionBlocks.reduce((sum, block) => sum + block.mahaprasadamCollection, 0),
     maximumDonation: Math.max(0, ...competitionBlocks.map((block) => block.maximumDonation)),
     vendorDonations: competitionBlocks.reduce((sum, block) => sum + block.vendorDonations, 0),

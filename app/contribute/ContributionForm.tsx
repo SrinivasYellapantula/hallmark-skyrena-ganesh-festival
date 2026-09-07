@@ -22,6 +22,7 @@ const blank = {
   phone: "",
   mainDonation: "0",
   idolDonation: "0",
+  laddooDonation: "0",
   annadaanamDonation: "0",
   adultCount: "0",
   childCount: "0",
@@ -115,8 +116,8 @@ export function ContributionForm() {
   }, [accessChecked, form, residentDraftReady, success, user]);
 
   const total = useMemo(
-    () => Number(form.mainDonation || 0) + Number(form.idolDonation || 0) + Number(form.annadaanamDonation || 0),
-    [form.mainDonation, form.idolDonation, form.annadaanamDonation],
+    () => Number(form.mainDonation || 0) + Number(form.idolDonation || 0) + Number(form.laddooDonation || 0) + Number(form.annadaanamDonation || 0),
+    [form.mainDonation, form.idolDonation, form.laddooDonation, form.annadaanamDonation],
   );
   const isVendor = Boolean(user) && form.donorType === "vendor";
   const upiIntentUrl = useMemo(() => {
@@ -160,11 +161,11 @@ export function ContributionForm() {
     });
   }
 
-  function clearDefaultAmount(name: "mainDonation" | "idolDonation" | "annadaanamDonation") {
+  function clearDefaultAmount(name: "mainDonation" | "idolDonation" | "laddooDonation" | "annadaanamDonation") {
     setForm((current) => current[name] === "0" ? { ...current, [name]: "" } : current);
   }
 
-  function restoreEmptyAmount(name: "mainDonation" | "idolDonation" | "annadaanamDonation") {
+  function restoreEmptyAmount(name: "mainDonation" | "idolDonation" | "laddooDonation" | "annadaanamDonation") {
     setForm((current) => current[name] === "" ? { ...current, [name]: "0" } : current);
   }
 
@@ -463,7 +464,11 @@ export function ContributionForm() {
               <input name="idolDonation" type="number" inputMode="numeric" min="0" step="1" value={form.idolDonation} onFocus={() => clearDefaultAmount("idolDonation")} onBlur={() => restoreEmptyAmount("idolDonation")} onChange={(event) => update(event.target.name, event.target.value)} />
               <small>Enter 0 when there is no separate idol contribution.</small>
             </label>
-            <label className="wide">Mahaprasadam Donation Amount
+            <label>Laddoo Donation Amount
+              <input name="laddooDonation" type="number" inputMode="numeric" min="0" step="1" value={form.laddooDonation} onFocus={() => clearDefaultAmount("laddooDonation")} onBlur={() => restoreEmptyAmount("laddooDonation")} onChange={(event) => update(event.target.name, event.target.value)} />
+              <small>Enter 0 when there is no separate Laddoo contribution.</small>
+            </label>
+            <label>Mahaprasadam Donation Amount
               <input name="annadaanamDonation" type="number" inputMode="numeric" min="0" step="1" value={form.annadaanamDonation} onFocus={() => clearDefaultAmount("annadaanamDonation")} onBlur={() => restoreEmptyAmount("annadaanamDonation")} onChange={(event) => update(event.target.name, event.target.value)} />
               <small>Enter 0 when there is no additional Mahaprasadam support.</small>
             </label>
@@ -502,6 +507,7 @@ export function ContributionForm() {
         <span className="summary-label">Donation Summary</span>
         <div><span>Donation</span><strong>{currency(Number(form.mainDonation) || 0)}</strong></div>
         <div><span>Idol donation</span><strong>{currency(Number(form.idolDonation) || 0)}</strong></div>
+        <div><span>Laddoo donation</span><strong>{currency(Number(form.laddooDonation) || 0)}</strong></div>
         <div><span>Mahaprasadam</span><strong>{currency(Number(form.annadaanamDonation) || 0)}</strong></div>
         <div className="summary-total"><span>Total</span><strong>{currency(total)}</strong></div>
         {!isResident && <button className="button primary full" disabled={busy || optimizing}>{optimizing ? "Optimizing image…" : busy ? "Saving…" : "Save Donation"}</button>}

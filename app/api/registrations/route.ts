@@ -27,6 +27,7 @@ export async function POST(request: Request) {
     const phone = cleanText(body.get("phone"), 20).replace(/\D/g, "");
     const mainDonation = wholeNumber(body.get("mainDonation"), MINIMUM_DONATION);
     const idolDonation = wholeNumber(body.get("idolDonation"), 0);
+    const laddooDonation = wholeNumber(body.get("laddooDonation"), 0);
     const annadaanamDonation = wholeNumber(body.get("annadaanamDonation"), 0);
     const adultCount = wholeNumber(body.get("adultCount"), 0, 7);
     const childCount = wholeNumber(body.get("childCount"), 0, 7);
@@ -44,9 +45,9 @@ export async function POST(request: Request) {
     if (!/^\d{10}$/.test(phone)) return Response.json({ error: "Enter a valid 10-digit Indian mobile number." }, { status: 400 });
     if (occupancy && !['owner', 'tenant'].includes(occupancy))
       return Response.json({ error: "Choose owner or tenant." }, { status: 400 });
-    if (mainDonation === null || idolDonation === null || annadaanamDonation === null)
+    if (mainDonation === null || idolDonation === null || laddooDonation === null || annadaanamDonation === null)
       return Response.json({ error: "Donation amounts must be valid non-negative whole numbers." }, { status: 400 });
-    if (mainDonation + idolDonation + annadaanamDonation <= 0)
+    if (mainDonation + idolDonation + laddooDonation + annadaanamDonation <= 0)
       return Response.json({ error: "Enter at least one donation amount greater than ₹0." }, { status: 400 });
     if (adultCount === null || childCount === null) return Response.json({ error: "Mahaprasadam attendance counts must be between 0 and 7." }, { status: 400 });
     if (!["upi", "imps", "neft"].includes(paymentMethod)) return Response.json({ error: "Choose UPI, IMPS or NEFT as the payment method." }, { status: 400 });
@@ -107,13 +108,17 @@ export async function POST(request: Request) {
         (id, registration_id, category, amount, payment_method, payment_reference, status)
         VALUES (?, ?, 'idol', ?, ?, ?, 'pending')`)
         .bind(crypto.randomUUID(), registrationId, idolDonation, paymentMethod, paymentReference));
+      if (laddooDonation > 0) statements.push(d1.prepare(`INSERT INTO donations
+        (id, registration_id, category, amount, payment_method, payment_reference, status)
+        VALUES (?, ?, 'laddoos', ?, ?, ?, 'pending')`)
+        .bind(crypto.randomUUID(), registrationId, laddooDonation, paymentMethod, paymentReference));
       await d1.batch(statements);
       try {
         await notifyPortalAdminOfDonation({
           blockNo,
           flatNo,
           donorName: residentName,
-          amount: mainDonation + idolDonation + annadaanamDonation,
+          amount: mainDonation + idolDonation + laddooDonation + annadaanamDonation,
           referenceNo,
           source: donorType === "vendor" ? "vendor" : user ? "committee" : "resident",
         });

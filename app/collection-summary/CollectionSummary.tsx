@@ -15,6 +15,7 @@ type Summary = {
   verifiedCollection: number;
   festivalCollection: number;
   idolCollection: number;
+  laddooCollection: number;
   mahaprasadamCollection: number;
   maximumDonation: number;
   averageDonation: number;
@@ -88,8 +89,8 @@ function BlockChallenge({ summaries }: { summaries: Summary[] }) {
       </div>
     </div>
     <div className="challenge-comparison">
-      <header><div><span className="card-kicker">Contribution comparison</span><h3>Collection Split by Block</h3></div><div className="challenge-legend"><span><i className="festival" />Main festival</span><span><i className="idol" />Idol</span><span><i className="mahaprasadam" />Mahaprasadam</span></div></header>
-      <div className="challenge-bars">{summaries.map((summary) => <div className="challenge-bar-row" key={summary.blockNo}><strong>Block {summary.blockNo}</strong><div className="challenge-stack-track" aria-label={`Block ${summary.blockNo}: ${currency(summary.totalCollection)} total collection`}><div className="challenge-stack-fill" style={{ width: `${(summary.totalCollection / maxCollection) * 100}%` }}><i className="festival" style={{ flexGrow: summary.festivalCollection }} /><i className="idol" style={{ flexGrow: summary.idolCollection }} /><i className="mahaprasadam" style={{ flexGrow: summary.mahaprasadamCollection }} /></div></div><span>{currency(summary.totalCollection)}</span></div>)}</div>
+      <header><div><span className="card-kicker">Contribution comparison</span><h3>Collection Split by Block</h3></div><div className="challenge-legend"><span><i className="festival" />Main festival</span><span><i className="idol" />Idol</span><span><i className="laddoos" />Laddoos</span><span><i className="mahaprasadam" />Mahaprasadam</span></div></header>
+      <div className="challenge-bars">{summaries.map((summary) => <div className="challenge-bar-row" key={summary.blockNo}><strong>Block {summary.blockNo}</strong><div className="challenge-stack-track" aria-label={`Block ${summary.blockNo}: ${currency(summary.totalCollection)} total collection`}><div className="challenge-stack-fill" style={{ width: `${(summary.totalCollection / maxCollection) * 100}%` }}><i className="festival" style={{ flexGrow: summary.festivalCollection }} /><i className="idol" style={{ flexGrow: summary.idolCollection }} /><i className="laddoos" style={{ flexGrow: summary.laddooCollection }} /><i className="mahaprasadam" style={{ flexGrow: summary.mahaprasadamCollection }} /></div></div><span>{currency(summary.totalCollection)}</span></div>)}</div>
     </div>
   </section>;
 }
@@ -119,6 +120,7 @@ function SummaryCard({ summary, featured = false }: { summary: Summary; featured
       <div><dt>Outside vendor collection</dt><dd>{currency(summary.vendorCollection)}</dd></div>
       <div><dt>Donating flats outside occupied master</dt><dd>{summary.outsideMasterDonatingFlats}</dd></div>
       <div><dt>Idol donation</dt><dd>{currency(summary.idolCollection)}</dd></div>
+      <div><dt>Laddoo donation</dt><dd>{currency(summary.laddooCollection)}</dd></div>
       <div><dt>Average per donated flat</dt><dd>{currency(summary.averageDonation)}</dd></div>
       <div><dt>Additional Mahaprasadam support</dt><dd>{currency(summary.mahaprasadamCollection)}</dd></div>
       <div><dt>Verified collection</dt><dd>{currency(summary.verifiedCollection)}</dd></div>

@@ -8,7 +8,7 @@ type Row = {
   id: string; referenceNo: string; residentName: string; blockNo: string; flatNo: string;
   donorType: "resident" | "vendor"; vendorCategory: string; contactPerson: string; vendorAddress: string;
   gotram: string; occupancy: string; phone: string | null; amount: number;
-  festivalAmount: number; idolAmount: number; annadaanamAmount: number; status: string; paymentReference: string;
+  festivalAmount: number; idolAmount: number; laddooAmount: number; annadaanamAmount: number; status: string; paymentReference: string;
   createdAt: string; hasProof: number; adultCount: number; childCount: number; notes: string;
   correctionReason: string; inOccupiedMaster: number;
 };
@@ -169,6 +169,7 @@ export function DonationsDashboard() {
             {selected.donorType === "vendor" ? <><div><dt>Vendor type</dt><dd>{titleCase(selected.vendorCategory)}</dd></div><div><dt>Contact person</dt><dd>{selected.contactPerson}</dd></div><div><dt>Location / Address</dt><dd>{selected.vendorAddress || "Not recorded"}</dd></div></> : <div><dt>Occupied-flat master</dt><dd><span className={`master-membership ${selected.inOccupiedMaster ? "included" : "outside"}`}>{selected.inOccupiedMaster ? "Included" : "Not included"}</span></dd></div>}
             <div><dt>Festival donation</dt><dd>{currency(Number(selected.festivalAmount))}</dd></div>
             <div><dt>Idol donation</dt><dd>{currency(Number(selected.idolAmount))}</dd></div>
+            <div><dt>Laddoo donation</dt><dd>{currency(Number(selected.laddooAmount))}</dd></div>
             <div><dt>Mahaprasadam donation</dt><dd>{currency(Number(selected.annadaanamAmount))}</dd></div>
             <div><dt>Total</dt><dd>{currency(Number(selected.amount))}</dd></div>
             {selected.donorType !== "vendor"&&<><div><dt>Gotram</dt><dd>{selected.gotram || "Not recorded"}</dd></div><div><dt>Resident type</dt><dd>{selected.occupancy || "Not recorded"}</dd></div></>}
@@ -184,6 +185,7 @@ export function DonationsDashboard() {
             {user?.role === "admin" && selected.donorType !== "vendor" && <label>Flat number<input required name="flatNo" autoCapitalize="characters" maxLength={20} pattern={selected.blockNo === "C" ? "(?:G0?[1-6]|(?:[1-9]|1[01245])0[1-6])" : "(?:G(?:0?[1-9]|10)|(?:[1-9]|1[01245])(?:0[1-9]|10))"} title={`Enter a valid Block ${selected.blockNo} flat. ${selected.blockNo === "C" ? "Use flat sequence 01–06." : "Use flat sequence 01–10."}`} defaultValue={selected.flatNo} /><small>Administrator correction. The block remains {selected.blockNo}.</small></label>}
             <label>Festival amount<input name="mainDonation" type="number" min="0" defaultValue={selected.festivalAmount} /></label>
             <label>Idol donation amount<input name="idolDonation" type="number" min="0" defaultValue={selected.idolAmount} /></label>
+            <label>Laddoo donation amount<input name="laddooDonation" type="number" min="0" defaultValue={selected.laddooAmount} /></label>
             <label>Mahaprasadam donation amount<input name="annadaanamDonation" type="number" min="0" defaultValue={selected.annadaanamAmount} /></label>
             <label>UPI reference<input name="paymentReference" defaultValue={selected.paymentReference} /></label>
             <label className="proof-picker">Replace Payment Proof <span className="optional">optional</span><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event)=>void selectReplacementProof(event.target.files?.[0]??null)}/><small>{optimizingProof?"Preparing image…":replacementProof?`Ready: ${replacementProof.name}`:"Leave empty to keep the current payment proof."}</small></label>

@@ -16,11 +16,13 @@ export async function GET(request: Request) {
              SELECT registration_id,
                SUM(CASE WHEN category = 'festival' THEN amount ELSE 0 END) festival,
                SUM(CASE WHEN category = 'idol' THEN amount ELSE 0 END) idol,
+               SUM(CASE WHEN category = 'laddoos' THEN amount ELSE 0 END) laddoos,
                SUM(CASE WHEN category = 'annadaanam' THEN amount ELSE 0 END) annadaanam
              FROM donations WHERE status = 'verified' GROUP BY registration_id
            )
            SELECT COALESCE(SUM(d.festival), 0) festival,
              COALESCE(SUM(d.idol), 0) idol,
+             COALESCE(SUM(d.laddoos), 0) laddoos,
              COALESCE(SUM(d.annadaanam), 0) annadaanam,
              COUNT(CASE WHEN r.donor_type='resident' THEN r.id END) households,
              COALESCE(SUM(r.adult_count), 0) adults,
