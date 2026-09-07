@@ -34,7 +34,13 @@ export async function GET(request: Request) {
     ) THEN 1 ELSE 0 END inOccupiedMaster,
     COALESCE((SELECT json_extract(a.details, '$.reason') FROM audit_log a
       WHERE a.entity_type='registration' AND a.entity_id=r.id AND a.action='correction_requested'
-      ORDER BY a.created_at DESC LIMIT 1), '') correctionReason
+      ORDER BY a.created_at DESC LIMIT 1), '') correctionReason,
+    COALESCE((SELECT json_extract(a.details, '$.outcome') FROM audit_log a
+      WHERE a.entity_type='registration' AND a.entity_id=r.id AND a.action='duplicate_reviewed'
+      ORDER BY a.created_at DESC LIMIT 1), '') duplicateReviewOutcome,
+    COALESCE((SELECT json_extract(a.details, '$.note') FROM audit_log a
+      WHERE a.entity_type='registration' AND a.entity_id=r.id AND a.action='duplicate_reviewed'
+      ORDER BY a.created_at DESC LIMIT 1), '') duplicateReviewNote
     FROM registrations r JOIN donations d ON d.registration_id=r.id
     WHERE r.event_id=? AND r.status!='cancelled' ${blockClause}
     GROUP BY r.id ORDER BY r.created_at DESC LIMIT 300`);

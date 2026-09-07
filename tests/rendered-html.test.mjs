@@ -747,10 +747,12 @@ test("donations can be filtered for zero Mahaprasadam attendance and contacted",
   assert.match(styles, /\.donation-records-card>header\{display:grid/);
 });
 
-test("duplicate review flags repeated flat submissions without changing valid donations", async () => {
-  const [screen, styles] = await Promise.all([
+test("duplicate review distinguishes genuine owner-and-tenant donations from actual duplicates", async () => {
+  const [screen, styles, listRoute, reviewRoute] = await Promise.all([
     source("app/donations/DonationsDashboard.tsx"),
     source("app/globals.css"),
+    source("app/api/donations/route.ts"),
+    source("app/api/donations/[id]/duplicate-review/route.ts"),
   ]);
   assert.match(screen, /type ReviewFilter = "all" \| "duplicates"/);
   assert.match(screen, /buildDuplicateReview\(rows\)/);
@@ -759,7 +761,16 @@ test("duplicate review flags repeated flat submissions without changing valid do
   assert.match(screen, /Multiple forms but only one verified payment/);
   assert.match(screen, /Same phone number and amount appear more than once/);
   assert.match(screen, /Duplicate Review \(\{duplicateFlatCount\} flats\)/);
-  assert.match(screen, /Genuine additional donations should be retained/);
+  assert.match(screen, /Genuine — Owner and tenant donated/);
+  assert.match(screen, /Genuine — Separate donations/);
+  assert.match(screen, /Actual duplicate entry/);
+  assert.match(screen, /\["genuine_owner_tenant","genuine_separate_donations"\]\.includes/);
+  assert.match(listRoute, /duplicateReviewOutcome/);
+  assert.match(listRoute, /duplicate_reviewed/);
+  assert.match(reviewRoute, /genuine_owner_tenant/);
+  assert.match(reviewRoute, /actual_duplicate/);
+  assert.match(reviewRoute, /authorize\(request\)/);
+  assert.match(reviewRoute, /INSERT INTO audit_log/);
   assert.match(styles, /\.duplicate-review-alert/);
   assert.match(styles, /\.duplicate-review-label/);
 });

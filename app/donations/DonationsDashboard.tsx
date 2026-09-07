@@ -10,12 +10,12 @@ type Row = {
   gotram: string; occupancy: string; phone: string | null; amount: number;
   festivalAmount: number; idolAmount: number; laddooAmount: number; annadaanamAmount: number; status: string; paymentReference: string;
   createdAt: string; hasProof: number; paymentCount: number; adultCount: number; childCount: number; notes: string;
-  correctionReason: string; inOccupiedMaster: number;
+  correctionReason: string; duplicateReviewOutcome: string; duplicateReviewNote: string; inOccupiedMaster: number;
 };
 type User = { role: "admin" | "block"; blockNo: string | null };
 type AttendanceFilter = "all" | "zero" | "attending";
 type ReviewFilter = "all" | "duplicates";
-type DuplicateInfo = { count: number; reason: string; references: string[] };
+type DuplicateInfo = { count: number; reason: string; references: string[]; outcome: string; note: string };
 
 export function DonationsDashboard() {
   const [rows, setRows] = useState<Row[]>([]);
@@ -30,6 +30,7 @@ export function DonationsDashboard() {
   const [addingPayment, setAddingPayment] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState("");
   const [masterBusy, setMasterBusy] = useState(false);
+  const [reviewBusy, setReviewBusy] = useState(false);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -146,6 +147,16 @@ export function DonationsDashboard() {
     finally { setMasterBusy(false); }
   }
 
+  async function saveDuplicateReview(event:FormEvent<HTMLFormElement>) {
+    event.preventDefault(); if(!selected)return; const form=new FormData(event.currentTarget);
+    setReviewBusy(true); setError("");
+    try {
+      const response=await fetch(`/api/donations/${selected.id}/duplicate-review`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({outcome:form.get("outcome"),note:form.get("note")})});
+      const payload=await response.json(); if(!response.ok)throw new Error(payload.error??"Could not save the review outcome."); await load();
+    } catch(caught) { setError(caught instanceof Error?caught.message:"Could not save the review outcome."); }
+    finally { setReviewBusy(false); }
+  }
+
   return (
     <section className={`wrap records-shell${selected ? "" : " records-shell-wide"}`}>
       {error && <p className="form-error">{error}</p>}
@@ -185,7 +196,8 @@ export function DonationsDashboard() {
           <span className="card-kicker">Detailed view</span>
           <h2>{selected.residentName}</h2>
           <p>{selected.donorType === "vendor" ? `Outside Vendor · recorded by Block ${selected.blockNo} team` : `Block ${selected.blockNo} · Flat ${selected.flatNo}`} · {selected.referenceNo}</p>
-          {selectedDuplicate&&<div className="duplicate-review-alert"><strong>Duplicate Review</strong><span>{selectedDuplicate.count} active submissions were found for this block and flat.</span><span>{selectedDuplicate.reason}.</span><small>Review the payment reference and proof before moving any duplicate submission to the Recycle Bin. Genuine additional donations should be retained.</small></div>}
+          {selectedDuplicate&&<div className="duplicate-review-alert"><strong>Duplicate Review</strong><span>{selectedDuplicate.count} active submissions were found for this block and flat.</span><span>{selectedDuplicate.reason}.</span><small>Both donations remain in collection totals, while the flat is counted once. Review the references and proofs before deciding.</small><form key={selected.id} onSubmit={saveDuplicateReview}><label>Review outcome<select name="outcome" defaultValue={selectedDuplicate.outcome||"needs_review"}><option value="needs_review">Needs further review</option><option value="genuine_owner_tenant">Genuine — Owner and tenant donated</option><option value="genuine_separate_donations">Genuine — Separate donations</option><option value="actual_duplicate">Actual duplicate entry</option></select></label><label>Review note <span className="optional">optional</span><input name="note" maxLength={300} defaultValue={selectedDuplicate.note}/></label><button className="button quiet full" disabled={reviewBusy}>{reviewBusy?"Saving…":"Save Review Outcome"}</button></form></div>}
+          {!selectedDuplicate&&selected.duplicateReviewOutcome.startsWith("genuine_")&&<p className="form-success">Duplicate review completed: {selected.duplicateReviewOutcome==="genuine_owner_tenant"?"owner and tenant both donated":"genuine separate donations"}.</p>}
           {selected.status === "correction_requested" && <div className="correction-alert"><strong>Correction requested</strong><span>{selected.correctionReason || "Please review and correct this submission."}</span><small>Saving the corrected record will send it back for administrator verification.</small></div>}
           <dl>
             <div><dt>Status</dt><dd>{selected.status}</dd></div>
@@ -245,15 +257,18 @@ function buildDuplicateReview(rows: Row[]) {
   const review = new Map<string, DuplicateInfo>();
   for (const group of groups.values()) {
     if (group.length < 2) continue;
+    const reviewed=group.find((row)=>row.duplicateReviewOutcome);
+    if(group.some((row)=>["genuine_owner_tenant","genuine_separate_donations"].includes(row.duplicateReviewOutcome)))continue;
     const paymentReferences = group.map((row) => normalizePaymentReference(row.paymentReference)).filter(Boolean);
     const repeatedReference = paymentReferences.find((reference, index) => paymentReferences.indexOf(reference) !== index);
     const verifiedCount = group.filter((row) => row.status === "verified").length;
     const samePhoneAndAmount = group.some((row, index) => group.some((other, otherIndex) => index !== otherIndex && row.phone && row.phone === other.phone && Number(row.amount) === Number(other.amount)));
-    const reason = repeatedReference ? "Same payment reference appears more than once"
+    const reason = reviewed?.duplicateReviewOutcome==="actual_duplicate" ? "Confirmed as an actual duplicate entry"
+      : repeatedReference ? "Same payment reference appears more than once"
       : verifiedCount === 1 ? "Multiple forms but only one verified payment"
       : samePhoneAndAmount ? "Same phone number and amount appear more than once"
       : "Multiple submissions exist for the same flat";
-    const info = { count: group.length, reason, references: group.map((row) => row.referenceNo).sort() };
+    const info = { count: group.length, reason, references: group.map((row) => row.referenceNo).sort(), outcome: reviewed?.duplicateReviewOutcome??"", note: reviewed?.duplicateReviewNote??"" };
     for (const row of group) review.set(row.id, info);
   }
   return review;
