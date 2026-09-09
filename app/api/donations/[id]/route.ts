@@ -81,7 +81,7 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
   if(editPayments&&amount+idolDonation+laddooDonation+annadaanamDonation<=0)return Response.json({error:"Enter at least one donation amount greater than ₹0."},{status:400});
   if(proof&&(!IMAGE_TYPES.has(proof.type)||proof.size>MAX_PROOF_BYTES))return Response.json({error:"Upload a JPG, PNG or WebP payment image up to 1 MB."},{status:400});
   const d1=getD1();
-  const existingRows=await d1.prepare(`SELECT id,category,payment_proof_key proofKey FROM donations WHERE registration_id=?`).bind(id).all<{id:string;category:string;proofKey:string|null}>();
+  const existingRows=await d1.prepare(`SELECT id,category,payment_proof_key proofKey FROM donations WHERE registration_id=? ORDER BY received_at ASC,id ASC`).bind(id).all<{id:string;category:string;proofKey:string|null}>();
   const existing=existingRows.results.find((donation)=>donation.category==="festival");
   if(editPayments&&!existing)return Response.json({error:"Original donation not found."},{status:404});
   if(editPayments&&new Set(existingRows.results.map((row)=>row.proofKey).filter(Boolean)).size>1)return Response.json({error:"This record has multiple payments. Use Add Another Payment; historical payment amounts cannot be overwritten."},{status:409});
@@ -94,8 +94,8 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
     const statements=[
       d1.prepare(`UPDATE registrations SET flat_no=?,adult_count=?,child_count=?,notes=?,status=CASE WHEN status='correction_requested' THEN 'submitted' ELSE status END,updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(flatNo,adults,children,notes,id),
       ...(editPayments?[proof
-        ? d1.prepare(`UPDATE donations SET amount=?,payment_proof_key=?,payment_proof_name=?,payment_proof_type=? WHERE registration_id=? AND category='festival'`).bind(amount,newProofKey,proof.name,proof.type,id)
-        : d1.prepare(`UPDATE donations SET amount=? WHERE registration_id=? AND category='festival'`).bind(amount,id),
+        ? d1.prepare(`UPDATE donations SET amount=?,payment_proof_key=?,payment_proof_name=?,payment_proof_type=? WHERE id=? AND registration_id=?`).bind(amount,newProofKey,proof.name,proof.type,existing!.id,id)
+        : d1.prepare(`UPDATE donations SET amount=? WHERE id=? AND registration_id=?`).bind(amount,existing!.id,id),
       d1.prepare(`UPDATE donations SET payment_reference=?,status=CASE WHEN status='verified' THEN status ELSE 'pending' END WHERE registration_id=?`).bind(paymentReference,id)]:[]),
       d1.prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor,details) VALUES (?,'registration',?,?,?,?)`).bind(crypto.randomUUID(),id,resubmitted?"resubmitted":"updated",auth.user.username,JSON.stringify({amount,idolDonation,laddooDonation,annadaanamDonation,previousFlatNo:current.flatNo,flatNo,replacedProof:Boolean(proof)})),
     ];
