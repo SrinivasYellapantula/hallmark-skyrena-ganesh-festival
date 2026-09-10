@@ -31,6 +31,8 @@ export async function GET(request: Request) {
   const requestedId = cleanText(url.searchParams.get("id"), 80);
   await ensureDatabase();
   if (editToken) {
+    const user = await getAppUser(request);
+    if (!user) return Response.json({ error: "Cultural registrations are closed now." }, { status: 403 });
     const programme = await getD1().prepare(`SELECT id,reference_no referenceNo,title,performance_type performanceType,
       category,participant_details participantDetails,contact_name contactName,contact_phone contactPhone,
       duration_minutes durationMinutes,status,background_music backgroundMusic,audio_key IS NOT NULL hasAudio,audio_name audioName,audio_arrangement audioArrangement,device_details deviceDetails,notes
@@ -65,6 +67,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const user = await getAppUser(request);
+  if (!user) return Response.json({ error: "Cultural registrations are closed now." }, { status: 403 });
   const body = await request.formData();
   const category = cleanText(body.get("category"), 80);
   const isKolatam = category === "Kolatam";
@@ -148,6 +151,9 @@ export async function PUT(request: Request) {
   let actor="resident-self-edit";
   let residentEdit=false;
   if (editToken) {
+    const user=await getAppUser(request);
+    if(!user)return Response.json({error:"Cultural registrations are closed now."},{status:403});
+    actor=user.username;
     existing=await d1.prepare("SELECT id,reference_no referenceNo,status,audio_key audioKey,audio_name audioName,audio_type audioType FROM cultural_programmes WHERE event_id=? AND edit_token_hash=? AND status<>'recycled'").bind(EVENT_ID,await hashSessionToken(editToken)).first<EditableProgramme>();
     residentEdit=true;
   } else {

@@ -500,7 +500,9 @@ test("residents and volunteers share a structured cultural registration workflow
     source("app/components/SiteChrome.tsx"), source("app/lib/cultural.ts"),
     source("drizzle/0011_cultural_registrations.sql"), source("drizzle/0012_cultural_resident_edits.sql"), source("drizzle/0013_cultural_audio_arrangement.sql"),
   ]);
-  assert.match(page, /Residents can submit directly/);
+  assert.match(page, /Signed-in committee members can continue managing programme entries/);
+  assert.match(form, /Cultural registrations are closed now/);
+  assert.match(route, /Cultural registrations are closed now/);
   assert.match(form, /Solo/); assert.match(form, /Group/); assert.match(form, /Add Participant/);
   assert.match(form, /Participant \/ Group Point of Contact/); assert.match(form, /Music \/ Audio Arrangement/);
   assert.match(form, /Upload the song file/); assert.match(form, /Performer will play from their own device/);
