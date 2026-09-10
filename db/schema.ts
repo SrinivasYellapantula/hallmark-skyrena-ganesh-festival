@@ -304,3 +304,29 @@ export const culturalProgrammes = sqliteTable(
   },
   (table) => [index("idx_cultural_programmes_event_date").on(table.eventId, table.programmeDate)],
 );
+
+export const prasadamOfferings = sqliteTable(
+  "prasadam_offerings",
+  {
+    id: text("id").primaryKey(),
+    eventId: text("event_id").notNull().references(() => events.id),
+    referenceNo: text("reference_no").notNull().unique(),
+    blockNo: text("block_no").notNull(),
+    flatNo: text("flat_no").notNull(),
+    residentName: text("resident_name").notNull(),
+    phone: text("phone").notNull(),
+    offeringDate: text("offering_date").notNull(),
+    dayNumber: integer("day_number").notNull(),
+    prasadamName: text("prasadam_name").notNull(),
+    portions: integer("portions").notNull(),
+    notes: text("notes").notNull().default(""),
+    status: text("status", { enum: ["submitted", "confirmed", "cancelled"] }).notNull().default("submitted"),
+    createdBy: text("created_by").notNull().default("resident-self-service"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("idx_prasadam_offerings_event_date").on(table.eventId, table.offeringDate, table.status),
+    index("idx_prasadam_offerings_block_flat").on(table.eventId, table.blockNo, table.flatNo),
+  ],
+);

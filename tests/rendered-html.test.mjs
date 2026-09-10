@@ -532,10 +532,29 @@ test("residents and volunteers share a structured cultural registration workflow
   assert.match(workspace, /Filter cultural registrations by performance type/); assert.match(workspace, /All Types/);
   assert.match(exportRoute, /typeMatches/); assert.match(workspace, /typeFilter/);
   assert.match(workspace, /!isKolatam&&<div><dt>Duration/); assert.match(workspace, /!isKolatam&&<div><dt>Audio arrangement/);
-  assert.match(authGate, /publicCulturalForm/); assert.match(chrome, /\/cultural\/register/);
+  assert.match(authGate, /publicCulturalForm/); assert.match(chrome, /\/prasadam-seva\/manage/);
   assert.match(culturalConstants, /clarification_required/); assert.match(culturalConstants, /waitlisted/);
   assert.match(culturalConstants, /scheduled/); assert.match(migration, /reference_no/);
   assert.match(migration, /audio_key/); assert.match(migration, /source/);
+});
+
+test("public Prasadam Seva registration enforces block-assigned dates and supports committee planning", async () => {
+  const [form, dashboard, route, rules, gate, chrome, migration, schema, initialize, styles] = await Promise.all([
+    source("app/prasadam-seva/PrasadamSevaForm.tsx"), source("app/prasadam-seva/manage/PrasadamSevaDashboard.tsx"),
+    source("app/api/prasadam-offerings/route.ts"), source("app/lib/prasadam.ts"), source("app/components/AuthGate.tsx"),
+    source("app/components/SiteChrome.tsx"), source("drizzle/0015_prasadam_seva.sql"), source("db/schema.ts"),
+    source("db/initialize.ts"), source("app/globals.css"),
+  ]);
+  assert.match(rules, /2026-09-14.*block: "C"/s); assert.match(rules, /2026-09-19.*block: "OPEN"/s);
+  assert.doesNotMatch(rules, /2026-09-20/); assert.match(form, /Annadanam \/ Annaprasadam/);
+  assert.match(form, /Register Another Offering/); assert.match(form, /One offering per entry/);
+  assert.match(form, /eligiblePrasadamDays\(form\.blockNo\)/); assert.match(route, /isPrasadamDateAllowed\(blockNo, offeringDate\)/);
+  assert.match(route, /Enter a valid Block \$\{blockNo\} flat number without the block letter/);
+  assert.match(route, /authorize\(request, \["admin", "block", "cultural"\]\)/); assert.match(route, /auth\.user\.role === "block"/);
+  assert.match(dashboard, /Expected portions/); assert.match(dashboard, /Download CSV/); assert.match(dashboard, /Confirm/);
+  assert.match(gate, /publicPrasadamForm/); assert.match(chrome, /Prasadam Seva/);
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS prasadam_offerings/); assert.match(schema, /prasadamOfferings/);
+  assert.match(initialize, /CREATE TABLE IF NOT EXISTS prasadam_offerings/); assert.match(styles, /\.prasadam-seva-form/);
 });
 
 test("meeting minutes support structured actions and PDF-ready printing", async () => {
