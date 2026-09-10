@@ -26,7 +26,7 @@ export function PrasadamSevaForm(){
       <div className="prasadam-form-note"><strong>How date selection works</strong><p>Each block has one assigned seva day. Every block may also offer on Day 6, the open-offering day. Day 7 is reserved for the community Annadanam programme.</p></div>
       <fieldset><div className="prasadam-section-heading"><span>1</span><h2>Household Details</h2></div><div className="field-grid">
         <label><span className="prasadam-field-label">Block <b>*</b></span><select required value={form.blockNo} onChange={(event)=>update("blockNo",event.target.value)}><option value="" disabled>Select block</option>{BLOCKS.map((block)=><option key={block} value={block}>Block {block}</option>)}</select></label>
-        <label><span className="prasadam-field-label">Flat Number <b>*</b></span><input required maxLength={10} value={form.flatNo} onChange={(event)=>update("flatNo",event.target.value.replace(/[\s-]/g,"").toUpperCase())} placeholder="e.g. G01, 505 or 1505"/><small>Do not include the block letter.</small></label>
+        <label><span className="prasadam-field-label">Flat Number <b>*</b></span><input required maxLength={10} value={form.flatNo} onChange={(event)=>update("flatNo",event.target.value.replace(/[\s-]/g,"").toUpperCase())} onBlur={()=>update("flatNo",normalizePrasadamFlatNo(form.flatNo,form.blockNo))} placeholder="e.g. 505 or C505"/><small>You may include the selected block letter. For example, <strong>C505</strong> will automatically become <strong>505</strong>.</small></label>
         <label><span className="prasadam-field-label">Resident Name <b>*</b></span><input required maxLength={100} value={form.residentName} onChange={(event)=>update("residentName",event.target.value)}/></label>
         <label><span className="prasadam-field-label">Mobile Number <b>*</b></span><span className="phone-field"><i>+91</i><input required type="tel" inputMode="numeric" pattern="[0-9]{10}" minLength={10} maxLength={10} value={form.phone} onChange={(event)=>update("phone",event.target.value.replace(/\D/g,"").slice(0,10))} placeholder="10-digit number"/></span></label>
       </div></fieldset>
@@ -41,4 +41,9 @@ export function PrasadamSevaForm(){
       <button className="button primary full prasadam-submit" disabled={busy}>{busy?"Registering Offering…":"Register Prasadam Offering"}</button>
     </form></section>
   </>;
+}
+
+function normalizePrasadamFlatNo(flatNo:string,blockNo:string){
+  const flat=flatNo.trim().toUpperCase().replace(/[\s-]+/g,"");const block=blockNo.trim().toUpperCase();
+  return block&&flat.startsWith(block)&&/^(?:G|\d)/.test(flat.slice(block.length))?flat.slice(block.length):flat;
 }

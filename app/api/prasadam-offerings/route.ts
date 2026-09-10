@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   const portions = wholeNumber(body.portions, 1, 2000);
   const notes = cleanText(body.notes, 500);
   if (!BLOCKS.includes(blockNo as never)) return Response.json({ error: "Choose your block." }, { status: 400 });
-  if (!isValidFlatNo(flatNo, blockNo)) return Response.json({ error: `Enter a valid Block ${blockNo} flat number without the block letter.` }, { status: 400 });
+  if (!isValidFlatNo(flatNo, blockNo)) return Response.json({ error: `Enter a valid Block ${blockNo} flat number. You may include the selected block letter.` }, { status: 400 });
   if (!residentName) return Response.json({ error: "Enter your name." }, { status: 400 });
   if (!/^\d{10}$/.test(phone)) return Response.json({ error: "Enter a valid 10-digit mobile number." }, { status: 400 });
   if (!isPrasadamDateAllowed(blockNo, offeringDate)) return Response.json({ error: `Choose the assigned Block ${blockNo} day or the open-offering day.` }, { status: 400 });
