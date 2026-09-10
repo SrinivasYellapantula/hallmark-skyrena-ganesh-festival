@@ -548,6 +548,7 @@ test("public Prasadam Seva registration enforces block-assigned dates and suppor
   assert.match(rules, /2026-09-14.*block: "C"/s); assert.match(rules, /2026-09-19.*block: "OPEN"/s);
   assert.doesNotMatch(rules, /2026-09-20/); assert.match(form, /Annadanam \/ Annaprasadam/);
   assert.match(form, /Register Another Offering/); assert.match(form, /One offering per entry/);
+  assert.match(form, /sweets be prepared with moderate sugar/); assert.match(form, /prasadam-field-label/);
   assert.match(form, /eligiblePrasadamDays\(form\.blockNo\)/); assert.match(route, /isPrasadamDateAllowed\(blockNo, offeringDate\)/);
   assert.match(route, /Enter a valid Block \$\{blockNo\} flat number without the block letter/);
   assert.match(route, /authorize\(request, \["admin", "block", "cultural"\]\)/); assert.match(route, /auth\.user\.role === "block"/);
