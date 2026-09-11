@@ -566,9 +566,9 @@ test("public Prasadam Seva registration enforces block-assigned dates and suppor
 });
 
 test("public Pooja registration supports fixed schedules, children and capacity-safe paid Homam entries", async () => {
-  const [form, dashboard, route, proof, rules, migration, schema, initialize, gate, chrome, styles] = await Promise.all([
+  const [form, dashboard, route, exportRoute, proof, rules, migration, schema, initialize, gate, chrome, styles] = await Promise.all([
     source("app/pooja-registration/PoojaRegistrationForm.tsx"), source("app/pooja/PoojaDashboard.tsx"),
-    source("app/api/pooja-registrations/route.ts"), source("app/api/pooja-registrations/proof/[id]/route.ts"),
+    source("app/api/pooja-registrations/route.ts"), source("app/api/pooja-registrations/export/route.ts"), source("app/api/pooja-registrations/proof/[id]/route.ts"),
     source("app/lib/pooja.ts"), source("drizzle/0016_pooja_registrations.sql"), source("db/schema.ts"),
     source("db/initialize.ts"), source("app/components/AuthGate.tsx"), source("app/components/SiteChrome.tsx"), source("app/globals.css"),
   ]);
@@ -580,6 +580,8 @@ test("public Pooja registration supports fixed schedules, children and capacity-
   assert.match(route, /SELECT COUNT\(\*\).*pooja_type='homam'.*HOMAM_CAPACITY/s); assert.match(route, /All 10 Homam slots/);
   assert.match(route, /paymentProof/); assert.match(proof, /PAYMENT_PROOFS/); assert.match(dashboard, /View Payment Proof/);
   assert.match(dashboard, /Saraswathi Pooja children/); assert.match(dashboard, /Homam entries/);
+  assert.match(dashboard, /Download Excel/); assert.match(dashboard, /Download \/ Print PDF/); assert.match(exportRoute, /writeXlsxFile/);
+  assert.match(exportRoute, /authorize\(request,\["admin","block"\]\)/); assert.match(styles, /printing-pooja-plan/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS pooja_registrations/); assert.match(schema, /poojaRegistrations/); assert.match(initialize, /pooja_registrations/);
   assert.match(gate, /publicPoojaForm/); assert.match(chrome, /Pooja Registrations/); assert.match(styles, /Pooja registrations/);
 });
