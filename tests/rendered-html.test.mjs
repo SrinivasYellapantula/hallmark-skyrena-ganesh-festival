@@ -576,6 +576,7 @@ test("public Pooja registration supports fixed schedules, children and capacity-
   assert.match(rules, /2026-09-14.*evening/s); assert.match(rules, /2026-09-15.*morning.*evening/s);
   assert.match(rules, /Saraswathi Pooja/); assert.match(form, /Add Another Child/); assert.match(rules, /Lakshmi Pooja/);
   assert.match(form, /Payment Confirmation Image/); assert.match(form, /Copy UPI ID/); assert.match(form, /normalizeFlat/);
+  assert.match(form, /pooja-field-label/); assert.match(styles, /\.pooja-field-label\{display:inline-flex/);
   assert.match(route, /SELECT COUNT\(\*\).*pooja_type='homam'.*HOMAM_CAPACITY/s); assert.match(route, /All 10 Homam slots/);
   assert.match(route, /paymentProof/); assert.match(proof, /PAYMENT_PROOFS/); assert.match(dashboard, /View Payment Proof/);
   assert.match(dashboard, /Saraswathi Pooja children/); assert.match(dashboard, /Homam entries/);
