@@ -557,6 +557,9 @@ test("public Prasadam Seva registration enforces block-assigned dates and suppor
   assert.match(dashboard, /Expected portions/); assert.match(dashboard, /Download Excel/); assert.match(dashboard, /Print \/ Save as PDF/); assert.match(dashboard, /Confirm/);
   assert.match(exportRoute, /writeXlsxFile/); assert.match(exportRoute, /authorize\(request,\["admin","block","cultural"\]\)/);
   assert.match(styles, /printing-prasadam-plan/);
+  assert.match(dashboard, /user\?\.role==="admin".*Edit Offering/s); assert.match(dashboard, /Save Corrections/);
+  assert.match(route, /body\.action === "edit"/); assert.match(route, /Only administrators can edit offering details/);
+  assert.match(route, /details_corrected/);
   assert.match(gate, /publicPrasadamForm/); assert.match(chrome, /Prasadam Seva/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS prasadam_offerings/); assert.match(schema, /prasadamOfferings/);
   assert.match(initialize, /CREATE TABLE IF NOT EXISTS prasadam_offerings/); assert.match(styles, /\.prasadam-seva-form/);

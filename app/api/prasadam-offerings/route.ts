@@ -67,6 +67,33 @@ export async function PATCH(request: Request) {
   if ("response" in auth) return auth.response;
   const body = await request.json() as Record<string, unknown>;
   const id = cleanText(body.id, 80);
+  if (body.action === "edit") {
+    if (auth.user.role !== "admin") return Response.json({ error: "Only administrators can edit offering details." }, { status: 403 });
+    const blockNo = cleanText(body.blockNo, 2).toUpperCase(); const flatNo = normalizeFlatNo(body.flatNo, blockNo);
+    const residentName = cleanText(body.residentName, 100); const phone = cleanText(body.phone, 20).replace(/\D/g, "");
+    const offeringDate = cleanText(body.offeringDate, 10); const prasadamName = cleanText(body.prasadamName, 160);
+    const portions = wholeNumber(body.portions, 1, 2000); const notes = cleanText(body.notes, 500);
+    if (!id) return Response.json({ error: "Choose an offering to edit." }, { status: 400 });
+    if (!BLOCKS.includes(blockNo as never)) return Response.json({ error: "Choose the resident block." }, { status: 400 });
+    if (!isValidFlatNo(flatNo, blockNo)) return Response.json({ error: `Enter a valid Block ${blockNo} flat number.` }, { status: 400 });
+    if (!residentName) return Response.json({ error: "Enter the resident name." }, { status: 400 });
+    if (!/^\d{10}$/.test(phone)) return Response.json({ error: "Enter a valid 10-digit mobile number." }, { status: 400 });
+    if (!isPrasadamDateAllowed(blockNo, offeringDate)) return Response.json({ error: `Choose the assigned Block ${blockNo} day or the open-offering day.` }, { status: 400 });
+    if (!prasadamName) return Response.json({ error: "Enter the prasadam being offered." }, { status: 400 });
+    if (portions === null) return Response.json({ error: "Enter portions between 1 and 2,000." }, { status: 400 });
+    const selectedDay = eligiblePrasadamDays(blockNo).find((item) => item.date === offeringDate)!;
+    await ensureDatabase();
+    const existing = await getD1().prepare("SELECT id FROM prasadam_offerings WHERE id=? AND event_id=?").bind(id, EVENT_ID).first();
+    if (!existing) return Response.json({ error: "Offering not found." }, { status: 404 });
+    const details = { blockNo, flatNo, residentName, phone, offeringDate, dayNumber: selectedDay.day, prasadamName, portions, notes };
+    await getD1().batch([
+      getD1().prepare(`UPDATE prasadam_offerings SET block_no=?,flat_no=?,resident_name=?,phone=?,offering_date=?,day_number=?,prasadam_name=?,portions=?,notes=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND event_id=?`)
+        .bind(blockNo,flatNo,residentName,phone,offeringDate,selectedDay.day,prasadamName,portions,notes,id,EVENT_ID),
+      getD1().prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor,details) VALUES(?,'prasadam_offering',?,'details_corrected',?,?)`)
+        .bind(crypto.randomUUID(),id,auth.user.username,JSON.stringify(details)),
+    ]);
+    return Response.json({ ok: true });
+  }
   const status = cleanText(body.status, 20);
   if (!id || !STATUSES.includes(status as never)) return Response.json({ error: "Choose a valid offering and status." }, { status: 400 });
   await ensureDatabase();
