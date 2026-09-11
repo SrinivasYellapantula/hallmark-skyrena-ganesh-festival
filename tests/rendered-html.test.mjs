@@ -539,9 +539,9 @@ test("residents and volunteers share a structured cultural registration workflow
 });
 
 test("public Prasadam Seva registration enforces block-assigned dates and supports committee planning", async () => {
-  const [form, dashboard, route, rules, gate, chrome, migration, schema, initialize, styles] = await Promise.all([
+  const [form, dashboard, route, exportRoute, rules, gate, chrome, migration, schema, initialize, styles] = await Promise.all([
     source("app/prasadam-seva/PrasadamSevaForm.tsx"), source("app/prasadam-seva/manage/PrasadamSevaDashboard.tsx"),
-    source("app/api/prasadam-offerings/route.ts"), source("app/lib/prasadam.ts"), source("app/components/AuthGate.tsx"),
+    source("app/api/prasadam-offerings/route.ts"), source("app/api/prasadam-offerings/export/route.ts"), source("app/lib/prasadam.ts"), source("app/components/AuthGate.tsx"),
     source("app/components/SiteChrome.tsx"), source("drizzle/0015_prasadam_seva.sql"), source("db/schema.ts"),
     source("db/initialize.ts"), source("app/globals.css"),
   ]);
@@ -554,7 +554,9 @@ test("public Prasadam Seva registration enforces block-assigned dates and suppor
   assert.match(form, /eligiblePrasadamDays\(form\.blockNo\)/); assert.match(route, /isPrasadamDateAllowed\(blockNo, offeringDate\)/);
   assert.match(route, /You may include the selected block letter/);
   assert.match(route, /authorize\(request, \["admin", "block", "cultural"\]\)/); assert.match(route, /auth\.user\.role === "block"/);
-  assert.match(dashboard, /Expected portions/); assert.match(dashboard, /Download CSV/); assert.match(dashboard, /Confirm/);
+  assert.match(dashboard, /Expected portions/); assert.match(dashboard, /Download Excel/); assert.match(dashboard, /Print \/ Save as PDF/); assert.match(dashboard, /Confirm/);
+  assert.match(exportRoute, /writeXlsxFile/); assert.match(exportRoute, /authorize\(request,\["admin","block","cultural"\]\)/);
+  assert.match(styles, /printing-prasadam-plan/);
   assert.match(gate, /publicPrasadamForm/); assert.match(chrome, /Prasadam Seva/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS prasadam_offerings/); assert.match(schema, /prasadamOfferings/);
   assert.match(initialize, /CREATE TABLE IF NOT EXISTS prasadam_offerings/); assert.match(styles, /\.prasadam-seva-form/);
