@@ -330,3 +330,18 @@ export const prasadamOfferings = sqliteTable(
     index("idx_prasadam_offerings_block_flat").on(table.eventId, table.blockNo, table.flatNo),
   ],
 );
+
+export const poojaRegistrations = sqliteTable(
+  "pooja_registrations",
+  {
+    id:text("id").primaryKey(),eventId:text("event_id").notNull().references(()=>events.id),referenceNo:text("reference_no").notNull().unique(),
+    poojaType:text("pooja_type").notNull(),poojaDate:text("pooja_date").notNull(),session:text("session").notNull().default(""),
+    blockNo:text("block_no").notNull(),flatNo:text("flat_no").notNull(),residentName:text("resident_name").notNull(),phone:text("phone").notNull(),
+    attendeeCount:integer("attendee_count").notNull().default(1),participantDetails:text("participant_details").notNull().default("[]"),
+    paymentAmount:integer("payment_amount").notNull().default(0),paymentReference:text("payment_reference").notNull().default(""),
+    paymentProofKey:text("payment_proof_key"),paymentProofName:text("payment_proof_name"),paymentProofType:text("payment_proof_type"),
+    paymentStatus:text("payment_status").notNull().default("not_required"),status:text("status").notNull().default("submitted"),notes:text("notes").notNull().default(""),
+    createdBy:text("created_by").notNull().default("resident-self-service"),createdAt:text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),updatedAt:text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table)=>[index("idx_pooja_registrations_type_date").on(table.eventId,table.poojaType,table.poojaDate,table.status),index("idx_pooja_registrations_block_flat").on(table.eventId,table.blockNo,table.flatNo)],
+);

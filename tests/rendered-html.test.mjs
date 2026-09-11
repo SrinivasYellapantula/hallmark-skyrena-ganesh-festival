@@ -565,6 +565,24 @@ test("public Prasadam Seva registration enforces block-assigned dates and suppor
   assert.match(initialize, /CREATE TABLE IF NOT EXISTS prasadam_offerings/); assert.match(styles, /\.prasadam-seva-form/);
 });
 
+test("public Pooja registration supports fixed schedules, children and capacity-safe paid Homam entries", async () => {
+  const [form, dashboard, route, proof, rules, migration, schema, initialize, gate, chrome, styles] = await Promise.all([
+    source("app/pooja-registration/PoojaRegistrationForm.tsx"), source("app/pooja/PoojaDashboard.tsx"),
+    source("app/api/pooja-registrations/route.ts"), source("app/api/pooja-registrations/proof/[id]/route.ts"),
+    source("app/lib/pooja.ts"), source("drizzle/0016_pooja_registrations.sql"), source("db/schema.ts"),
+    source("db/initialize.ts"), source("app/components/AuthGate.tsx"), source("app/components/SiteChrome.tsx"), source("app/globals.css"),
+  ]);
+  assert.match(rules, /HOMAM_FEE = 2500/); assert.match(rules, /HOMAM_CAPACITY = 10/);
+  assert.match(rules, /2026-09-14.*evening/s); assert.match(rules, /2026-09-15.*morning.*evening/s);
+  assert.match(rules, /Saraswathi Pooja/); assert.match(form, /Add Another Child/); assert.match(rules, /Lakshmi Pooja/);
+  assert.match(form, /Payment Confirmation Image/); assert.match(form, /Copy UPI ID/); assert.match(form, /normalizeFlat/);
+  assert.match(route, /SELECT COUNT\(\*\).*pooja_type='homam'.*HOMAM_CAPACITY/s); assert.match(route, /All 10 Homam slots/);
+  assert.match(route, /paymentProof/); assert.match(proof, /PAYMENT_PROOFS/); assert.match(dashboard, /View Payment Proof/);
+  assert.match(dashboard, /Saraswathi Pooja children/); assert.match(dashboard, /Homam entries/);
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS pooja_registrations/); assert.match(schema, /poojaRegistrations/); assert.match(initialize, /pooja_registrations/);
+  assert.match(gate, /publicPoojaForm/); assert.match(chrome, /Pooja Registrations/); assert.match(styles, /Pooja registrations/);
+});
+
 test("meeting minutes support structured actions and PDF-ready printing", async () => {
   const [route, screen, migration, styles] = await Promise.all([
     source("app/api/admin/meetings/route.ts"), source("app/meetings/MeetingMinutes.tsx"),

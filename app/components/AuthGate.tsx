@@ -13,7 +13,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     const publicDonationForm = path === "/contribute" || path === "/contribute/";
     const publicCulturalForm = path === "/cultural/register" || path === "/cultural/register/";
     const publicPrasadamForm = path === "/prasadam-seva" || path === "/prasadam-seva/";
-    const publicForm = publicDonationForm || publicCulturalForm || publicPrasadamForm;
+    const publicPoojaForm = path === "/pooja-registration" || path === "/pooja-registration/";
+    const publicForm = publicDonationForm || publicCulturalForm || publicPrasadamForm || publicPoojaForm;
     fetch("/api/auth/me", { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) { setState(publicForm ? "allowed" : "login"); return; }
@@ -65,6 +66,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       </form>
       <a className="button quiet full resident-donation-link" href="/contribute">Submit a donation without signing in</a>
       <a className="button quiet full resident-donation-link" href="/prasadam-seva">Offer Daily Prasadam</a>
+      <a className="button quiet full resident-donation-link" href="/pooja-registration">Register for Poojas</a>
       <small>Forgot your password? Contact the portal administrator.</small>
     </section>
     <aside className="login-art"><div className="login-disc"><strong>Ganesh<br />Chaturthi</strong><span>Hallmark Skyrena · 2026</span></div></aside>
