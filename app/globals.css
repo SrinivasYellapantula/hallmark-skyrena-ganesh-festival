@@ -302,8 +302,10 @@ label small { color: var(--muted); font-weight: 500; }.field-error{color:var(--r
 }
 
 /* Pooja committee exports */
+.pooja-choice-grid{grid-template-columns:repeat(3,1fr)}
 .pooja-toolbar{grid-template-columns:minmax(240px,1fr) 190px auto auto auto}.pooja-toolbar .button{white-space:nowrap}
 @media(max-width:1100px) and (min-width:681px){.pooja-toolbar{display:flex;flex-wrap:wrap}.pooja-toolbar>*{flex:1 1 170px}}
+@media(max-width:680px){.pooja-choice-grid{grid-template-columns:1fr}}
 @media print{
   body.printing-pooja-plan{background:#fff}.printing-pooja-plan>*{visibility:hidden}.printing-pooja-plan .pooja-dashboard,.printing-pooja-plan .pooja-dashboard *{visibility:visible}.printing-pooja-plan .pooja-dashboard{position:absolute;inset:0;width:100%;padding:0}.printing-pooja-plan .site-header,.printing-pooja-plan .site-footer,.printing-pooja-plan .no-print,.printing-pooja-plan .workspace-heading>.button,.printing-pooja-plan .card-actions{display:none!important}.printing-pooja-plan .workspace-heading{margin-bottom:10px}.printing-pooja-plan .workspace-heading h1{font-size:30px}.printing-pooja-plan .pooja-stat-grid{grid-template-columns:repeat(4,1fr);margin:12px 0}.printing-pooja-plan .pooja-stat-grid article{padding:9px}.printing-pooja-plan .pooja-stat-grid strong{font-size:19px}.printing-pooja-plan .pooja-registration-grid{grid-template-columns:repeat(3,1fr);gap:7px}.printing-pooja-plan .pooja-registration-grid>article{break-inside:avoid;padding:11px}.printing-pooja-plan .pooja-registration-grid h2{margin:10px 0 3px;font-size:17px}.printing-pooja-plan .pooja-registration-grid dl>div{padding:5px 0;font-size:9px}
 }

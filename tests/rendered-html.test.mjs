@@ -573,9 +573,11 @@ test("public Pooja registration supports fixed schedules, children and capacity-
     source("db/initialize.ts"), source("app/components/AuthGate.tsx"), source("app/components/SiteChrome.tsx"), source("app/globals.css"),
   ]);
   assert.match(rules, /HOMAM_FEE = 2500/); assert.match(rules, /HOMAM_CAPACITY = 10/);
-  assert.match(rules, /2026-09-14.*evening/s); assert.match(rules, /2026-09-15.*morning.*evening/s);
+  assert.doesNotMatch(rules, /date:"2026-09-14"/); assert.match(rules, /2026-09-15.*morning.*evening/s);
+  assert.match(rules, /\/\/ "lakshmi".*Temporarily closed/); assert.match(form, /POOJA_REGISTRATION_TYPES\.map/); assert.match(rules, /type==="homam"\?"2026-09-20"/);
   assert.match(rules, /Saraswathi Pooja/); assert.match(form, /Add Another Child/); assert.match(rules, /Lakshmi Pooja/);
   assert.match(form, /Payment Confirmation Image/); assert.match(form, /Copy UPI ID/); assert.match(form, /normalizeFlat/);
+  assert.match(form, /Days 2–6 · choose a session/); assert.match(form, /Day 7 · ₹/);
   assert.match(form, /pooja-field-label/); assert.match(styles, /\.pooja-field-label\{display:inline-flex/);
   assert.match(route, /SELECT COUNT\(\*\).*pooja_type='homam'.*HOMAM_CAPACITY/s); assert.match(route, /All 10 Homam slots/);
   assert.match(route, /paymentProof/); assert.match(proof, /PAYMENT_PROOFS/); assert.match(dashboard, /View Payment Proof/);

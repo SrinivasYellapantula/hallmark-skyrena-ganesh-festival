@@ -3,7 +3,7 @@ import { getD1 } from "../../../db";
 import { ensureDatabase } from "../../../db/initialize";
 import { authorize, getAppUser, scopedBlock } from "../../lib/auth";
 import { BLOCKS, EVENT_ID } from "../../lib/constants";
-import { HOMAM_CAPACITY, HOMAM_FEE, POOJA_TYPES, poojaDate, type PoojaType, validDailySlot } from "../../lib/pooja";
+import { HOMAM_CAPACITY, HOMAM_FEE, POOJA_REGISTRATION_TYPES, poojaDate, type PoojaType, validDailySlot } from "../../lib/pooja";
 import { cleanText, isValidFlatNo, normalizeFlatNo, wholeNumber } from "../../lib/server";
 
 const IMAGE_TYPES=new Set(["image/jpeg","image/png","image/webp"]);const MAX_PROOF_BYTES=1024*1024;
@@ -19,7 +19,7 @@ export async function POST(request:Request){
     const attendeeCount=wholeNumber(body.get("attendeeCount"),1,20);const notes=cleanText(body.get("notes"),500);
     const paymentReference=cleanText(body.get("paymentReference"),80);const proof=body.get("paymentProof");
     let children:Child[]=[];try{const value=JSON.parse(cleanText(body.get("participantDetails"),3000));if(Array.isArray(value))children=value.map((item)=>({name:cleanText(item?.name,100),age:Number(item?.age)}));}catch{}
-    if(!POOJA_TYPES.includes(type))return Response.json({error:"Choose a Pooja."},{status:400});
+    if(!(POOJA_REGISTRATION_TYPES as readonly string[]).includes(type))return Response.json({error:"Choose a Pooja."},{status:400});
     if(!BLOCKS.includes(blockNo as never))return Response.json({error:"Choose your block."},{status:400});
     if(!isValidFlatNo(flatNo,blockNo))return Response.json({error:`Enter a valid Block ${blockNo} flat number. You may include the selected block letter.`},{status:400});
     if(!residentName)return Response.json({error:type==="homam"?"Enter the participating couple’s name(s).":"Enter the resident name."},{status:400});
