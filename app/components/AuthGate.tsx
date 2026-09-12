@@ -12,16 +12,17 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     const path = window.location.pathname;
     const publicDonationForm = path === "/contribute" || path === "/contribute/";
     const publicCulturalForm = path === "/cultural/register" || path === "/cultural/register/";
+    const publicFancyDressForm = path === "/cultural/fancy-dress" || path === "/cultural/fancy-dress/";
     const publicPrasadamForm = path === "/prasadam-seva" || path === "/prasadam-seva/";
     const publicPoojaForm = path === "/pooja-registration" || path === "/pooja-registration/";
-    const publicForm = publicDonationForm || publicCulturalForm || publicPrasadamForm || publicPoojaForm;
+    const publicForm = publicDonationForm || publicCulturalForm || publicFancyDressForm || publicPrasadamForm || publicPoojaForm;
     fetch("/api/auth/me", { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) { setState(publicForm ? "allowed" : "login"); return; }
         const user = await response.json() as { role: "admin" | "block" | "cultural" };
         const adminOnly = path.startsWith("/admin") || path.startsWith("/meetings");
-        const culturalOnly = path.startsWith("/cultural") && !publicCulturalForm;
-        if (user.role === "cultural" && !culturalOnly && !publicCulturalForm) { window.location.replace("/cultural"); return; }
+        const culturalOnly = path.startsWith("/cultural") && !publicCulturalForm && !publicFancyDressForm;
+        if (user.role === "cultural" && !culturalOnly && !publicCulturalForm && !publicFancyDressForm) { window.location.replace("/cultural"); return; }
         if (user.role === "block" && (adminOnly || culturalOnly)) { window.location.replace("/"); return; }
         setState("allowed");
       })
@@ -67,6 +68,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       <a className="button quiet full resident-donation-link" href="/contribute">Submit a donation without signing in</a>
       <a className="button quiet full resident-donation-link" href="/prasadam-seva">Offer Daily Prasadam</a>
       <a className="button quiet full resident-donation-link" href="/pooja-registration">Register for Poojas</a>
+      <a className="button quiet full resident-donation-link" href="/cultural/fancy-dress">Register for Fancy Dress</a>
       <small>Forgot your password? Contact the portal administrator.</small>
     </section>
     <aside className="login-art"><div className="login-disc"><strong>Ganesh<br />Chaturthi</strong><span>Hallmark Skyrena · 2026</span></div></aside>

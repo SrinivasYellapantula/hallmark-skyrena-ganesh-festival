@@ -508,9 +508,9 @@ test("residents and volunteers share a structured cultural registration workflow
   assert.match(form, /Upload the song file/); assert.match(form, /Performer will play from their own device/);
   assert.match(form, /downloaded for offline playback/); assert.match(form, /sound check/);
   assert.match(form, /Automatically set to Group for Kolatam/); assert.match(form, /Kolatam Representative/);
-  assert.match(form, /category!=="Kolatam"&&performanceType==="group"/); assert.match(form, /category!=="Kolatam"&&<fieldset/);
+  assert.match(form, /category!=="Kolatam"&&category!=="Fancy Dress"&&performanceType==="group"/); assert.match(form, /category!=="Kolatam"&&category!=="Fancy Dress"&&<fieldset/);
   assert.match(route, /isKolatam/); assert.match(route, /A Kolatam entry must contain one representative/);
-  assert.match(route, /isKolatam\?"not_required"/); assert.match(route, /durationMinutes=isKolatam\?0/);
+  assert.match(route, /simplified\s*\?\s*"not_required"/); assert.match(route, /durationMinutes=simplified\?0/);
   assert.doesNotMatch(form, /Approximate Setup Time|Chairs, Tables or Other Stage Setup|Props or Special Arrangements/);
   assert.doesNotMatch(form, /Additional Information/);
   assert.match(form, /Important Participation Guidelines/); assert.match(form, /Group Notes/);
@@ -531,11 +531,26 @@ test("residents and volunteers share a structured cultural registration workflow
   assert.match(exportRoute, /categoryMatches/); assert.match(workspace, /categoryFilter/);
   assert.match(workspace, /Filter cultural registrations by performance type/); assert.match(workspace, /All Types/);
   assert.match(exportRoute, /typeMatches/); assert.match(workspace, /typeFilter/);
-  assert.match(workspace, /!isKolatam&&<div><dt>Duration/); assert.match(workspace, /!isKolatam&&<div><dt>Audio arrangement/);
+  assert.match(workspace, /item\.category==="Kolatam"\|\|item\.category==="Fancy Dress"/); assert.match(workspace, /!simplified&&<div><dt>Duration/); assert.match(workspace, /!simplified&&<div><dt>Audio arrangement/);
   assert.match(authGate, /publicCulturalForm/); assert.match(chrome, /\/prasadam-seva\/manage/);
   assert.match(culturalConstants, /clarification_required/); assert.match(culturalConstants, /waitlisted/);
   assert.match(culturalConstants, /scheduled/); assert.match(migration, /reference_no/);
   assert.match(migration, /audio_key/); assert.match(migration, /source/);
+});
+
+test("public Fancy Dress registration is simplified, deadline-bound and visible to the cultural committee", async () => {
+  const [page, form, route, constants, gate, workspace, styles] = await Promise.all([
+    source("app/cultural/fancy-dress/page.tsx"), source("app/cultural/fancy-dress/FancyDressRegistrationForm.tsx"),
+    source("app/api/cultural/fancy-dress/route.ts"), source("app/lib/cultural.ts"), source("app/components/AuthGate.tsx"),
+    source("app/cultural/CulturalProgramme.tsx"), source("app/globals.css"),
+  ]);
+  assert.match(page, /Fancy Dress Registration/); assert.match(page, /17 September 2026/); assert.match(page, /7:00 PM onwards/);
+  assert.match(form, /Participant Name/); assert.match(form, /Flat Number/); assert.match(form, /Mobile Number/); assert.match(form, /13 September 2026/);
+  assert.match(form, /normalizeFlat/); assert.match(form, /pattern="\[0-9\]\{10\}"/); assert.match(route, /FANCY_DRESS_DEADLINE/);
+  assert.match(route, /Date\.now\(\)>new Date/); assert.match(route, /isValidFlatNo/); assert.match(route, /'Fancy Dress','solo','Fancy Dress'/);
+  assert.match(route, /FANCY_DRESS_DATE,FANCY_DRESS_TIME/); assert.match(constants, /"Fancy Dress"/); assert.match(constants, /2026-09-17/);
+  assert.match(constants, /2026-09-13T23:59:59\+05:30/); assert.match(gate, /publicFancyDressForm/); assert.match(workspace, /Fancy Dress Form/);
+  assert.match(styles, /\.fancy-dress-form/);
 });
 
 test("public Prasadam Seva registration enforces block-assigned dates and supports committee planning", async () => {

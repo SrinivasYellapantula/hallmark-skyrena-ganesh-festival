@@ -3,7 +3,7 @@ import { getD1 } from "../../../../db";
 import { ensureDatabase } from "../../../../db/initialize";
 import { getAppUser, authorize, isPortalOwner } from "../../../lib/auth";
 import { BLOCKS, EVENT_ID } from "../../../lib/constants";
-import { CULTURAL_CATEGORIES, CULTURAL_STATUSES } from "../../../lib/cultural";
+import { CULTURAL_CATEGORIES, CULTURAL_STATUSES, FANCY_DRESS_DATE, FANCY_DRESS_TIME } from "../../../lib/cultural";
 import { hashSessionToken, newSessionToken } from "../../../lib/passwords";
 import { cleanText, isValidFlatNo, normalizeFlatNo, wholeNumber } from "../../../lib/server";
 
@@ -71,14 +71,16 @@ export async function POST(request: Request) {
   const body = await request.formData();
   const category = cleanText(body.get("category"), 80);
   const isKolatam = category === "Kolatam";
-  const performanceType = isKolatam ? "group" : cleanText(body.get("performanceType"), 10).toLowerCase();
-  const title = isKolatam ? "Kolatam" : cleanText(body.get("title"), 160);
+  const isFancyDress = category === "Fancy Dress";
+  const simplified = isKolatam || isFancyDress;
+  const performanceType = isKolatam ? "group" : isFancyDress ? "solo" : cleanText(body.get("performanceType"), 10).toLowerCase();
+  const title = simplified ? category : cleanText(body.get("title"), 160);
   const participants = parseParticipants(body.get("participantDetails"));
   const contactName = cleanText(body.get("contactName"), 100);
   const contactPhone = cleanText(body.get("contactPhone"), 20).replace(/\D/g, "");
-  const durationMinutes = isKolatam ? 0 : wholeNumber(body.get("durationMinutes"), 1, 30);
-  const audioArrangement = isKolatam ? "not_required" : cleanText(body.get("audioArrangement"), 30);
-  const deviceDetails = isKolatam ? "" : cleanText(body.get("deviceDetails"), 500);
+  const durationMinutes = simplified ? 0 : wholeNumber(body.get("durationMinutes"), 1, 30);
+  const audioArrangement = simplified ? "not_required" : cleanText(body.get("audioArrangement"), 30);
+  const deviceDetails = simplified ? "" : cleanText(body.get("deviceDetails"), 500);
   const stageRequirements = cleanText(body.get("stageRequirements"), 1000);
   const propsRequirements = cleanText(body.get("propsRequirements"), 1000);
   const setupMinutes = 0;
@@ -91,13 +93,13 @@ export async function POST(request: Request) {
   if (!participants) return Response.json({ error: "Enter a valid name, age, block and flat number for every participant." }, { status: 400 });
   if (isKolatam && participants.length !== 1) return Response.json({ error: "A Kolatam entry must contain one representative." }, { status: 400 });
   if (performanceType === "solo" && participants.length !== 1) return Response.json({ error: "A solo entry must contain one participant." }, { status: 400 });
-  if (!isKolatam && performanceType === "group" && participants.length < 2) return Response.json({ error: "Add at least two participants for a group entry." }, { status: 400 });
-  if (!isKolatam && performanceType === "group" && !notes) return Response.json({ error: "Enter the expected participant total in Group Notes." }, { status: 400 });
+  if (!simplified && performanceType === "group" && participants.length < 2) return Response.json({ error: "Add at least two participants for a group entry." }, { status: 400 });
+  if (!simplified && performanceType === "group" && !notes) return Response.json({ error: "Enter the expected participant total in Group Notes." }, { status: 400 });
   if (!contactName || !/^\d{10}$/.test(contactPhone)) return Response.json({ error: "Enter the point of contact name and a valid 10-digit mobile number." }, { status: 400 });
   if (durationMinutes === null) return Response.json({ error: "Enter a valid duration." }, { status: 400 });
-  if (!isKolatam && !["upload", "own_device"].includes(audioArrangement)) return Response.json({ error: "Choose how the performance audio will be provided." }, { status: 400 });
+  if (!simplified && !["upload", "own_device"].includes(audioArrangement)) return Response.json({ error: "Choose how the performance audio will be provided." }, { status: 400 });
   if (audioArrangement === "own_device" && !deviceDetails) return Response.json({ error: "Enter the performer’s device and connection details." }, { status: 400 });
-  const hasAudio = !isKolatam && audio instanceof File && audio.size > 0;
+  const hasAudio = !simplified && audio instanceof File && audio.size > 0;
   if (audioArrangement === "upload" && !hasAudio) return Response.json({ error: "Upload the song file." }, { status: 400 });
   if (hasAudio && (!AUDIO_TYPES.has(audio.type) || audio.size > MAX_AUDIO_BYTES))
     return Response.json({ error: "Upload an MP3, M4A or WAV audio track up to 8 MB." }, { status: 400 });
@@ -126,12 +128,13 @@ export async function POST(request: Request) {
          audio_key,audio_name,audio_type,audio_arrangement,device_details,stage_requirements,props_requirements,setup_minutes,source,edit_token_hash,created_by,notes)
         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'submitted',?,?,?,?,?,?,?,?,?,?,?,?,?)`)
         .bind(id,EVENT_ID,referenceNo,title,performanceType,category,JSON.stringify(participants),"",
-          contactName,contactPhone,first.blockNo,first.flatNo,durationMinutes,isKolatam ? 0 : 1,
+          contactName,contactPhone,first.blockNo,first.flatNo,durationMinutes,simplified ? 0 : 1,
           audioKey,hasAudio ? audio.name : null,hasAudio ? audio.type : null,audioArrangement,deviceDetails,stageRequirements,propsRequirements,
           setupMinutes,source,editTokenHash,actor,notes),
       d1.prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor,details)
         VALUES(?,'cultural_programme',?,'submitted',?,?)`)
         .bind(crypto.randomUUID(),id,actor,JSON.stringify({referenceNo,source,performanceType,category,participantCount:participants.length})),
+      d1.prepare("UPDATE cultural_programmes SET programme_date=?,start_time=? WHERE id=? AND ?=1").bind(FANCY_DRESS_DATE,FANCY_DRESS_TIME,id,isFancyDress?1:0),
     ]);
     return Response.json({ referenceNo, editToken }, { status: 201 });
   } catch (error) {
@@ -164,14 +167,15 @@ export async function PUT(request: Request) {
   if (!existing) return Response.json({ error: "Cultural registration not found or the edit link is invalid." }, { status: 404 });
   const category=cleanText(body.get("category"),80);
   const isKolatam=category==="Kolatam";
-  const performanceType=isKolatam?"group":cleanText(body.get("performanceType"),10).toLowerCase();
-  const title=isKolatam?"Kolatam":cleanText(body.get("title"),160);
+  const isFancyDress=category==="Fancy Dress";const simplified=isKolatam||isFancyDress;
+  const performanceType=isKolatam?"group":isFancyDress?"solo":cleanText(body.get("performanceType"),10).toLowerCase();
+  const title=simplified?category:cleanText(body.get("title"),160);
   const participantDetails=parseParticipants(body.get("participantDetails"));
   const contactName=cleanText(body.get("contactName"),100);
   const contactPhone=cleanText(body.get("contactPhone"),20).replace(/\D/g,"");
-  const durationMinutes=isKolatam?0:wholeNumber(body.get("durationMinutes"),1,30);
-  const audioArrangement=isKolatam?"not_required":cleanText(body.get("audioArrangement"),30);
-  const deviceDetails=isKolatam?"":cleanText(body.get("deviceDetails"),500);
+  const durationMinutes=simplified?0:wholeNumber(body.get("durationMinutes"),1,30);
+  const audioArrangement=simplified?"not_required":cleanText(body.get("audioArrangement"),30);
+  const deviceDetails=simplified?"":cleanText(body.get("deviceDetails"),500);
   const notes=cleanText(body.get("notes"),600);
   const audio=body.get("audioTrack");
   if(!["solo","group"].includes(performanceType))return Response.json({error:"Choose Solo or Group."},{status:400});
@@ -180,13 +184,13 @@ export async function PUT(request: Request) {
   if(!participantDetails)return Response.json({error:"Enter a valid name, age, block and flat number for every participant."},{status:400});
   if(isKolatam&&participantDetails.length!==1)return Response.json({error:"A Kolatam entry must contain one representative."},{status:400});
   if(performanceType==="solo"&&participantDetails.length!==1)return Response.json({error:"A solo entry must contain one participant."},{status:400});
-  if(!isKolatam&&performanceType==="group"&&participantDetails.length<2)return Response.json({error:"Add at least two participants for a group entry."},{status:400});
-  if(!isKolatam&&performanceType==="group"&&!notes)return Response.json({error:"Enter the expected participant total in Group Notes."},{status:400});
+  if(!simplified&&performanceType==="group"&&participantDetails.length<2)return Response.json({error:"Add at least two participants for a group entry."},{status:400});
+  if(!simplified&&performanceType==="group"&&!notes)return Response.json({error:"Enter the expected participant total in Group Notes."},{status:400});
   if(!contactName||!/^\d{10}$/.test(contactPhone))return Response.json({error:"Enter the point of contact name and a valid 10-digit mobile number."},{status:400});
   if(durationMinutes===null)return Response.json({error:"Enter a valid duration."},{status:400});
-  if(!isKolatam&&!["upload","own_device"].includes(audioArrangement))return Response.json({error:"Choose how the performance audio will be provided."},{status:400});
+  if(!simplified&&!["upload","own_device"].includes(audioArrangement))return Response.json({error:"Choose how the performance audio will be provided."},{status:400});
   if(audioArrangement==="own_device"&&!deviceDetails)return Response.json({error:"Enter the performer’s device and connection details."},{status:400});
-  const hasNewAudio=!isKolatam&&audio instanceof File&&audio.size>0;
+  const hasNewAudio=!simplified&&audio instanceof File&&audio.size>0;
   if(audioArrangement==="upload"&&!hasNewAudio&&!existing.audioKey)return Response.json({error:"Upload the song file."},{status:400});
   if(hasNewAudio&&(!AUDIO_TYPES.has(audio.type)||audio.size>MAX_AUDIO_BYTES))return Response.json({error:"Upload an MP3, M4A or WAV audio track up to 8 MB."},{status:400});
   const proofStore=(env as unknown as{PAYMENT_PROOFS?:KVNamespace}).PAYMENT_PROOFS;
@@ -194,15 +198,15 @@ export async function PUT(request: Request) {
   if(hasNewAudio){if(!proofStore)return Response.json({error:"Audio storage is temporarily unavailable."},{status:503});newAudioKey=`${EVENT_ID}/cultural/${existing.id}/${crypto.randomUUID()}`;await proofStore.put(newAudioKey,await audio.arrayBuffer(),{metadata:{originalName:audio.name,contentType:audio.type,uploadedBy:actor}});}
   const first=participantDetails[0];
   const nextStatus=residentEdit?"submitted":existing.status;
-  const finalAudioKey=!isKolatam&&audioArrangement==="upload"?(newAudioKey??existing.audioKey):null;
-  const finalAudioName=!isKolatam&&audioArrangement==="upload"?(hasNewAudio?audio.name:existing.audioName):null;
-  const finalAudioType=!isKolatam&&audioArrangement==="upload"?(hasNewAudio?audio.type:existing.audioType):null;
+  const finalAudioKey=!simplified&&audioArrangement==="upload"?(newAudioKey??existing.audioKey):null;
+  const finalAudioName=!simplified&&audioArrangement==="upload"?(hasNewAudio?audio.name:existing.audioName):null;
+  const finalAudioType=!simplified&&audioArrangement==="upload"?(hasNewAudio?audio.type:existing.audioType):null;
   try{
     await d1.batch([
-      d1.prepare(`UPDATE cultural_programmes SET title=?,performance_type=?,category=?,participant_details=?,contact_name=?,contact_phone=?,block_no=?,flat_no=?,duration_minutes=?,background_music=?,audio_key=?,audio_name=?,audio_type=?,audio_arrangement=?,device_details=?,notes=?,status=?,programme_date=CASE WHEN ? THEN '' ELSE programme_date END,start_time=CASE WHEN ? THEN '' ELSE start_time END,updated_at=CURRENT_TIMESTAMP WHERE id=? AND event_id=?`).bind(title,performanceType,category,JSON.stringify(participantDetails),contactName,contactPhone,first.blockNo,first.flatNo,durationMinutes,isKolatam?0:1,finalAudioKey,finalAudioName,finalAudioType,audioArrangement,deviceDetails,notes,nextStatus,residentEdit?1:0,residentEdit?1:0,existing.id,EVENT_ID),
+      d1.prepare(`UPDATE cultural_programmes SET title=?,performance_type=?,category=?,participant_details=?,contact_name=?,contact_phone=?,block_no=?,flat_no=?,duration_minutes=?,background_music=?,audio_key=?,audio_name=?,audio_type=?,audio_arrangement=?,device_details=?,notes=?,status=?,programme_date=CASE WHEN ? THEN '' ELSE programme_date END,start_time=CASE WHEN ? THEN '' ELSE start_time END,updated_at=CURRENT_TIMESTAMP WHERE id=? AND event_id=?`).bind(title,performanceType,category,JSON.stringify(participantDetails),contactName,contactPhone,first.blockNo,first.flatNo,durationMinutes,simplified?0:1,finalAudioKey,finalAudioName,finalAudioType,audioArrangement,deviceDetails,notes,nextStatus,residentEdit?1:0,residentEdit?1:0,existing.id,EVENT_ID),
       d1.prepare(`INSERT INTO audit_log(id,entity_type,entity_id,action,actor,details) VALUES(?,'cultural_programme',?,'entry_updated',?,?)`).bind(crypto.randomUUID(),existing.id,actor,JSON.stringify({residentEdit,referenceNo:existing.referenceNo})),
     ]);
-    if(existing.audioKey&&(newAudioKey||audioArrangement==="own_device"||isKolatam))await proofStore?.delete(existing.audioKey).catch(()=>undefined);
+    if(existing.audioKey&&(newAudioKey||audioArrangement==="own_device"||simplified))await proofStore?.delete(existing.audioKey).catch(()=>undefined);
     return Response.json({ok:true,referenceNo:existing.referenceNo,editToken:editToken||null});
   }catch(error){if(newAudioKey)await proofStore?.delete(newAudioKey).catch(()=>undefined);throw error;}
 }
